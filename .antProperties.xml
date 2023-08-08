@@ -1,0 +1,5 @@
+<!-- This file is generated on each "Link Ghidra" command.  Do not modify. -->
+
+<project>
+  <property name="ghidra.install.dir" value="/opt/homebrew/Caskroom/ghidra/10.3.2-20230711/ghidra_10.3.2_PUBLIC" />
+</project>
