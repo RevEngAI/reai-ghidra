@@ -5,7 +5,11 @@
 	<classpathentry kind="src" path="src/main/resources"/>
 	<classpathentry kind="src" path="ghidra_scripts"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.launching.macosx.MacOSXType/OpenJDK 20.0.2 [20.0.2]"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.launching.macosx.MacOSXType/OpenJDK 20.0.2 [20.0.2]">
+		<attributes>
+			<attribute name="module" value="true"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="lib" path="/opt/homebrew/Caskroom/ghidra/10.3.2-20230711/ghidra_10.3.2_PUBLIC/Ghidra/Processors/68000/lib/68000.jar" sourcepath="/opt/homebrew/Caskroom/ghidra/10.3.2-20230711/ghidra_10.3.2_PUBLIC/Ghidra/Processors/68000/lib/68000-src.zip">
 		<attributes>
 			<attribute name="javadoc_location" value="jar:file:/opt/homebrew/Caskroom/ghidra/10.3.2-20230711/ghidra_10.3.2_PUBLIC/docs/GhidraAPI_javadoc.zip!/api/"/>
@@ -656,5 +660,7 @@
 			<attribute name="javadoc_location" value="jar:file:/opt/homebrew/Caskroom/ghidra/10.3.2-20230711/ghidra_10.3.2_PUBLIC/docs/GhidraAPI_javadoc.zip!/api/"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="lib" path="/Users/nathanr/Projects/RevEng.ai/reait-ghidra/lib/json-20230618.jar"/>
+	<classpathentry kind="lib" path="/Users/nathanr/Projects/RevEng.ai/reait-ghidra/lib/toml4j-0.7.2.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

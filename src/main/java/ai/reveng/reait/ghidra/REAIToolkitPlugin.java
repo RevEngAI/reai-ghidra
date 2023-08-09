@@ -45,6 +45,12 @@ public class REAIToolkitPlugin extends ProgramPlugin {
 	 */
 	public REAIToolkitPlugin(PluginTool tool) {
 		super(tool);
+		
+		// init the helper
+		REAITHelper helper = REAITHelper.getInstance();
+		helper.setTaskMonitor();
+		
+		TaskMo
 
 		// TODO: Customize provider (or remove if a provider is not desired)
 		String pluginName = getName();
