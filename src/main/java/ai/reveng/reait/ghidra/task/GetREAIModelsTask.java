@@ -8,7 +8,6 @@ import org.json.JSONException;
 import ai.reveng.reait.client.Client;
 import ai.reveng.reait.exceptions.REAIApiException;
 import ai.reveng.reait.ghidra.REAITHelper;
-import ai.reveng.reait.ghidra.task.callback.GetModelTaskCallback;
 import ai.reveng.reait.model.ModelInfo;
 import ghidra.util.Msg;
 import ghidra.util.task.Task;
@@ -19,7 +18,7 @@ import ghidra.util.task.TaskMonitor;
  */
 public class GetREAIModelsTask extends Task {
 	// callback interface used to communicate with the (UI) component
-	private GetModelTaskCallback callback;
+	private TaskCallback<Vector<String>> callback;
 	// Users API key
 	private String apiKey;
 	// Host of the API endpoints
@@ -31,8 +30,8 @@ public class GetREAIModelsTask extends Task {
 	 * @param hostname server that hosts the API endpoints
 	 * @param callback interface for passing results to frontend
 	 */
-	public GetREAIModelsTask(String apikey, String hostname, GetModelTaskCallback callback) {
-		super("Get Models", true, true, true);
+	public GetREAIModelsTask(String apikey, String hostname, TaskCallback<Vector<String>> callback) {
+		super("Get Models", false, false, false);
 		this.callback = callback;
 		this.apiKey = apikey;
 		this.hostname = hostname;

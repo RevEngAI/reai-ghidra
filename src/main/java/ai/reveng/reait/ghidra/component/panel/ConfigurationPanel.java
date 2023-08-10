@@ -15,7 +15,7 @@ import javax.swing.JTextField;
 import ghidra.util.task.Task;
 import ghidra.util.task.TaskLauncher;
 import ai.reveng.reait.ghidra.task.GetREAIModelsTask;
-import ai.reveng.reait.ghidra.task.callback.GetModelTaskCallback;
+import ai.reveng.reait.ghidra.task.TaskCallback;
 
 import javax.swing.JSeparator;
 import java.awt.event.MouseAdapter;
@@ -25,14 +25,14 @@ import java.util.Vector;
 /**
  * GUI for setting up workspace configuration options
  */
-public class ConfigurationPanel extends JPanel implements GetModelTaskCallback {
+public class ConfigurationPanel extends JPanel {
 	private static final long serialVersionUID = 5755627979435316462L;
 	private JTextField tfHostname;
 	private JTextField tfAPIKey;
 	private JComboBox<String> cbModelName;
 	private JComboBox<?> cbModelVersion;
 	
-	private GetModelTaskCallback callback;
+	private TaskCallback<Vector<String>> callback;
 
 	/**
 	 * Create the panel.
@@ -43,7 +43,22 @@ public class ConfigurationPanel extends JPanel implements GetModelTaskCallback {
 		setMaximumSize(getPreferredSize());
 		setMinimumSize(getPreferredSize());
 		
-		this.callback = this;
+		this.callback = new TaskCallback<Vector<String>>() {
+			
+			@Override
+			public void onTaskCompleted(Vector<String> results) {
+				DefaultComboBoxModel<String> cbModelNames = new DefaultComboBoxModel<String>(results);
+				cbModelName.setModel(cbModelNames);
+				cbModelName.setEnabled(true);
+				
+			}
+
+			@Override
+			public void onTaskError(Exception e) {
+				// TODO Auto-generated method stub
+				
+			}
+		};
 		
 		JPanel configOptionsPanel = new JPanel();
 		add(configOptionsPanel, BorderLayout.CENTER);
@@ -140,19 +155,5 @@ public class ConfigurationPanel extends JPanel implements GetModelTaskCallback {
 	}
 	public JTextField getHostname() {
 		return tfHostname;
-	}
-
-	@Override
-	public void onTaskCompleted(Vector<String> results) {
-		DefaultComboBoxModel<String> cbModelNames = new DefaultComboBoxModel<String>(results);
-		cbModelName.setModel(cbModelNames);
-		cbModelName.setEnabled(true);
-		
-	}
-
-	@Override
-	public void onTaskError(Exception e) {
-		// TODO Auto-generated method stub
-		
 	}
 }
