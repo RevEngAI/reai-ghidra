@@ -22,6 +22,9 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.Vector;
 
+/**
+ * GUI for setting up workspace configuration options
+ */
 public class ConfigurationPanel extends JPanel implements GetModelTaskCallback {
 	private static final long serialVersionUID = 5755627979435316462L;
 	private JTextField tfHostname;

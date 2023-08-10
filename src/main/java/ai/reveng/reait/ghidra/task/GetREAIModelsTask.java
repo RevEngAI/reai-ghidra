@@ -11,11 +11,23 @@ import ghidra.util.Msg;
 import ghidra.util.task.Task;
 import ghidra.util.task.TaskMonitor;
 
+/**
+ * Class the allows the GetModels API to be called as a (background) task
+ */
 public class GetREAIModelsTask extends Task {
+	// callback interface used to communicate with the (UI) component
 	private GetModelTaskCallback callback;
+	// Users API key
 	private String apiKey;
+	// Host of the API endpoints
 	private String hostname;
 	
+	/**
+	 * Create a new task for gathering model names from the api
+	 * @param apikey users API Key
+	 * @param hostname server that hosts the API endpoints
+	 * @param callback interface for passing results to frontend
+	 */
 	public GetREAIModelsTask(String apikey, String hostname, GetModelTaskCallback callback) {
 		super("Get Models", true, true, true);
 		this.callback = callback;

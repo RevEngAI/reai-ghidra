@@ -8,6 +8,14 @@ import java.util.Vector;
  * @see GetREAIModelsTask
  */
 public interface GetModelTaskCallback {
+	/**
+	 * Pass the list of model names back to the calling component
+	 * @param results list of model names in the form <model>-<version>
+	 */
 	void onTaskCompleted(Vector<String> results);
+	/**
+	 * Inform the caller that an error has occurred and allow them to handle it
+	 * @param e generic exception
+	 */
 	void onTaskError(Exception e);
 }

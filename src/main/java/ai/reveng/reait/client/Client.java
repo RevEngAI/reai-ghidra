@@ -24,9 +24,16 @@ import ai.reveng.reait.REAITConfig;
 import ai.reveng.reait.REAITResponse;
 import ai.reveng.reait.model.ModelInfo;
 
+/**
+ * Class that models a RevEng.AI API endpoint Client
+ */
 public class Client {
 	private REAITConfig config;
 	
+	/**
+	 * Create a new client from a .toml config file
+	 * @param configPath path to config file on filesystem
+	 */
 	public Client(String configPath) {
 		this.config = new REAITConfig(configPath);
 	}
@@ -57,6 +64,10 @@ public class Client {
 		return postData.toString();
 	}
 	
+	/**
+	 * 
+	 * @return list of models available to the client
+	 */
 	public List<ModelInfo> getModels() {
 		List<ModelInfo> models = new ArrayList<ModelInfo>();
 		REAITResponse res = null;
@@ -78,7 +89,19 @@ public class Client {
 		return models;
 	}
 	
-	public REAITResponse send(String requestType, String endPoint, JSONObject data, HashMap<String, String> headers, HashMap<String, String> params) throws IOException, URISyntaxException {
+	/**
+	 * Send a request to the RevEng.AI API and get the result
+	 * @param requestType HTTP request type ["GET", "POST", "DELETE"]
+	 * @param endPoint API endpoint for the request
+	 * @param data JSON object containing the data for the endpoint
+	 * @param headers HTTP headers for the request, one of which must be Authorization: <api_key>
+	 * @param params HTTP parameters for the request
+	 * @return REAITResponse that contains the status code, and a JSONObject with any relevent data
+	 * @see REAITResponse
+	 * @throws IOException
+	 * @throws URISyntaxException
+	 */
+	private REAITResponse send(String requestType, String endPoint, JSONObject data, HashMap<String, String> headers, HashMap<String, String> params) throws IOException, URISyntaxException {
 		URL url;
 		HttpsURLConnection conn;
 		String paramsString = null;
