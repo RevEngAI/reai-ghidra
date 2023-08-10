@@ -54,7 +54,7 @@ public class GetREAIModelsTask extends Task {
 		try {
 			models = helper.getClient().getModels();
 		} catch (JSONException | REAIApiException e) {
-			Msg.showError(this, null, "API Error", e.getMessage());
+			this.callback.onTaskError(e);
 			return;
 		}
 		monitor.setMessage("Retreiving available models");

@@ -12,10 +12,14 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 
+import ghidra.util.Msg;
 import ghidra.util.task.Task;
 import ghidra.util.task.TaskLauncher;
+import ai.reveng.reait.ghidra.REAITHelper;
 import ai.reveng.reait.ghidra.task.GetREAIModelsTask;
 import ai.reveng.reait.ghidra.task.TaskCallback;
+import ai.reveng.reait.ghidra.task.WriteConfigFileTask;
+import ai.reveng.reait.model.ModelInfo;
 
 import javax.swing.JSeparator;
 import java.awt.event.MouseAdapter;
@@ -32,7 +36,8 @@ public class ConfigurationPanel extends JPanel {
 	private JComboBox<String> cbModelName;
 	private JComboBox<?> cbModelVersion;
 	
-	private TaskCallback<Vector<String>> callback;
+	private TaskCallback<Vector<String>> getModelsCallback;
+	private TaskCallback<String> writeConfigCallback;
 
 	/**
 	 * Create the panel.
@@ -43,7 +48,7 @@ public class ConfigurationPanel extends JPanel {
 		setMaximumSize(getPreferredSize());
 		setMinimumSize(getPreferredSize());
 		
-		this.callback = new TaskCallback<Vector<String>>() {
+		this.getModelsCallback = new TaskCallback<Vector<String>>() {
 			
 			@Override
 			public void onTaskCompleted(Vector<String> results) {
@@ -55,8 +60,23 @@ public class ConfigurationPanel extends JPanel {
 
 			@Override
 			public void onTaskError(Exception e) {
-				// TODO Auto-generated method stub
+				Msg.showError(this, null, "API Error", e.getMessage());
 				
+			}
+		};
+		
+		this.writeConfigCallback = new TaskCallback<String>() {
+			
+			@Override
+			public void onTaskError(Exception e) {
+				Msg.showError(this, null, "Write Config Error", e.getMessage());
+				return;
+				
+			}
+			
+			@Override
+			public void onTaskCompleted(String result) {
+				Msg.showInfo(this, null, "Write Config", "Wrote Config to: " + result);
 			}
 		};
 		
@@ -129,7 +149,7 @@ public class ConfigurationPanel extends JPanel {
 		btnGetModels.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
-				Task task = new GetREAIModelsTask(tfAPIKey.getText().toString(), tfHostname.getText().toString(), callback);
+				Task task = new GetREAIModelsTask(tfAPIKey.getText().toString(), tfHostname.getText().toString(), getModelsCallback);
 				TaskLauncher.launch(task);
 			}
 		});
@@ -139,8 +159,16 @@ public class ConfigurationPanel extends JPanel {
 		add(actionPanel, BorderLayout.SOUTH);
 		actionPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 5, 5));
 		
-		JButton btnStart = new JButton("Start using RevEngAI");
-		actionPanel.add(btnStart);
+		JButton btnSave = new JButton("Save Configuration");
+		btnSave.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				REAITHelper.getInstance().getClient().getConfig().setModel(new ModelInfo(cbModelName.getSelectedItem().toString()));
+				Task task = new WriteConfigFileTask(writeConfigCallback);
+				TaskLauncher.launch(task);
+			}
+		});
+		actionPanel.add(btnSave);
 
 	}
 
