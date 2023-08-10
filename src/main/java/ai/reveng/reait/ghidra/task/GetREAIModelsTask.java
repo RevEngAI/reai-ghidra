@@ -3,7 +3,10 @@ package ai.reveng.reait.ghidra.task;
 import java.util.List;
 import java.util.Vector;
 
+import org.json.JSONException;
+
 import ai.reveng.reait.client.Client;
+import ai.reveng.reait.exceptions.REAIApiException;
 import ai.reveng.reait.ghidra.REAITHelper;
 import ai.reveng.reait.ghidra.task.callback.GetModelTaskCallback;
 import ai.reveng.reait.model.ModelInfo;
@@ -48,7 +51,13 @@ public class GetREAIModelsTask extends Task {
 		}
 		monitor.setMessage("Connecting to API server...");
 		helper.setClient(new Client(this.apiKey, this.hostname));
-		List<ModelInfo> models = helper.getClient().getModels();
+		List<ModelInfo> models;
+		try {
+			models = helper.getClient().getModels();
+		} catch (JSONException | REAIApiException e) {
+			Msg.showError(this, null, "API Error", e.getMessage());
+			return;
+		}
 		monitor.setMessage("Retreiving available models");
 		Vector<String> modelNames = new Vector<String>();
 		for (ModelInfo model : models) {

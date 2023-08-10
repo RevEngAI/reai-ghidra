@@ -18,10 +18,12 @@ import java.util.Map;
 import javax.net.ssl.HttpsURLConnection;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import ai.reveng.reait.REAITConfig;
 import ai.reveng.reait.REAITResponse;
+import ai.reveng.reait.exceptions.REAIApiException;
 import ai.reveng.reait.model.ModelInfo;
 
 /**
@@ -67,8 +69,10 @@ public class Client {
 	/**
 	 * 
 	 * @return list of models available to the client
+	 * @throws REAIApiException 
+	 * @throws JSONException 
 	 */
-	public List<ModelInfo> getModels() {
+	public List<ModelInfo> getModels() throws JSONException, REAIApiException {
 		List<ModelInfo> models = new ArrayList<ModelInfo>();
 		REAITResponse res = null;
 		
@@ -82,10 +86,15 @@ public class Client {
 			System.err.println(e.getMessage());
 		}
 		
+		if (res.data.has("error")) {
+			throw new REAIApiException(res.data.getString("error"));
+		}
+		
 		JSONArray jmodels = res.data.getJSONArray("models");
 		for (int i = 0; i < jmodels.length(); i++) {
 			models.add(new ModelInfo(jmodels.getString(i)));
 		}
+		
 		return models;
 	}
 	
