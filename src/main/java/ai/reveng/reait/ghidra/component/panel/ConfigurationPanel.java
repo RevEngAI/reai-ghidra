@@ -124,9 +124,6 @@ public class ConfigurationPanel extends JPanel implements GetModelTaskCallback {
 		add(actionPanel, BorderLayout.SOUTH);
 		actionPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 5, 5));
 		
-		JButton btnCancel = new JButton("Cancel");
-		actionPanel.add(btnCancel);
-		
 		JButton btnStart = new JButton("Start using RevEngAI");
 		actionPanel.add(btnStart);
 
