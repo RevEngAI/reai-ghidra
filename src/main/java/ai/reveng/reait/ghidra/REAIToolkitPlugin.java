@@ -15,6 +15,7 @@
  */
 package ai.reveng.reait.ghidra;
 
+import ai.reveng.reait.ghidra.actions.FunctionSimilarityAction;
 import ai.reveng.reait.ghidra.component.ConfigureComponentProvider;
 import ghidra.app.plugin.PluginCategoryNames;
 import ghidra.app.plugin.ProgramPlugin;
@@ -71,6 +72,7 @@ public class REAIToolkitPlugin extends ProgramPlugin {
 	public void init() {
 		super.init();
 
-		// TODO: Acquire services if necessary
+		FunctionSimilarityAction fsAction = new FunctionSimilarityAction("Function similarity", this);
+		tool.addAction(fsAction);
 	}
 }
