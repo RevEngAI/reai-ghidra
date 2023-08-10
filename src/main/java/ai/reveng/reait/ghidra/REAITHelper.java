@@ -1,13 +1,13 @@
 package ai.reveng.reait.ghidra;
 
-import ai.reveng.reait.REAITClient;
-import ghidra.util.task.TaskMonitor;
+import ai.reveng.reait.client.Client;
+import ghidra.program.flatapi.FlatProgramAPI;
 
 public final class REAITHelper {
 	private static REAITHelper instance;
-	private static TaskMonitor taskMonitor;
 	
-	private REAITClient client;
+	private Client client;
+	private FlatProgramAPI flatAPI;
 	
 	private REAITHelper() {
 		return;
@@ -21,19 +21,19 @@ public final class REAITHelper {
 		return instance;
 	}
 
-	public REAITClient getClient() {
+	public Client getClient() {
 		return client;
 	}
 
-	public void setClient(REAITClient client) {
+	public void setClient(Client client) {
 		this.client = client;
 	}
 
-	public static TaskMonitor getTaskMonitor() {
-		return taskMonitor;
+	public FlatProgramAPI getFlatAPI() {
+		return flatAPI;
 	}
 
-	public static void setTaskMonitor(TaskMonitor taskMonitor) {
-		REAITHelper.taskMonitor = taskMonitor;
+	public void setFlatAPI(FlatProgramAPI flatAPI) {
+		this.flatAPI = flatAPI;
 	}
 }

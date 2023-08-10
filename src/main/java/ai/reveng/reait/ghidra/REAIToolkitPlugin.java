@@ -20,6 +20,8 @@ import ghidra.app.plugin.PluginCategoryNames;
 import ghidra.app.plugin.ProgramPlugin;
 import ghidra.framework.plugintool.*;
 import ghidra.framework.plugintool.util.PluginStatus;
+import ghidra.program.flatapi.FlatProgramAPI;
+import ghidra.program.model.listing.Program;
 import ghidra.util.HelpLocation;
 
 /**
@@ -45,12 +47,6 @@ public class REAIToolkitPlugin extends ProgramPlugin {
 	 */
 	public REAIToolkitPlugin(PluginTool tool) {
 		super(tool);
-		
-		// init the helper
-		REAITHelper helper = REAITHelper.getInstance();
-		helper.setTaskMonitor();
-		
-		TaskMo
 
 		// TODO: Customize provider (or remove if a provider is not desired)
 		String pluginName = getName();
@@ -60,6 +56,15 @@ public class REAIToolkitPlugin extends ProgramPlugin {
 		String topicName = this.getClass().getPackage().getName();
 		String anchorName = "HelpAnchor";
 		provider.setHelpLocation(new HelpLocation(topicName, anchorName));
+	}
+	
+	@Override
+	public void programActivated(Program program) {
+		super.programActivated(program);
+		
+		// init the helper
+		REAITHelper helper = REAITHelper.getInstance();
+		helper.setFlatAPI(new FlatProgramAPI(this.currentProgram));
 	}
 
 	@Override

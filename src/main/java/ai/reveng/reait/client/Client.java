@@ -1,4 +1,4 @@
-package ai.reveng.reait;
+package ai.reveng.reait.client;
 
 
 import java.io.BufferedReader;
@@ -20,12 +20,14 @@ import javax.net.ssl.HttpsURLConnection;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import ai.reveng.reait.REAITConfig;
+import ai.reveng.reait.REAITResponse;
 import ai.reveng.reait.model.ModelInfo;
 
-public class REAITClient {
+public class Client {
 	private REAITConfig config;
 	
-	public REAITClient(String configPath) {
+	public Client(String configPath) {
 		this.config = new REAITConfig(configPath);
 	}
 	
@@ -34,7 +36,7 @@ public class REAITClient {
      * @param apikey
      * @param host
      */
-    public REAITClient(String apikey, String host) {
+    public Client(String apikey, String host) {
     	this.config = new REAITConfig(apikey, host);
     }
 	
