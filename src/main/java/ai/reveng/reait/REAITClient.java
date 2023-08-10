@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -74,7 +76,7 @@ public class REAITClient {
 		return models;
 	}
 	
-	public REAITResponse send(String requestType, String endPoint, JSONObject data, HashMap<String, String> headers, HashMap<String, String> params) throws IOException {
+	public REAITResponse send(String requestType, String endPoint, JSONObject data, HashMap<String, String> headers, HashMap<String, String> params) throws IOException, URISyntaxException {
 		URL url;
 		HttpsURLConnection conn;
 		String paramsString = null;
@@ -88,12 +90,12 @@ public class REAITClient {
 		String rtype = requestType.toUpperCase();
 		if (rtype == "GET") {
 			// params in a get request are put in the url
-			url = new URL(this.config.getHost() + endPoint + "?" + paramsString);
+			url = new URI(this.config.getHost() + endPoint + "?" + paramsString).toURL();
 			conn = (HttpsURLConnection) url.openConnection();
 			conn.setRequestMethod("GET");
 			
 		} else if (rtype == "POST") {
-			url = new URL(this.config.getHost() + endPoint);
+			url = new URI(this.config.getHost() + endPoint).toURL();
 			conn = (HttpsURLConnection) url.openConnection();
 			conn.setRequestMethod("POST");
 			// params in a post request are placed in the body
@@ -101,7 +103,8 @@ public class REAITClient {
 			conn.setDoOutput(true);
 	        conn.getOutputStream().write(postDataBytes);
 		} else if (rtype == "DELETE") {
-			url = new URL(this.config.getHost() + endPoint);
+			url = new URI(this.config.getHost() + endPoint).toURL();
+			
 			conn = (HttpsURLConnection) url.openConnection();
 			conn.setRequestMethod("DELETE");
 		} else
