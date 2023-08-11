@@ -16,7 +16,11 @@
 package ai.reveng.reait.ghidra;
 
 import ai.reveng.reait.ghidra.actions.FunctionSimilarityAction;
+import ai.reveng.reait.ghidra.actions.UploadCurrentBinaryAction;
 import ai.reveng.reait.ghidra.component.ConfigureComponentProvider;
+import docking.ActionContext;
+import docking.action.DockingAction;
+import docking.action.MenuData;
 import ghidra.app.plugin.PluginCategoryNames;
 import ghidra.app.plugin.ProgramPlugin;
 import ghidra.framework.plugintool.*;
@@ -26,15 +30,15 @@ import ghidra.program.model.listing.Program;
 import ghidra.util.HelpLocation;
 
 /**
- * This plugin allows Ghidra to interface with the RevEng.AI API
+ * This plugin configures Ghidra to interface with the RevEng.AI API
  */
 //@formatter:off
 @PluginInfo(
 	status = PluginStatus.STABLE,
 	packageName = REAIPluginPackage.NAME,
 	category = PluginCategoryNames.MISC,
-	shortDescription = "Enable AI-Assisted Binary Analysis",
-	description = "Enables interface with the RevEng.AI API"
+	shortDescription = "Configuration for RevEngAI API",
+	description = "Setup interface with the RevEng.AI API"
 )
 //@formatter:on
 public class REAIToolkitPlugin extends ProgramPlugin {
@@ -57,6 +61,15 @@ public class REAIToolkitPlugin extends ProgramPlugin {
 		String topicName = this.getClass().getPackage().getName();
 		String anchorName = "HelpAnchor";
 		provider.setHelpLocation(new HelpLocation(topicName, anchorName));
+		
+		createDropdownMenu();
+	}
+	
+	private void createDropdownMenu() {
+	    UploadCurrentBinaryAction ucbAction = new UploadCurrentBinaryAction("Upload Current Binary", getName());
+	    ucbAction.setMenuBarData(new MenuData(new String[] {"RevEngAI Toolkit", "Upload Current Binary"}, null, "reait"));
+	    tool.addAction(ucbAction);
+	    
 	}
 	
 	@Override
@@ -71,8 +84,10 @@ public class REAIToolkitPlugin extends ProgramPlugin {
 	@Override
 	public void init() {
 		super.init();
-
-		FunctionSimilarityAction fsAction = new FunctionSimilarityAction("Function similarity", this);
-		tool.addAction(fsAction);
+		
+		UploadCurrentBinaryAction ucbAction = new UploadCurrentBinaryAction("Upload Current Binary", getName());
+		tool.addAction(ucbAction);
+//		FunctionSimilarityAction fsAction = new FunctionSimilarityAction("Function similarity", this);
+//		tool.addAction(fsAction);
 	}
 }
