@@ -22,7 +22,7 @@ public class WriteConfigFileTask extends Task {
 
 	@Override
 	public void run(TaskMonitor monitor) throws CancelledException {
-		String path = System.getProperty("user.home") + File.separator + "reaiconf.toml";
+		String path = System.getProperty("user.home") + File.separator + ".reaiconf.toml";
 		
 		HashMap<String, String> configMap = new HashMap<String, String>();
 		REAITConfig conf = REAITHelper.getInstance().getClient().getConfig();
