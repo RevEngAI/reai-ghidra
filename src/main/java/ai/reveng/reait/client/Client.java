@@ -2,14 +2,18 @@ package ai.reveng.reait.client;
 
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -54,15 +58,21 @@ public class Client {
 	 * @param params hashmap of parameters
 	 * @return single string that contains all the parameter
 	 * @throws UnsupportedEncodingException
+	 * @throws REAIApiException 
 	 */
-	private String getParamsString(HashMap<String, String> params) throws UnsupportedEncodingException {
+	private String getParamsString(HashMap<String, String> params) throws UnsupportedEncodingException, REAIApiException {
 		StringBuilder postData = new StringBuilder();
+		byte[] bodyContent = null;
 		for (Map.Entry<String,String> param : params.entrySet()) {
             if (postData.length() != 0) postData.append('&');
+           
             postData.append(URLEncoder.encode(param.getKey(), "UTF-8"));
             postData.append('=');
             postData.append(URLEncoder.encode(String.valueOf(param.getValue()), "UTF-8"));
         }
+		
+		
+		
 		return postData.toString();
 	}
 	
@@ -99,7 +109,7 @@ public class Client {
 	}
 	
 	/// should make this return the hash
-	public int analyse(String fPath, String model, String isaOptions, String platformOptions, String fileOptions, boolean dynamicExecution, String commandLineArgs) throws JSONException, REAIApiException {
+	public int analyse(String fPath, String model, String isaOptions, String platformOptions, String fileName, String fileOptions, Boolean dynamicExecution, String commandLineArgs) throws JSONException, REAIApiException {
 		REAITResponse res = null;
 		
 		HashMap<String, String> headers = new HashMap<String, String>();
@@ -107,18 +117,19 @@ public class Client {
 		
 		headers.put("Authorization", this.getConfig().getApiKey());
 		
-		params.put("model", commandLineArgs);
-		params.put("platform_options", commandLineArgs);
-		params.put("isa_options", commandLineArgs);
-		params.put("file_options", commandLineArgs);
-		params.put("file_name", commandLineArgs);
-		params.put("dynamic_execution", commandLineArgs);
+		params.put("model", model);
+		params.put("platform_options", platformOptions);
+		params.put("isa_options", isaOptions);
+		params.put("file_options", fileOptions);
+		params.put("file_name", fileName);
+		params.put("dynamic_execution", dynamicExecution.toString());
 		params.put("command_line_args", commandLineArgs);
+		params.put("FILEDATA", fPath);
 		
 		try {
 			res = this.send("POST", "/analyse", null, headers, params);
 		} catch (Exception e) {
-			System.err.println(e.getMessage());
+			throw new REAIApiException("Error sending analysis request (status code: NA) -> " + e.getMessage());
 		}
 		
 		if (res.data.has("error")) {
@@ -136,19 +147,21 @@ public class Client {
 	 * @param headers HTTP headers for the request, one of which must be Authorization: <api_key>
 	 * @param params HTTP parameters for the request
 	 * @return REAITResponse that contains the status code, and a JSONObject with any relevent data
+	 * @throws Exception 
 	 * @see REAITResponse
-	 * @throws IOException
-	 * @throws URISyntaxException
 	 */
-	private REAITResponse send(String requestType, String endPoint, JSONObject data, HashMap<String, String> headers, HashMap<String, String> params) throws IOException, URISyntaxException {
+	private REAITResponse send(String requestType, String endPoint, JSONObject data, HashMap<String, String> headers, HashMap<String, String> params) throws Exception {
 		URL url;
 		HttpsURLConnection conn;
 		String paramsString = null;
 		REAITResponse res = new REAITResponse();
+		HttpClient client = HttpClient.newHttpClient();
+		HttpRequest request;
+		HttpRequest.Builder requestBuilder;
 		
 		// convert the hashmap params into a string of form key=value
 		if (params.size() > 0) {
-			paramsString = this.getParamsString(params);
+			paramsString = this.getParamsString(params);		
 		}
 		
 		String rtype = requestType.toUpperCase();
@@ -160,12 +173,19 @@ public class Client {
 			
 		} else if (rtype == "POST") {
 			url = new URI(this.config.getHost() + endPoint).toURL();
-			conn = (HttpsURLConnection) url.openConnection();
-			conn.setRequestMethod("POST");
 			// params in a post request are placed in the body
 			byte[] postDataBytes = paramsString.toString().getBytes("UTF-8");
-			conn.setDoOutput(true);
-	        conn.getOutputStream().write(postDataBytes);
+			requestBuilder = HttpRequest.newBuilder()
+					.uri(URI.create(this.config.getHost() + endPoint));
+					
+					headers.forEach(requestBuilder::header);
+			request = requestBuilder
+					.POST(HttpRequest.BodyPublishers.ofByteArray(postDataBytes))
+					.build();
+			
+			HttpResponse<String> response = client.send(request,
+	                HttpResponse.BodyHandlers.ofString());
+	        System.out.println(response.body());
 	        // check for a generic DATA key and dump the value in the body
 		} else if (rtype == "DELETE") {
 			url = new URI(this.config.getHost() + endPoint).toURL();
@@ -178,33 +198,35 @@ public class Client {
 		for (Map.Entry<String, String> header : headers.entrySet()) {
 			String key = header.getKey();
 			String value = header.getValue();	
-			conn.setRequestProperty(key, value);
+//			conn.setRequestProperty(key, value);
 		}
 		
-		res.responseCode = conn.getResponseCode();
+		return null;
 		
-		Reader streamReader = null;
-
-		// read the response on a failed request
-		if (res.responseCode > 299) {
-		    streamReader = new InputStreamReader(conn.getErrorStream());
-		} else {
-		    streamReader = new InputStreamReader(conn.getInputStream());
-		}
-		
-		// read the response
-		BufferedReader in = new BufferedReader(streamReader);
-		String inputLine;
-		StringBuffer content = new StringBuffer();
-		while ((inputLine = in.readLine()) != null) {
-			content.append(inputLine + "\n");
-		}
-		in.close();
-		
-		res.data = new JSONObject(content.toString());
-
-		conn.disconnect();
-		return res;
+//		res.responseCode = conn.getResponseCode();
+//		
+//		Reader streamReader = null;
+//
+//		// read the response on a failed request
+//		if (res.responseCode > 299) {
+//		    streamReader = new InputStreamReader(conn.getErrorStream());
+//		} else {
+//		    streamReader = new InputStreamReader(conn.getInputStream());
+//		}
+//		
+//		// read the response
+//		BufferedReader in = new BufferedReader(streamReader);
+//		String inputLine;
+//		StringBuffer content = new StringBuffer();
+//		while ((inputLine = in.readLine()) != null) {
+//			content.append(inputLine + "\n");
+//		}
+//		in.close();
+//		
+//		res.data = new JSONObject(content.toString());
+//
+//		conn.disconnect();
+//		return res;
 	}
 
 	public REAITConfig getConfig() {

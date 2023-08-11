@@ -3,6 +3,9 @@ package ai.reveng.reait.ghidra.actions;
 import java.io.File;
 import java.io.IOException;
 
+import org.json.JSONException;
+
+import ai.reveng.reait.exceptions.REAIApiException;
 import ai.reveng.reait.ghidra.REAITHelper;
 import docking.ActionContext;
 import docking.action.DockingAction;
@@ -69,13 +72,17 @@ public class UploadCurrentBinaryAction extends DockingAction {
         try {
         	modelName = REAITHelper.getInstance().getClient().getConfig().getModel().toString();
         } catch (NullPointerException e) {
-        	Msg.showError(outputFile, null, "Configuration Error", "Could not read model name, please make sure you have setup your ghidra client using the configuration window");;
+        	Msg.showError(outputFile, null, "Configuration Error", "Could not read model name, please make sure you have setup your ghidra client using the configuration window");
         }
         String isa = REAITHelper.getInstance().getFlatAPI().getCurrentProgram().getLanguage().getProcessor().toString();
         String os = inferOSFromFormat(REAITHelper.getInstance().getFlatAPI().getCurrentProgram().getExecutableFormat().toUpperCase()).toLowerCase();
         String fileType = inferTypeFromFormat(REAITHelper.getInstance().getFlatAPI().getCurrentProgram().getExecutableFormat().toUpperCase()).toLowerCase();
         
-        REAITHelper.getInstance().getClient().analyse(path, modelName, isa, os, fileType, false, null);
+        try {
+			REAITHelper.getInstance().getClient().analyse(path, modelName, isa, os, outputFile.getName().toString(), fileType, false, null);
+		} catch (JSONException | REAIApiException e) {
+			Msg.showError(outputFile, null, "Upload Error", "Error uploading file: " + e.getMessage());
+		}
 		
 	}
 
