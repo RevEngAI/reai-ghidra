@@ -1,5 +1,7 @@
 package ai.reveng.reait.ghidra;
 
+import java.io.File;
+
 import ai.reveng.reait.client.Client;
 import ghidra.program.flatapi.FlatProgramAPI;
 
@@ -13,12 +15,22 @@ public final class REAITHelper {
 	private Client client;
 	/// Provides access to the Ghidra FlatAPI for easy wrappers
 	private FlatProgramAPI flatAPI;
+	/// SHA3-256 of binary result
+	/// REAIT storing directory
+	private String reaiDir;
+	private String exportBinPath;
+	private String configPath = System.getProperty("user.home") + File.separator + ".reaiconf.toml";
 	
 	/**
 	 * Singleton constructor
 	 */
 	private REAITHelper() {
-		return;
+		this.reaiDir = System.getProperty("user.home") + File.separator + ".reait";
+		this.setExportBinPath(this.reaiDir + File.separator + "exported.bin");
+		if (new File(configPath).exists()) {
+			System.out.println("here");
+			client = new Client(configPath);
+		}
 	}
 	
 	/**
@@ -47,5 +59,21 @@ public final class REAITHelper {
 
 	public void setFlatAPI(FlatProgramAPI flatAPI) {
 		this.flatAPI = flatAPI;
+	}
+
+	public String getReaiDir() {
+		return reaiDir;
+	}
+
+	public void setReaiDir(String reaiDir) {
+		this.reaiDir = reaiDir;
+	}
+
+	public String getExportBinPath() {
+		return exportBinPath;
+	}
+
+	public void setExportBinPath(String exportBinPath) {
+		this.exportBinPath = exportBinPath;
 	}
 }

@@ -98,6 +98,36 @@ public class Client {
 		return models;
 	}
 	
+	/// should make this return the hash
+	public int analyse(String fPath, String model, String isaOptions, String platformOptions, String fileOptions, boolean dynamicExecution, String commandLineArgs) throws JSONException, REAIApiException {
+		REAITResponse res = null;
+		
+		HashMap<String, String> headers = new HashMap<String, String>();
+		HashMap<String, String> params = new HashMap<String, String>();
+		
+		headers.put("Authorization", this.getConfig().getApiKey());
+		
+		params.put("model", commandLineArgs);
+		params.put("platform_options", commandLineArgs);
+		params.put("isa_options", commandLineArgs);
+		params.put("file_options", commandLineArgs);
+		params.put("file_name", commandLineArgs);
+		params.put("dynamic_execution", commandLineArgs);
+		params.put("command_line_args", commandLineArgs);
+		
+		try {
+			res = this.send("POST", "/analyse", null, headers, params);
+		} catch (Exception e) {
+			System.err.println(e.getMessage());
+		}
+		
+		if (res.data.has("error")) {
+			throw new REAIApiException(res.data.getString("error"));
+		}
+		
+		return 0;
+	}
+	
 	/**
 	 * Send a request to the RevEng.AI API and get the result
 	 * @param requestType HTTP request type ["GET", "POST", "DELETE"]
@@ -136,6 +166,7 @@ public class Client {
 			byte[] postDataBytes = paramsString.toString().getBytes("UTF-8");
 			conn.setDoOutput(true);
 	        conn.getOutputStream().write(postDataBytes);
+	        // check for a generic DATA key and dump the value in the body
 		} else if (rtype == "DELETE") {
 			url = new URI(this.config.getHost() + endPoint).toURL();
 			
