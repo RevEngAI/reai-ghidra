@@ -17,7 +17,8 @@ package ai.reveng.reait.ghidra;
 
 import ai.reveng.reait.ghidra.actions.FunctionSimilarityAction;
 import ai.reveng.reait.ghidra.actions.UploadCurrentBinaryAction;
-import ai.reveng.reait.ghidra.component.ConfigureComponentProvider;
+import ai.reveng.reait.ghidra.component.ConfigureDockableDialog;
+import ai.reveng.reait.ghidra.component.REAITComponentProvider;
 import docking.ActionContext;
 import docking.action.DockingAction;
 import docking.action.MenuData;
@@ -43,7 +44,7 @@ import ghidra.util.HelpLocation;
 //@formatter:on
 public class REAIToolkitPlugin extends ProgramPlugin {
 
-	ConfigureComponentProvider provider;
+	REAITComponentProvider provider;
 
 	/**
 	 * Plugin constructor.
@@ -53,16 +54,7 @@ public class REAIToolkitPlugin extends ProgramPlugin {
 	public REAIToolkitPlugin(PluginTool tool) {
 		super(tool);
 
-		// TODO: Customize provider (or remove if a provider is not desired)
-		String pluginName = getName();
-		provider = new ConfigureComponentProvider(this, pluginName);
-
-		// TODO: Customize help (or remove if help is not desired)
-		String topicName = this.getClass().getPackage().getName();
-		String anchorName = "HelpAnchor";
-		provider.setHelpLocation(new HelpLocation(topicName, anchorName));
-		
-		createDropdownMenu();
+		provider = new REAITComponentProvider(this, "RevEng.AI Toolkit");
 	}
 	
 	private void createDropdownMenu() {
@@ -85,9 +77,6 @@ public class REAIToolkitPlugin extends ProgramPlugin {
 	public void init() {
 		super.init();
 		
-		UploadCurrentBinaryAction ucbAction = new UploadCurrentBinaryAction("Upload Current Binary", getName());
-		tool.addAction(ucbAction);
-//		FunctionSimilarityAction fsAction = new FunctionSimilarityAction("Function similarity", this);
-//		tool.addAction(fsAction);
+		createDropdownMenu();
 	}
 }

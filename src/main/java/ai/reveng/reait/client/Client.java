@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.io.UncheckedIOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URL;
@@ -13,14 +14,19 @@ import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.net.ssl.HttpsURLConnection;
 
+import org.json.HTTP;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -34,6 +40,8 @@ import ai.reveng.reait.model.ModelInfo;
  * Class that models a RevEng.AI API endpoint Client
  */
 public class Client {
+	private static final String BOUNDARY = "Boundary" + System.currentTimeMillis();
+	
 	private REAITConfig config;
 	
 	/**
@@ -62,7 +70,6 @@ public class Client {
 	 */
 	private String getParamsString(HashMap<String, String> params) throws UnsupportedEncodingException, REAIApiException {
 		StringBuilder postData = new StringBuilder();
-		byte[] bodyContent = null;
 		for (Map.Entry<String,String> param : params.entrySet()) {
             if (postData.length() != 0) postData.append('&');
            
@@ -90,6 +97,7 @@ public class Client {
 		HashMap<String, String> params = new HashMap<String, String>();
 		
 		headers.put("Authorization", this.getConfig().getApiKey());
+		headers.put("User Agent", "Ghidra Plugin");
 		try {
 			res = this.send("GET", "/models", null, headers, params);
 		} catch (Exception e) {
@@ -124,7 +132,7 @@ public class Client {
 		params.put("file_name", fileName);
 		params.put("dynamic_execution", dynamicExecution.toString());
 		params.put("command_line_args", commandLineArgs);
-		params.put("FILEDATA", fPath);
+//		params.put("FILEDATA", fPath);
 		
 		try {
 			res = this.send("POST", "/analyse", null, headers, params);
@@ -151,12 +159,11 @@ public class Client {
 	 * @see REAITResponse
 	 */
 	private REAITResponse send(String requestType, String endPoint, JSONObject data, HashMap<String, String> headers, HashMap<String, String> params) throws Exception {
-		URL url;
+		URL url = null;
 		HttpsURLConnection conn;
 		String paramsString = null;
 		REAITResponse res = new REAITResponse();
-		HttpClient client = HttpClient.newHttpClient();
-		HttpRequest request;
+		HttpClient httpClient = HttpClient.newHttpClient();
 		HttpRequest.Builder requestBuilder;
 		
 		// convert the hashmap params into a string of form key=value
@@ -167,25 +174,40 @@ public class Client {
 		String rtype = requestType.toUpperCase();
 		if (rtype == "GET") {
 			// params in a get request are put in the url
-			url = new URI(this.config.getHost() + endPoint + "?" + paramsString).toURL();
 			conn = (HttpsURLConnection) url.openConnection();
 			conn.setRequestMethod("GET");
 			
 		} else if (rtype == "POST") {
 			url = new URI(this.config.getHost() + endPoint).toURL();
-			// params in a post request are placed in the body
-			byte[] postDataBytes = paramsString.toString().getBytes("UTF-8");
 			requestBuilder = HttpRequest.newBuilder()
-					.uri(URI.create(this.config.getHost() + endPoint));
-					
-					headers.forEach(requestBuilder::header);
-			request = requestBuilder
-					.POST(HttpRequest.BodyPublishers.ofByteArray(postDataBytes))
-					.build();
+                    .uri(URI.create(this.config.getHost() + endPoint));
+			/* 
+			 * if we need to post a file, read the file and then delete it
+			 * as the builder readers everything in and we don't want duplications
+			 */
+			String requestBody;
+			if (params.containsKey("FILEDATA")) {
+				Path fileToUpload = Paths.get(params.get("FILEDATA"));
+				headers.remove("FILEDATA");
+				requestBody = formMultipartBody(params, fileToUpload, "AnalyseFile", params.get("file_name"));
+				requestBuilder.POST(HttpRequest.BodyPublishers.ofString(requestBody))
+					.header("Content-Type", "multipart/form-data; boundary=" + BOUNDARY);
+			} else {
+				String formData = generateFormData(params);
+				requestBuilder.POST(HttpRequest.BodyPublishers.ofString(formData))
+					.header("Content-Type", "application/x-www-form-urlencoded");
+			}
 			
-			HttpResponse<String> response = client.send(request,
-	                HttpResponse.BodyHandlers.ofString());
-	        System.out.println(response.body());
+			headers.forEach(requestBuilder::header);
+			
+			HttpRequest request = requestBuilder.build();
+			
+			HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            // Handle the response as needed
+            System.out.println("Response Code: " + response.statusCode());
+            System.out.println("Response Body: " + response.body());
+
 	        // check for a generic DATA key and dump the value in the body
 		} else if (rtype == "DELETE") {
 			url = new URI(this.config.getHost() + endPoint).toURL();
@@ -194,12 +216,6 @@ public class Client {
 			conn.setRequestMethod("DELETE");
 		} else
 			throw new IOException("Invalid Request Type");
-		
-		for (Map.Entry<String, String> header : headers.entrySet()) {
-			String key = header.getKey();
-			String value = header.getValue();	
-//			conn.setRequestProperty(key, value);
-		}
 		
 		return null;
 		
@@ -228,6 +244,39 @@ public class Client {
 //		conn.disconnect();
 //		return res;
 	}
+	
+	private static String generateFormData(Map<String, String> data) {
+        return data.entrySet().stream()
+                .map(entry -> encode(entry.getKey()) + "=" + encode(entry.getValue()))
+                .collect(Collectors.joining("&"));
+    }
+
+    private static String encode(String value) {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
+    }
+	
+	private static String formMultipartBody(Map<String, String> parameters, Path file, String fileFormName, String fileName) {
+        StringBuilder builder = new StringBuilder();
+
+        // Append form fields
+        for (Map.Entry<String, String> param : parameters.entrySet()) {
+            builder.append("--").append(BOUNDARY).append("\r\n");
+            builder.append("Content-Disposition: form-data; name=\"").append(param.getKey()).append("\"\r\n\r\n");
+            builder.append(param.getValue()).append("\r\n");
+        }
+
+        // Append file
+        builder.append("--").append(BOUNDARY).append("\r\n");
+        builder.append("Content-Disposition: form-data; name=\"").append(fileFormName).append("\"; filename=\"").append(fileName).append("\"\r\n\r\n");
+        try {
+            builder.append(Files.readString(file)).append("\r\n");  // assuming text file; you'd handle binary differently
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        builder.append("--").append(BOUNDARY).append("--\r\n");
+
+        return builder.toString();
+    }
 
 	public REAITConfig getConfig() {
 		return config;
