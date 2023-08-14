@@ -119,6 +119,7 @@ public class Client {
 		
 		headers.put("Authorization", this.getConfig().getApiKey());
 		headers.put("Content-Type", "application/octet-stream");
+		headers.put("User-Agent", "Ghidra Plugin");
 		
 		params.put("model", model);
 		params.put("platform_options", platformOptions);
@@ -137,7 +138,7 @@ public class Client {
 		}
 		
 		System.out.format("{\nmodel: %s\nplatform_options: %s\nisa_options: %s\nfile_options: %s\nfile_name: %s\ndynamic_execution: %s\ncommand_line_args: %s\n}", params.get("model"), params.get("platform_options"),  params.get("isa_options"), params.get("file_options"), params.get("file_name"), params.get("dynamic_execution"), params.get("command_line_args"));
-		System.out.println(config.getHost()+"/analyse&"+paramsString);
+		System.out.println(config.getHost()+"/analyse?"+paramsString);
 		
 		try {
 			
@@ -173,6 +174,7 @@ public class Client {
 		HashMap<String, String> params = new HashMap<String, String>();
 		
 		headers.put("Authorization", this.getConfig().getApiKey());
+		headers.put("User-Agent", "Ghidra Plugin");
 		
 		HttpClient client = HttpClient.newHttpClient();
 		
@@ -200,6 +202,39 @@ public class Client {
 			} catch (IOException | InterruptedException e) {
 				throw new REAIApiException(e.getMessage());
 			}
+	}
+	
+	public JSONArray status() throws REAIApiException {
+		HashMap<String, String> headers = new HashMap<String, String>();
+		
+		headers.put("Authorization", this.getConfig().getApiKey());
+		try {
+			HttpClient client = HttpClient.newHttpClient();
+			
+			HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+					.uri(new URI(config.getHost()+"/analyse/recent?n=4"))
+					.GET();
+			
+			headers.forEach(requestBuilder::header);
+			
+			HttpRequest request = requestBuilder.build();
+			
+			HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
+			
+			System.out.println(response.body());
+			
+			JSONObject resJson = new JSONObject(response.body());
+			
+			if (resJson.has("error")) {
+				throw new REAIApiException(resJson.getString("error"));
+			}
+			
+			return resJson.getJSONArray("analyses");
+		} catch (Exception e) {
+			System.err.println(e.getMessage());
+		}
+		
+		return null;
 	}
 
 	public REAITConfig getConfig() {

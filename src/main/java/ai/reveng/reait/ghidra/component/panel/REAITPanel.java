@@ -7,11 +7,15 @@ import javax.swing.JButton;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import ai.reveng.reait.REAITConfig;
 import ai.reveng.reait.ghidra.REAITHelper;
 import ai.reveng.reait.ghidra.component.ConfigureDockableDialog;
 import ai.reveng.reait.ghidra.component.model.AnalysisStatusTableModel;
 import ai.reveng.reait.ghidra.task.DeleteBinaryTask;
+import ai.reveng.reait.ghidra.task.GetAnalysesStatusTask;
 import ai.reveng.reait.ghidra.task.ReadConfigFileTask;
 import ai.reveng.reait.ghidra.task.TaskCallback;
 import ai.reveng.reait.ghidra.task.UploadCurrentBinaryTask;
@@ -40,6 +44,7 @@ public class REAITPanel extends JPanel {
 	private TaskCallback<Boolean> readConfigFileCallback;
 	private TaskCallback<String> uploadBinaryCallback;
 	private TaskCallback<String> deleteBinaryCallback;
+	private TaskCallback<JSONArray> getAnalysesCallback;
 	
 	private int tableCursor;
 	
@@ -181,9 +186,7 @@ public class REAITPanel extends JPanel {
 			@Override
 			public void onTaskCompleted(String result) {
 				Msg.showInfo(this, null, "Binary Upload Complete", "Successfull upload binary with hash: " + result);
-				LocalDateTime currentDateTime = LocalDateTime.now();
-				DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-				model.addRow(new String[] {currentDateTime.format(formatter), REAITHelper.getInstance().getClient().getConfig().getModel().toString(), result, "In-Progress"});
+				refreshStatus();
 			}
 		};
 		
@@ -197,16 +200,42 @@ public class REAITPanel extends JPanel {
 			@Override
 			public void onTaskCompleted(String result) {
 				Msg.showInfo(this, null, "Binary Delete Complete", result);
-				model.deleteRow(tableCursor);
+				refreshStatus();
+			}
+		};
+		
+		this.getAnalysesCallback = new TaskCallback<JSONArray>() {
+			
+			@Override
+			public void onTaskError(Exception e) {
+				Msg.showError(this, null, "Get Analyses Error", e.getMessage());
+				
+			}
+			
+			@Override
+			public void onTaskCompleted(JSONArray result) {
+				model.clearData();
+				for (int i = 0; i < result.length(); i++) {
+					JSONObject rowStatus = result.getJSONObject(i);
+					String[] row = new String[] {rowStatus.getString("creation"), rowStatus.getString("model_name"), rowStatus.getString("sha_256_hash"), rowStatus.getString("status")};
+					model.addRow(row);
+				}
+				
 			}
 		};
 		
 		refreshConfig();
 	}
 	
+	private void refreshStatus() {
+		Task statusTask = new GetAnalysesStatusTask(getAnalysesCallback);
+		TaskLauncher.launch(statusTask);
+	}
+	
 	private void refreshConfig() {
-		Task task = new ReadConfigFileTask(readConfigFileCallback);
-		TaskLauncher.launch(task);
+		Task configTask = new ReadConfigFileTask(readConfigFileCallback);
+		TaskLauncher.launch(configTask);
+		refreshStatus();
 	}
 	
 	public void setAPIKey(String apiKey) {
