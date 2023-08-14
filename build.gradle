@@ -60,6 +60,7 @@ dependencies {
 	// this extension is built.
 	implementation 'com.moandjiezana.toml:toml4j:0.7.2'
   	implementation 'org.json:json:20230618'
+  	implementation group: 'org.apache.httpcomponents', name: 'httpmime', version: '4.5.14'
 }
 
 // Exclude additional files from the built extension
