@@ -10,10 +10,13 @@ import javax.swing.SwingConstants;
 import ai.reveng.reait.REAITConfig;
 import ai.reveng.reait.ghidra.REAITHelper;
 import ai.reveng.reait.ghidra.component.ConfigureDockableDialog;
+import ai.reveng.reait.ghidra.component.model.AnalysisStatusTableModel;
 import ai.reveng.reait.ghidra.task.ReadConfigFileTask;
 import ai.reveng.reait.ghidra.task.TaskCallback;
+import ai.reveng.reait.ghidra.task.UploadCurrentBinaryTask;
 import ai.reveng.reait.ghidra.task.WriteConfigFileTask;
 import ghidra.framework.plugintool.PluginTool;
+import ghidra.util.Msg;
 import ghidra.util.task.Task;
 import ghidra.util.task.TaskLauncher;
 
@@ -21,6 +24,13 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.awt.FlowLayout;
+import javax.swing.BoxLayout;
+import javax.swing.JSeparator;
+import javax.swing.JTable;
+import javax.swing.JScrollPane;
 
 public class REAITPanel extends JPanel {
 	private static final long serialVersionUID = -9128086339205968930L;
@@ -29,6 +39,9 @@ public class REAITPanel extends JPanel {
 	private PluginTool plugin;
 	
 	private TaskCallback<Boolean> readConfigFileCallback;
+	private TaskCallback<String> uploadBinaryCallback;
+	
+	private JTable analysisTable;
 
 	/**
 	 * Create the panel.
@@ -37,7 +50,7 @@ public class REAITPanel extends JPanel {
 		this.plugin = plugin;
 		setLayout(new BorderLayout(0, 0));
 		
-		setPreferredSize(new Dimension(640, 150));
+		setPreferredSize(new Dimension(640, 230));
 		
 		JPanel informationPanel = new JPanel();
 		add(informationPanel, BorderLayout.NORTH);
@@ -56,9 +69,40 @@ public class REAITPanel extends JPanel {
 		
 		JPanel analysisActionsPanel = new JPanel();
 		add(analysisActionsPanel, BorderLayout.WEST);
+		analysisActionsPanel.setLayout(new BoxLayout(analysisActionsPanel, BoxLayout.Y_AXIS));
 		
 		JButton btnUpload = new JButton("Upload");
+		btnUpload.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				Task task = new UploadCurrentBinaryTask(uploadBinaryCallback);
+				TaskLauncher.launch(task);
+			}
+		});
 		analysisActionsPanel.add(btnUpload);
+		
+		JButton btnRemove = new JButton("Remove");
+		analysisActionsPanel.add(btnRemove);
+		
+		JSeparator separator = new JSeparator();
+		analysisActionsPanel.add(separator);
+		
+		JButton btnRefresh = new JButton("Refresh");
+		analysisActionsPanel.add(btnRefresh);
+		btnRefresh.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				refreshConfig();
+			}
+		});
+		
+		JPanel analysisPanel = new JPanel();
+		add(analysisPanel, BorderLayout.CENTER);
+		
+		AnalysisStatusTableModel model = new AnalysisStatusTableModel();
+		analysisTable = new JTable(model);
+		JScrollPane scrollPane = new JScrollPane(analysisTable);
+		analysisPanel.add(scrollPane);
 		
 		JPanel actionPanel = new JPanel();
 		add(actionPanel, BorderLayout.SOUTH);
@@ -91,15 +135,6 @@ public class REAITPanel extends JPanel {
 				plugin.showDialog(configure);
 			}
 		});
-		
-		JButton btnRefresh = new JButton("Refresh");
-		btnRefresh.addMouseListener(new MouseAdapter() {
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				refreshConfig();
-			}
-		});
-		buttonsPanel.add(btnRefresh);
 		buttonsPanel.add(btnEditConfig);
 		btnEditConfig.setAlignmentX(Component.RIGHT_ALIGNMENT);
 		
@@ -119,6 +154,23 @@ public class REAITPanel extends JPanel {
 					txtStatus.setText("Connected");
 				}
 				
+			}
+		};
+		
+		this.uploadBinaryCallback = new TaskCallback<String>() {
+			
+			@Override
+			public void onTaskError(Exception e) {
+				Msg.showError(this, null, "Upload Binary Error", e.getMessage());
+				
+			}
+			
+			@Override
+			public void onTaskCompleted(String result) {
+				Msg.showInfo(this, null, "Binary Upload Complete", "Successfull upload binary with hash: " + result);
+				LocalDateTime currentDateTime = LocalDateTime.now();
+				DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+				model.addRow(new String[] {currentDateTime.format(formatter), REAITHelper.getInstance().getClient().getConfig().getModel().toString(), result, "In-Progress"});
 			}
 		};
 		

@@ -77,6 +77,6 @@ public class REAIToolkitPlugin extends ProgramPlugin {
 	public void init() {
 		super.init();
 		
-		createDropdownMenu();
+//		createDropdownMenu();
 	}
 }
