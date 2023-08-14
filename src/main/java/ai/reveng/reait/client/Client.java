@@ -1,5 +1,7 @@
 package ai.reveng.reait.client;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -11,7 +13,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
+import org.apache.http.HttpEntity;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.entity.mime.content.StringBody;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -19,6 +26,7 @@ import org.json.JSONObject;
 import ai.reveng.reait.REAITConfig;
 import ai.reveng.reait.REAITResponse;
 import ai.reveng.reait.exceptions.REAIApiException;
+import ai.reveng.reait.ghidra.REAITHelper;
 import ai.reveng.reait.model.ModelInfo;
 
 /**
@@ -92,7 +100,7 @@ public class Client {
 	}
 	
 	/// should make this return the hash
-	public int analyse(String fPath, String model, String isaOptions, String platformOptions, String fileName, String fileOptions, Boolean dynamicExecution, String commandLineArgs) throws JSONException, REAIApiException {
+	public String analyse(String fPath, String model, String isaOptions, String platformOptions, String fileName, String fileOptions, Boolean dynamicExecution, String commandLineArgs) throws JSONException, REAIApiException {
 		REAITResponse res = null;
 		
 		HashMap<String, String> headers = new HashMap<String, String>();
@@ -107,19 +115,51 @@ public class Client {
 		params.put("file_name", fileName);
 		params.put("dynamic_execution", dynamicExecution.toString());
 		params.put("command_line_args", commandLineArgs);
-//		params.put("FILEDATA", fPath);
+		
+		System.out.format("{\nmodel: %s\nplatform_options: %s\nisa_options: %s\nfile_options: %s\nfile_name: %s\ndynamic_execution: %s\ncommand_line_args: %s\n}", params.get("model"), params.get("platform_options"),  params.get("isa_options"), params.get("file_options"), params.get("file_name"), params.get("dynamic_execution"), params.get("command_line_args"));
 		
 		try {
-//			res = this.send("POST", "/analyse", null, headers, params);
+			MultipartEntityBuilder entityBuilder = MultipartEntityBuilder.create()
+					.setBoundary(BOUNDARY);
+			
+			for (Entry<String, String> entry : params.entrySet()) {
+				entityBuilder.addTextBody(entry.getKey(), entry.getValue(), ContentType.TEXT_PLAIN);
+			}
+			
+			File binary = new File(fPath);
+			entityBuilder.addBinaryBody("file", binary, ContentType.DEFAULT_BINARY, binary.getName());
+			
+			HttpEntity entity = entityBuilder.build();
+			
+			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+			entity.writeTo(outputStream);
+			
+			HttpClient client = HttpClient.newHttpClient();
+			
+			HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+					.uri(new URI(config.getHost()+"/analyse"))
+					.header("Content-Type", "multipart/form-data; boundary=" + BOUNDARY)
+					.POST(HttpRequest.BodyPublishers.ofByteArray(outputStream.toByteArray()));
+			
+			headers.forEach(requestBuilder::header);
+			
+			HttpRequest request = requestBuilder.build();
+			
+			HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+			
+			System.out.println(response.body());
+			
+			JSONObject resJson = new JSONObject(response.body());
+			
+			if (resJson.has("error")) {
+				throw new REAIApiException(resJson.getString("error"));
+			}
+			
+			return resJson.getString("sha_256_hash");
+			
 		} catch (Exception e) {
-			throw new REAIApiException("Error sending analysis request (status code: NA) -> " + e.getMessage());
+			throw new REAIApiException("Error sending analysis request -> " + e.getMessage());
 		}
-		
-		if (res.data.has("error")) {
-			throw new REAIApiException(res.data.getString("error"));
-		}
-		
-		return 0;
 	}
 
 	public REAITConfig getConfig() {

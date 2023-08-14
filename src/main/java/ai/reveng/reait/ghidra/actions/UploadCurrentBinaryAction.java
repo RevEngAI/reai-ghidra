@@ -79,7 +79,8 @@ public class UploadCurrentBinaryAction extends DockingAction {
         String fileType = inferTypeFromFormat(REAITHelper.getInstance().getFlatAPI().getCurrentProgram().getExecutableFormat().toUpperCase()).toLowerCase();
         
         try {
-			REAITHelper.getInstance().getClient().analyse(path, modelName, isa, os, outputFile.getName().toString(), fileType, false, null);
+			String hash = REAITHelper.getInstance().getClient().analyse(path, modelName, isa, os, outputFile.getName().toString(), fileType, false, "");
+			Msg.showInfo(fileType, null, "Success", "File Updated to server, analysis hash: " + hash);
 		} catch (JSONException | REAIApiException e) {
 			Msg.showError(outputFile, null, "Upload Error", "Error uploading file: " + e.getMessage());
 		}

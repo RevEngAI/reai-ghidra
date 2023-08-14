@@ -58,6 +58,7 @@ public final class REAITHelper {
 	}
 
 	public void setFlatAPI(FlatProgramAPI flatAPI) {
+		System.out.println("Set");
 		this.flatAPI = flatAPI;
 	}
 
