@@ -91,6 +91,15 @@ public class REAITPanel extends JPanel {
 				plugin.showDialog(configure);
 			}
 		});
+		
+		JButton btnRefresh = new JButton("Refresh");
+		btnRefresh.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				refreshConfig();
+			}
+		});
+		buttonsPanel.add(btnRefresh);
 		buttonsPanel.add(btnEditConfig);
 		btnEditConfig.setAlignmentX(Component.RIGHT_ALIGNMENT);
 		
@@ -99,7 +108,7 @@ public class REAITPanel extends JPanel {
 			@Override
 			public void onTaskError(Exception e) {
 				System.err.println(e.getMessage());
-				txtStatus.setText("Configure Ghidra");
+				txtStatus.setText("Disconnected");
 			}
 			
 			@Override
@@ -107,14 +116,18 @@ public class REAITPanel extends JPanel {
 				if (result) {
 					REAITConfig conf = REAITHelper.getInstance().getClient().getConfig();
 					txtAPIKey.setText(conf.getApiKey());
+					txtStatus.setText("Connected");
 				}
 				
 			}
 		};
 		
+		refreshConfig();
+	}
+	
+	private void refreshConfig() {
 		Task task = new ReadConfigFileTask(readConfigFileCallback);
 		TaskLauncher.launch(task);
-
 	}
 	
 	public void setAPIKey(String apiKey) {

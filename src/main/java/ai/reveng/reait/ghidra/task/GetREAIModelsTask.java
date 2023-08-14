@@ -52,7 +52,7 @@ public class GetREAIModelsTask extends Task {
 		helper.setClient(new Client(this.apiKey, this.hostname));
 		List<ModelInfo> models;
 		try {
-			models = helper.getClient().getModels();
+			models = helper.getClient().getModels(helper.getClient().getConfig().getHost());
 		} catch (JSONException | REAIApiException e) {
 			this.callback.onTaskError(e);
 			return;
