@@ -1,7 +1,6 @@
 package ai.reveng.reait.client;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -9,7 +8,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -21,7 +19,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import ai.reveng.reait.REAITConfig;
-import ai.reveng.reait.REAITResponse;
 import ai.reveng.reait.exceptions.REAIApiException;
 import ai.reveng.reait.model.ModelInfo;
 
@@ -117,8 +114,6 @@ public class Client {
 	
 	/// should make this return the hash
 	public String analyse(String fPath, String model, String isaOptions, String platformOptions, String fileName, String fileOptions, Boolean dynamicExecution, String commandLineArgs) throws JSONException, REAIApiException {
-		REAITResponse res = null;
-		
 		HashMap<String, String> headers = new HashMap<String, String>();
 		HashMap<String, String> params = new HashMap<String, String>();
 		
@@ -171,6 +166,40 @@ public class Client {
 		} catch (Exception e) {
 			throw new REAIApiException("Error sending analysis request -> " + e.getMessage());
 		}
+	}
+	
+	public String delete(String hash) throws REAIApiException {
+		HashMap<String, String> headers = new HashMap<String, String>();
+		HashMap<String, String> params = new HashMap<String, String>();
+		
+		headers.put("Authorization", this.getConfig().getApiKey());
+		
+		HttpClient client = HttpClient.newHttpClient();
+		
+		HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+				.DELETE()
+				.uri(URI.create(config.getHost()+"/analyse/"+hash));
+		
+		headers.forEach(requestBuilder::header);
+		
+		HttpRequest request = requestBuilder.build();
+		
+
+			try {
+				HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+				
+				System.out.println(response.body());
+				
+				JSONObject resJson = new JSONObject(response.body());
+				
+				if (resJson.has("error")) {
+					throw new REAIApiException(resJson.getString("error"));
+				}
+				
+				return resJson.getString("success");
+			} catch (IOException | InterruptedException e) {
+				throw new REAIApiException(e.getMessage());
+			}
 	}
 
 	public REAITConfig getConfig() {

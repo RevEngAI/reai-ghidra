@@ -11,10 +11,10 @@ import ai.reveng.reait.REAITConfig;
 import ai.reveng.reait.ghidra.REAITHelper;
 import ai.reveng.reait.ghidra.component.ConfigureDockableDialog;
 import ai.reveng.reait.ghidra.component.model.AnalysisStatusTableModel;
+import ai.reveng.reait.ghidra.task.DeleteBinaryTask;
 import ai.reveng.reait.ghidra.task.ReadConfigFileTask;
 import ai.reveng.reait.ghidra.task.TaskCallback;
 import ai.reveng.reait.ghidra.task.UploadCurrentBinaryTask;
-import ai.reveng.reait.ghidra.task.WriteConfigFileTask;
 import ghidra.framework.plugintool.PluginTool;
 import ghidra.util.Msg;
 import ghidra.util.task.Task;
@@ -26,7 +26,6 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.awt.FlowLayout;
 import javax.swing.BoxLayout;
 import javax.swing.JSeparator;
 import javax.swing.JTable;
@@ -40,6 +39,9 @@ public class REAITPanel extends JPanel {
 	
 	private TaskCallback<Boolean> readConfigFileCallback;
 	private TaskCallback<String> uploadBinaryCallback;
+	private TaskCallback<String> deleteBinaryCallback;
+	
+	private int tableCursor;
 	
 	private JTable analysisTable;
 
@@ -82,6 +84,18 @@ public class REAITPanel extends JPanel {
 		analysisActionsPanel.add(btnUpload);
 		
 		JButton btnRemove = new JButton("Remove");
+		btnRemove.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				tableCursor = analysisTable.getSelectedRow();
+				
+				if (tableCursor != -1) {
+					String selectedHash = (String) analysisTable.getValueAt(tableCursor, 2);
+					Task task = new DeleteBinaryTask(deleteBinaryCallback, selectedHash);
+					TaskLauncher.launch(task);
+				}
+			}
+		});
 		analysisActionsPanel.add(btnRemove);
 		
 		JSeparator separator = new JSeparator();
@@ -162,7 +176,6 @@ public class REAITPanel extends JPanel {
 			@Override
 			public void onTaskError(Exception e) {
 				Msg.showError(this, null, "Upload Binary Error", e.getMessage());
-				
 			}
 			
 			@Override
@@ -171,6 +184,20 @@ public class REAITPanel extends JPanel {
 				LocalDateTime currentDateTime = LocalDateTime.now();
 				DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 				model.addRow(new String[] {currentDateTime.format(formatter), REAITHelper.getInstance().getClient().getConfig().getModel().toString(), result, "In-Progress"});
+			}
+		};
+		
+		this.deleteBinaryCallback = new TaskCallback<String>() {
+			
+			@Override
+			public void onTaskError(Exception e) {
+				Msg.showError(this, null, "Delete Binary Error", e.getMessage());	
+			}
+			
+			@Override
+			public void onTaskCompleted(String result) {
+				Msg.showInfo(this, null, "Binary Delete Complete", result);
+				model.deleteRow(tableCursor);
 			}
 		};
 		

@@ -40,5 +40,12 @@ public class AnalysisStatusTableModel extends AbstractTableModel {
 		data.add(row);
 		fireTableRowsInserted(data.size() - 1, data.size() - 1);
 	}
+	
+	public void deleteRow(int rowIndex) {
+		if (rowIndex >= 0 && rowIndex < data.size()) {
+	        data.remove(rowIndex);
+	        fireTableRowsDeleted(rowIndex, rowIndex);
+	    }
+	}
 
 }
