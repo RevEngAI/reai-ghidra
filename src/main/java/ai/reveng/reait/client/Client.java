@@ -9,16 +9,13 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.mime.MultipartEntityBuilder;
-import org.apache.http.entity.mime.content.StringBody;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -26,7 +23,6 @@ import org.json.JSONObject;
 import ai.reveng.reait.REAITConfig;
 import ai.reveng.reait.REAITResponse;
 import ai.reveng.reait.exceptions.REAIApiException;
-import ai.reveng.reait.ghidra.REAITHelper;
 import ai.reveng.reait.model.ModelInfo;
 
 /**
@@ -53,6 +49,26 @@ public class Client {
     public Client(String apikey, String host) {
     	this.config = new REAITConfig(apikey, host);
     }
+    
+    /**
+	 * Convert a hashmap of params into a single string for passing in a url request
+	 * @param params hashmap of parameters
+	 * @return single string that contains all the parameter
+	 * @throws UnsupportedEncodingException
+	 * @throws REAIApiException 
+	 */
+	private String getParamsString(HashMap<String, String> params) throws UnsupportedEncodingException, REAIApiException {
+		StringBuilder postData = new StringBuilder();
+		for (Map.Entry<String,String> param : params.entrySet()) {
+            if (postData.length() != 0) postData.append('&');
+           
+            postData.append(URLEncoder.encode(param.getKey(), "UTF-8"));
+            postData.append('=');
+            postData.append("\"" + URLEncoder.encode(String.valueOf(param.getValue()), "UTF-8") + "\"");
+        }
+		
+		return postData.toString();
+	}
 	
 	/**
 	 * 
@@ -107,6 +123,7 @@ public class Client {
 		HashMap<String, String> params = new HashMap<String, String>();
 		
 		headers.put("Authorization", this.getConfig().getApiKey());
+		headers.put("Content-Type", "application/octet-stream");
 		
 		params.put("model", model);
 		params.put("platform_options", platformOptions);
@@ -116,30 +133,24 @@ public class Client {
 		params.put("dynamic_execution", dynamicExecution.toString());
 		params.put("command_line_args", commandLineArgs);
 		
+		String paramsString;
+		// convert the hashmap params into a string of form key=value
+		try {
+			paramsString = this.getParamsString(params);
+		} catch (UnsupportedEncodingException | REAIApiException e) {
+			throw new REAIApiException("Error encoding analysis params");
+		}
+		
 		System.out.format("{\nmodel: %s\nplatform_options: %s\nisa_options: %s\nfile_options: %s\nfile_name: %s\ndynamic_execution: %s\ncommand_line_args: %s\n}", params.get("model"), params.get("platform_options"),  params.get("isa_options"), params.get("file_options"), params.get("file_name"), params.get("dynamic_execution"), params.get("command_line_args"));
+		System.out.println(config.getHost()+"/analyse&"+paramsString);
 		
 		try {
-			MultipartEntityBuilder entityBuilder = MultipartEntityBuilder.create()
-					.setBoundary(BOUNDARY);
-			
-			for (Entry<String, String> entry : params.entrySet()) {
-				entityBuilder.addTextBody(entry.getKey(), entry.getValue(), ContentType.TEXT_PLAIN);
-			}
-			
-			File binary = new File(fPath);
-			entityBuilder.addBinaryBody("file", binary, ContentType.DEFAULT_BINARY, binary.getName());
-			
-			HttpEntity entity = entityBuilder.build();
-			
-			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-			entity.writeTo(outputStream);
 			
 			HttpClient client = HttpClient.newHttpClient();
 			
 			HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
 					.uri(new URI(config.getHost()+"/analyse"))
-					.header("Content-Type", "multipart/form-data; boundary=" + BOUNDARY)
-					.POST(HttpRequest.BodyPublishers.ofByteArray(outputStream.toByteArray()));
+					.POST(HttpRequest.BodyPublishers.ofFile(Paths.get(fPath)));
 			
 			headers.forEach(requestBuilder::header);
 			
