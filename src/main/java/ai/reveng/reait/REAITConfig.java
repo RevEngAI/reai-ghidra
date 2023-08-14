@@ -1,6 +1,5 @@
 package ai.reveng.reait;
 
-
 import java.io.File;
 
 import com.moandjiezana.toml.Toml;
@@ -13,25 +12,27 @@ import ai.reveng.reait.model.ModelInfo;
 public class REAITConfig {
 	private String apiKey;
 	private String host;
-    private ModelInfo model;
-    
-    /**
-     * Constructor for when we have the API Key and a host url, but don't know what models are available
-     * @param apikey
-     * @param host
-     */
-    public REAITConfig(String apikey, String host) {
-    	this.apiKey = apikey;
-    	this.host = host;
-    }
-    
-    public REAITConfig(String tomlFilePath) {
-    	File tomlFile = new File(tomlFilePath);
-    	Toml toml = new Toml().read(tomlFile);
-    	this.apiKey = toml.getString("apikey");
-    	this.host = toml.getString("host");
-    	this.model = new ModelInfo(toml.getString("model"));
-    }
+	private ModelInfo model;
+
+	/**
+	 * Constructor for when we have the API Key and a host url, but don't know what
+	 * models are available
+	 * 
+	 * @param apikey
+	 * @param host
+	 */
+	public REAITConfig(String apikey, String host) {
+		this.apiKey = apikey;
+		this.host = host;
+	}
+
+	public REAITConfig(String tomlFilePath) {
+		File tomlFile = new File(tomlFilePath);
+		Toml toml = new Toml().read(tomlFile);
+		this.apiKey = toml.getString("apikey");
+		this.host = toml.getString("host");
+		this.model = new ModelInfo(toml.getString("model"));
+	}
 
 	public String getApiKey() {
 		return apiKey;
@@ -61,5 +62,5 @@ public class REAITConfig {
 	public String toString() {
 		return "REAITConfig [apiKey=" + apiKey + ", host=" + host + ", model=" + model + "]";
 	}
-    
+
 }

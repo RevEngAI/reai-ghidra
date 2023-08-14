@@ -8,7 +8,7 @@ import resources.ResourceManager;
  */
 public class REAIPluginPackage extends PluginPackage {
 	public static final String NAME = "RevEng.AI";
-	
+
 	/**
 	 * Create a Top Level Plugin Package that uses the RevEng.AI logo
 	 */

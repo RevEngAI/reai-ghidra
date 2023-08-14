@@ -9,7 +9,7 @@ import ghidra.util.exception.CancelledException;
 import ghidra.util.task.Task;
 import ghidra.util.task.TaskMonitor;
 
-public class GetAnalysesStatusTask extends Task{
+public class GetAnalysesStatusTask extends Task {
 	private TaskCallback<JSONArray> callback;
 
 	public GetAnalysesStatusTask(TaskCallback<JSONArray> callback) {
@@ -25,6 +25,6 @@ public class GetAnalysesStatusTask extends Task{
 		} catch (JSONException | REAIApiException e) {
 			callback.onTaskError(e);
 		}
-		
+
 	}
 }

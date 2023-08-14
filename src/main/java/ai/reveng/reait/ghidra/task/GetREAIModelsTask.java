@@ -23,10 +23,11 @@ public class GetREAIModelsTask extends Task {
 	private String apiKey;
 	// Host of the API endpoints
 	private String hostname;
-	
+
 	/**
 	 * Create a new task for gathering model names from the api
-	 * @param apikey users API Key
+	 * 
+	 * @param apikey   users API Key
 	 * @param hostname server that hosts the API endpoints
 	 * @param callback interface for passing results to frontend
 	 */
@@ -42,8 +43,8 @@ public class GetREAIModelsTask extends Task {
 		REAITHelper helper = REAITHelper.getInstance();
 		monitor.initialize(1);
 		if (monitor.isCancelled()) {
-            return;
-        }
+			return;
+		}
 		if (this.apiKey.equals("xxxx-xxxx-xxxx-xxxx") || this.apiKey.equals("")) {
 			Msg.showError(this, null, "Invalid API Key", "Please Enter a Valid API Key");
 			return;
@@ -64,5 +65,5 @@ public class GetREAIModelsTask extends Task {
 		}
 		this.callback.onTaskCompleted(modelNames);
 	}
-	
+
 }

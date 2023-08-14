@@ -10,7 +10,7 @@ import ghidra.program.flatapi.FlatProgramAPI;
  */
 public final class REAITHelper {
 	private static REAITHelper instance;
-	
+
 	/// API client for sending and receiving requests
 	private Client client;
 	/// Provides access to the Ghidra FlatAPI for easy wrappers
@@ -20,7 +20,7 @@ public final class REAITHelper {
 	private String reaiDir;
 	private String exportBinPath;
 	private String configPath = System.getProperty("user.home") + File.separator + ".reaiconf.toml";
-	
+
 	/**
 	 * Singleton constructor
 	 */
@@ -32,7 +32,7 @@ public final class REAITHelper {
 			client = new Client(configPath);
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @return instance of the Helper object
@@ -41,7 +41,7 @@ public final class REAITHelper {
 		if (instance == null) {
 			instance = new REAITHelper();
 		}
-		
+
 		return instance;
 	}
 

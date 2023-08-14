@@ -40,14 +40,14 @@ public class REAITPanel extends JPanel {
 	private JTextField txtAPIKey;
 	private JTextField txtStatus;
 	private PluginTool plugin;
-	
+
 	private TaskCallback<Boolean> readConfigFileCallback;
 	private TaskCallback<String> uploadBinaryCallback;
 	private TaskCallback<String> deleteBinaryCallback;
 	private TaskCallback<JSONArray> getAnalysesCallback;
-	
+
 	private int tableCursor;
-	
+
 	private JTable analysisTable;
 
 	/**
@@ -56,15 +56,15 @@ public class REAITPanel extends JPanel {
 	public REAITPanel(PluginTool plugin) {
 		this.plugin = plugin;
 		setLayout(new BorderLayout(0, 0));
-		
+
 		setPreferredSize(new Dimension(640, 230));
-		
+
 		JPanel informationPanel = new JPanel();
 		add(informationPanel, BorderLayout.NORTH);
-		
+
 		JLabel lblAPIKey = new JLabel("RevEng.AI API Key:");
 		informationPanel.add(lblAPIKey);
-		
+
 		txtAPIKey = new JTextField();
 		lblAPIKey.setLabelFor(txtAPIKey);
 		txtAPIKey.setToolTipText("API key for connecting to RevEng.AI");
@@ -73,11 +73,11 @@ public class REAITPanel extends JPanel {
 		txtAPIKey.setEditable(false);
 		informationPanel.add(txtAPIKey);
 		txtAPIKey.setColumns(26);
-		
+
 		JPanel analysisActionsPanel = new JPanel();
 		add(analysisActionsPanel, BorderLayout.WEST);
 		analysisActionsPanel.setLayout(new BoxLayout(analysisActionsPanel, BoxLayout.Y_AXIS));
-		
+
 		JButton btnUpload = new JButton("Upload");
 		btnUpload.addMouseListener(new MouseAdapter() {
 			@Override
@@ -87,13 +87,13 @@ public class REAITPanel extends JPanel {
 			}
 		});
 		analysisActionsPanel.add(btnUpload);
-		
+
 		JButton btnRemove = new JButton("Remove");
 		btnRemove.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
 				tableCursor = analysisTable.getSelectedRow();
-				
+
 				if (tableCursor != -1) {
 					String selectedHash = (String) analysisTable.getValueAt(tableCursor, 2);
 					Task task = new DeleteBinaryTask(deleteBinaryCallback, selectedHash);
@@ -102,10 +102,10 @@ public class REAITPanel extends JPanel {
 			}
 		});
 		analysisActionsPanel.add(btnRemove);
-		
+
 		JSeparator separator = new JSeparator();
 		analysisActionsPanel.add(separator);
-		
+
 		JButton btnRefresh = new JButton("Refresh");
 		analysisActionsPanel.add(btnRefresh);
 		btnRefresh.addMouseListener(new MouseAdapter() {
@@ -114,26 +114,26 @@ public class REAITPanel extends JPanel {
 				refreshConfig();
 			}
 		});
-		
+
 		JPanel analysisPanel = new JPanel();
 		add(analysisPanel, BorderLayout.CENTER);
-		
+
 		AnalysisStatusTableModel model = new AnalysisStatusTableModel();
 		analysisTable = new JTable(model);
 		JScrollPane scrollPane = new JScrollPane(analysisTable);
 		analysisPanel.add(scrollPane);
-		
+
 		JPanel actionPanel = new JPanel();
 		add(actionPanel, BorderLayout.SOUTH);
 		actionPanel.setLayout(new BorderLayout(0, 0));
-		
+
 		JPanel statusPanel = new JPanel();
 		actionPanel.add(statusPanel, BorderLayout.WEST);
-		
+
 		JLabel lblStatus = new JLabel("Status:");
 		statusPanel.add(lblStatus);
 		lblStatus.setAlignmentX(Component.CENTER_ALIGNMENT);
-		
+
 		txtStatus = new JTextField();
 		lblStatus.setLabelFor(txtStatus);
 		statusPanel.add(txtStatus);
@@ -142,10 +142,10 @@ public class REAITPanel extends JPanel {
 		txtStatus.setText("Disconnected");
 		txtStatus.setEditable(false);
 		txtStatus.setColumns(8);
-		
+
 		JPanel buttonsPanel = new JPanel();
 		actionPanel.add(buttonsPanel, BorderLayout.EAST);
-		
+
 		JButton btnEditConfig = new JButton("Edit Configuration");
 		btnEditConfig.addMouseListener(new MouseAdapter() {
 			@Override
@@ -156,15 +156,15 @@ public class REAITPanel extends JPanel {
 		});
 		buttonsPanel.add(btnEditConfig);
 		btnEditConfig.setAlignmentX(Component.RIGHT_ALIGNMENT);
-		
+
 		readConfigFileCallback = new TaskCallback<Boolean>() {
-			
+
 			@Override
 			public void onTaskError(Exception e) {
 				System.err.println(e.getMessage());
 				txtStatus.setText("Disconnected");
 			}
-			
+
 			@Override
 			public void onTaskCompleted(Boolean result) {
 				if (result) {
@@ -172,76 +172,77 @@ public class REAITPanel extends JPanel {
 					txtAPIKey.setText(conf.getApiKey());
 					txtStatus.setText("Connected");
 				}
-				
+
 			}
 		};
-		
+
 		this.uploadBinaryCallback = new TaskCallback<String>() {
-			
+
 			@Override
 			public void onTaskError(Exception e) {
 				Msg.showError(this, null, "Upload Binary Error", e.getMessage());
 			}
-			
+
 			@Override
 			public void onTaskCompleted(String result) {
 				Msg.showInfo(this, null, "Binary Upload Complete", "Successfull upload binary with hash: " + result);
 				refreshStatus();
 			}
 		};
-		
+
 		this.deleteBinaryCallback = new TaskCallback<String>() {
-			
+
 			@Override
 			public void onTaskError(Exception e) {
-				Msg.showError(this, null, "Delete Binary Error", e.getMessage());	
+				Msg.showError(this, null, "Delete Binary Error", e.getMessage());
 			}
-			
+
 			@Override
 			public void onTaskCompleted(String result) {
 				Msg.showInfo(this, null, "Binary Delete Complete", result);
 				refreshStatus();
 			}
 		};
-		
+
 		this.getAnalysesCallback = new TaskCallback<JSONArray>() {
-			
+
 			@Override
 			public void onTaskError(Exception e) {
 				Msg.showError(this, null, "Get Analyses Error", e.getMessage());
-				
+
 			}
-			
+
 			@Override
 			public void onTaskCompleted(JSONArray result) {
 				model.clearData();
 				for (int i = 0; i < result.length(); i++) {
 					JSONObject rowStatus = result.getJSONObject(i);
-					String[] row = new String[] {rowStatus.getString("creation"), rowStatus.getString("model_name"), rowStatus.getString("sha_256_hash"), rowStatus.getString("status")};
+					String[] row = new String[] { rowStatus.getString("creation"), rowStatus.getString("model_name"),
+							rowStatus.getString("sha_256_hash"), rowStatus.getString("status") };
 					model.addRow(row);
 				}
-				
+
 			}
 		};
-		
+
 		refreshConfig();
 	}
-	
+
 	private void refreshStatus() {
 		Task statusTask = new GetAnalysesStatusTask(getAnalysesCallback);
 		TaskLauncher.launch(statusTask);
 	}
-	
+
 	private void refreshConfig() {
 		Task configTask = new ReadConfigFileTask(readConfigFileCallback);
 		TaskLauncher.launch(configTask);
 		refreshStatus();
 	}
-	
+
 	public void setAPIKey(String apiKey) {
 		txtAPIKey.setText(apiKey);
 	}
-	
+
 	public void setStatus(String status) {
 		txtStatus.setText(status);
 	}

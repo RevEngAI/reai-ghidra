@@ -23,13 +23,13 @@ public class WriteConfigFileTask extends Task {
 	@Override
 	public void run(TaskMonitor monitor) throws CancelledException {
 		String path = System.getProperty("user.home") + File.separator + ".reaiconf.toml";
-		
+
 		HashMap<String, String> configMap = new HashMap<String, String>();
 		REAITConfig conf = REAITHelper.getInstance().getClient().getConfig();
 		configMap.put("apikey", conf.getApiKey());
 		configMap.put("host", conf.getHost());
 		configMap.put("model", conf.getModel().toString());
-		
+
 		TomlWriter tomlWriter = new TomlWriter();
 		try {
 			tomlWriter.write(configMap, new File(path));

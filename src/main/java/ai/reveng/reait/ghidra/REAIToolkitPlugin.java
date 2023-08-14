@@ -56,18 +56,19 @@ public class REAIToolkitPlugin extends ProgramPlugin {
 
 		provider = new REAITComponentProvider(this, "RevEng.AI Toolkit");
 	}
-	
+
 	private void createDropdownMenu() {
-	    UploadCurrentBinaryAction ucbAction = new UploadCurrentBinaryAction("Upload Current Binary", getName());
-	    ucbAction.setMenuBarData(new MenuData(new String[] {"RevEngAI Toolkit", "Upload Current Binary"}, null, "reait"));
-	    tool.addAction(ucbAction);
-	    
+		UploadCurrentBinaryAction ucbAction = new UploadCurrentBinaryAction("Upload Current Binary", getName());
+		ucbAction.setMenuBarData(
+				new MenuData(new String[] { "RevEngAI Toolkit", "Upload Current Binary" }, null, "reait"));
+		tool.addAction(ucbAction);
+
 	}
-	
+
 	@Override
 	public void programActivated(Program program) {
 		super.programActivated(program);
-		
+
 		// init the helper
 		REAITHelper helper = REAITHelper.getInstance();
 		helper.setFlatAPI(new FlatProgramAPI(this.currentProgram));
@@ -76,7 +77,7 @@ public class REAIToolkitPlugin extends ProgramPlugin {
 	@Override
 	public void init() {
 		super.init();
-		
+
 //		createDropdownMenu();
 	}
 }

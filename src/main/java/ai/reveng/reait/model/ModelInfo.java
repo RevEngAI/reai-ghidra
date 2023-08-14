@@ -10,22 +10,22 @@ import java.util.regex.Pattern;
 public class ModelInfo {
 	private String name;
 	private int majVersion;
-    private int minVersion;
-	
+	private int minVersion;
+
 	/**
 	 * Create a new model using a separate name and version
 	 * 
-	 * @param name model name, e.g. "binnet"
+	 * @param name       model name, e.g. "binnet"
 	 * @param majVersion major version of model
-     * @param minVersion minor version of model
-     * 
+	 * @param minVersion minor version of model
+	 * 
 	 */
 	public ModelInfo(String name, int majVersion, int minVersion) {
 		this.name = name;
-        this.majVersion = majVersion;
-        this.minVersion = minVersion;
+		this.majVersion = majVersion;
+		this.minVersion = minVersion;
 	}
-	
+
 	/**
 	 * Create a new model from a string
 	 * 
@@ -46,9 +46,9 @@ public class ModelInfo {
 			System.err.println("No minor version provided");
 			this.minVersion = 0;
 		}
-		
+
 	}
-		
+
 	public String getName() {
 		return name;
 	}
@@ -65,7 +65,7 @@ public class ModelInfo {
 		this.majVersion = majVersion;
 	}
 
-    public int getMinVersion() {
+	public int getMinVersion() {
 		return this.minVersion;
 	}
 

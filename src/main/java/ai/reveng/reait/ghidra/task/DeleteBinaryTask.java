@@ -8,9 +8,9 @@ import ghidra.util.exception.CancelledException;
 import ghidra.util.task.Task;
 import ghidra.util.task.TaskMonitor;
 
-public class DeleteBinaryTask extends Task{
+public class DeleteBinaryTask extends Task {
 	private TaskCallback<String> callback;
-	
+
 	private String binHash;
 
 	public DeleteBinaryTask(TaskCallback<String> callback, String binHash) {
@@ -27,6 +27,6 @@ public class DeleteBinaryTask extends Task{
 		} catch (JSONException | REAIApiException e) {
 			callback.onTaskError(e);
 		}
-		
+
 	}
 }

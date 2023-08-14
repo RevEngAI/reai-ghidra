@@ -24,13 +24,13 @@ public class ReadConfigFileTask extends Task {
 	public void run(TaskMonitor monitor) throws CancelledException {
 		String path = System.getProperty("user.home") + File.separator + ".reaiconf.toml";
 		File configFile = new File(path);
-		
+
 		if (!configFile.exists()) {
 			System.out.println("Could not find config file");
 			callback.onTaskError(new REAIConfigException("No Config File "));
 			return;
 		}
-		
+
 		REAITConfig conf = null;
 		try {
 			conf = REAITHelper.getInstance().getClient().getConfig();
@@ -39,14 +39,15 @@ public class ReadConfigFileTask extends Task {
 			callback.onTaskError(new REAIConfigException("No Config File "));
 			return;
 		}
-		
+
 		Toml toml = new Toml().read(configFile);
 		conf.setApiKey(toml.getString("apikey"));
 		conf.setHost(toml.getString("host"));
 		conf.setModel(new ModelInfo(toml.getString("model")));
-		
-		System.out.format("Set conf to: %s, %s, %s", toml.getString("apikey"), toml.getString("host"), toml.getString("model"));
-		
+
+		System.out.format("Set conf to: %s, %s, %s", toml.getString("apikey"), toml.getString("host"),
+				toml.getString("model"));
+
 		callback.onTaskCompleted(true);
 	}
 
