@@ -342,7 +342,7 @@ public class Client {
 
 			HttpClient client = HttpClient.newHttpClient();
 
-			HttpRequest.Builder requestBuilder = HttpRequest.newBuilder().uri(new URI(config.getHost() + "/ann/symbol?distance="+distance+"?nns="+numNeighbours))
+			HttpRequest.Builder requestBuilder = HttpRequest.newBuilder().uri(new URI(config.getHost() + "/ann/symbol?distance="+distance+"&nns="+numNeighbours))
 					.POST(HttpRequest.BodyPublishers.ofString("["+rawData+"]"));
 
 			headers.forEach(requestBuilder::header);

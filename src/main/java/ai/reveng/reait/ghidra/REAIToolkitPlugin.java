@@ -67,7 +67,7 @@ public class REAIToolkitPlugin extends ProgramPlugin {
 	}
 
 	private void createActions() {
-		RenameFunctionFromEmbeddingsAction renameFromEmbeddingsAction = new RenameFunctionFromEmbeddingsAction("Rename From Embedding", tool.getName());
+		RenameFunctionFromEmbeddingsAction renameFromEmbeddingsAction = new RenameFunctionFromEmbeddingsAction("Rename From Embedding", tool);
 		renameFromEmbeddingsAction.setPopupMenuData(new MenuData(new String[] { "Rename From Embedding" }, null, "Reveng.AI"));
 
 		tool.addAction(renameFromEmbeddingsAction);
