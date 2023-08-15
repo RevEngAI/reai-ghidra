@@ -16,6 +16,7 @@
 package ai.reveng.reait.ghidra;
 
 import ai.reveng.reait.ghidra.actions.FunctionSimilarityAction;
+import ai.reveng.reait.ghidra.actions.RenameFunctionFromEmbeddingsAction;
 import ai.reveng.reait.ghidra.actions.UploadCurrentBinaryAction;
 import ai.reveng.reait.ghidra.component.ConfigureDockableDialog;
 import ai.reveng.reait.ghidra.component.REAITComponentProvider;
@@ -65,6 +66,13 @@ public class REAIToolkitPlugin extends ProgramPlugin {
 
 	}
 
+	private void createActions() {
+		RenameFunctionFromEmbeddingsAction renameFromEmbeddingsAction = new RenameFunctionFromEmbeddingsAction("Rename From Embedding", tool.getName());
+		renameFromEmbeddingsAction.setPopupMenuData(new MenuData(new String[] { "Rename From Embedding" }, null, "Reveng.AI"));
+
+		tool.addAction(renameFromEmbeddingsAction);
+	}
+
 	@Override
 	public void programActivated(Program program) {
 		super.programActivated(program);
@@ -79,5 +87,6 @@ public class REAIToolkitPlugin extends ProgramPlugin {
 		super.init();
 
 //		createDropdownMenu();
+		createActions();
 	}
 }

@@ -13,6 +13,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
+import java.util.stream.Collectors;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -326,6 +328,46 @@ public class Client {
 		}
 
 		return null;
+	}
+	
+	public JSONArray ann_symbols(double distance, int numNeighbours, String regex, Vector<Double> embedding) throws REAIApiException {
+		HashMap<String, String> headers = new HashMap<String, String>();
+		
+		headers.put("Authorization", this.getConfig().getApiKey());
+		headers.put("User-Agent", "Ghidra Plugin");
+		
+		String rawData = embedding.stream().map(Object::toString).collect(Collectors.joining(","));
+		
+		try {
+
+			HttpClient client = HttpClient.newHttpClient();
+
+			HttpRequest.Builder requestBuilder = HttpRequest.newBuilder().uri(new URI(config.getHost() + "/ann/symbol?distance="+distance+"?nns="+numNeighbours))
+					.POST(HttpRequest.BodyPublishers.ofString("["+rawData+"]"));
+
+			headers.forEach(requestBuilder::header);
+
+			HttpRequest request = requestBuilder.build();
+
+			HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+			System.out.println(response.body());
+
+			if (response.statusCode() > 299) {
+				JSONObject resJson = new JSONObject(response.body());
+
+				if (resJson.has("error")) {
+					throw new REAIApiException(resJson.getString("error"));
+				}
+				
+				return null;
+			}
+
+			return new JSONArray(response.body());
+
+		} catch (Exception e) {
+			throw new REAIApiException("Error sending analysis request -> " + e.getMessage());
+		}
 	}
 
 	public REAITConfig getConfig() {
