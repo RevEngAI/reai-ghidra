@@ -22,6 +22,7 @@ import org.json.JSONObject;
 
 import ai.reveng.reait.REAITConfig;
 import ai.reveng.reait.exceptions.REAIApiException;
+import ai.reveng.reait.ghidra.REAITHelper;
 import ai.reveng.reait.model.ModelInfo;
 
 /**
@@ -69,7 +70,7 @@ public class Client {
 
 			postData.append(URLEncoder.encode(param.getKey(), "UTF-8"));
 			postData.append('=');
-			postData.append("\"" + URLEncoder.encode(String.valueOf(param.getValue()), "UTF-8") + "\"");
+			postData.append(URLEncoder.encode(String.valueOf(param.getValue()), "UTF-8"));
 		}
 
 		return postData.toString();
@@ -130,12 +131,13 @@ public class Client {
 		headers.put("User-Agent", "Ghidra Plugin");
 
 		params.put("model", model);
-		params.put("platform_options", platformOptions);
-		params.put("isa_options", isaOptions);
+//		params.put("platform_options", platformOptions);
+//		params.put("isa_options", isaOptions);
 		params.put("file_options", fileOptions);
 		params.put("file_name", fileName);
 		params.put("dynamic_execution", dynamicExecution.toString());
-		params.put("command_line_args", commandLineArgs);
+//		params.put("command_line_args", commandLineArgs);
+		params.put("base_vaddr", REAITHelper.getInstance().getFlatAPI().getCurrentProgram().getImageBase().toString());
 
 		String paramsString;
 		// convert the hashmap params into a string of form key=value
@@ -156,7 +158,7 @@ public class Client {
 
 			HttpClient client = HttpClient.newHttpClient();
 
-			HttpRequest.Builder requestBuilder = HttpRequest.newBuilder().uri(new URI(config.getHost() + "/analyse"))
+			HttpRequest.Builder requestBuilder = HttpRequest.newBuilder().uri(new URI(config.getHost() + "/analyse?"+paramsString))
 					.POST(HttpRequest.BodyPublishers.ofFile(Paths.get(fPath)));
 
 			headers.forEach(requestBuilder::header);

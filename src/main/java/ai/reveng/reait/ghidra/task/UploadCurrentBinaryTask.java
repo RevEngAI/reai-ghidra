@@ -79,15 +79,13 @@ public class UploadCurrentBinaryTask extends Task {
 		}
 		String isa = REAITHelper.getInstance().getFlatAPI().getCurrentProgram().getLanguage().getProcessor().toString();
 		String os = inferOSFromFormat(
-				REAITHelper.getInstance().getFlatAPI().getCurrentProgram().getExecutableFormat().toUpperCase())
-				.toLowerCase();
+				REAITHelper.getInstance().getFlatAPI().getCurrentProgram().getExecutableFormat().toUpperCase());
 		String fileType = inferTypeFromFormat(
-				REAITHelper.getInstance().getFlatAPI().getCurrentProgram().getExecutableFormat().toUpperCase())
-				.toLowerCase();
+				REAITHelper.getInstance().getFlatAPI().getCurrentProgram().getExecutableFormat().toUpperCase());
 
 		try {
 			String hash = REAITHelper.getInstance().getClient().analyse(path, modelName, isa, os,
-					outputFile.getName().toString(), fileType, false, "");
+					REAITHelper.getInstance().getFlatAPI().getProgramFile().getName().toString(), fileType, false, "\"\"");
 			callback.onTaskCompleted(hash);
 		} catch (JSONException | REAIApiException e) {
 			callback.onTaskError(e);
