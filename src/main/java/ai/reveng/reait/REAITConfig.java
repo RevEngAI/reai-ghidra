@@ -13,6 +13,7 @@ public class REAITConfig {
 	private String apiKey;
 	private String host;
 	private ModelInfo model;
+	private String analysisHash;
 
 	/**
 	 * Constructor for when we have the API Key and a host url, but don't know what
@@ -61,6 +62,14 @@ public class REAITConfig {
 	@Override
 	public String toString() {
 		return "REAITConfig [apiKey=" + apiKey + ", host=" + host + ", model=" + model + "]";
+	}
+
+	public String getAnalysisHash() {
+		return analysisHash;
+	}
+
+	public void setAnalysisHash(String analysisHash) {
+		this.analysisHash = analysisHash;
 	}
 
 }

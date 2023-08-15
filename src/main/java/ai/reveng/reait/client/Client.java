@@ -293,6 +293,40 @@ public class Client {
 			throw new REAIApiException(e.getMessage());
 		}
 	}
+	
+	public JSONArray visableCollections() throws REAIApiException {
+		HashMap<String, String> headers = new HashMap<String, String>();
+
+		headers.put("Authorization", this.getConfig().getApiKey());
+		headers.put("User-Agent", "Ghidra Plugin");
+		
+		try {
+			HttpClient client = HttpClient.newHttpClient();
+
+			HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+					.uri(new URI(config.getHost() + "/collections/visible")).GET();
+
+			headers.forEach(requestBuilder::header);
+
+			HttpRequest request = requestBuilder.build();
+
+			HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
+
+			System.out.println(response.body());
+
+			JSONObject resJson = new JSONObject(response.body());
+
+			if (resJson.has("error")) {
+				throw new REAIApiException(resJson.getString("error"));
+			}
+
+			return resJson.getJSONArray("analyses");
+		} catch (Exception e) {
+			System.err.println(e.getMessage());
+		}
+
+		return null;
+	}
 
 	public REAITConfig getConfig() {
 		return config;

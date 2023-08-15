@@ -14,6 +14,7 @@ import ai.reveng.reait.REAITConfig;
 import ai.reveng.reait.ghidra.REAITHelper;
 import ai.reveng.reait.ghidra.component.ConfigureDockableDialog;
 import ai.reveng.reait.ghidra.component.model.AnalysisStatusTableModel;
+import ai.reveng.reait.ghidra.component.model.CollectionsTableModel;
 import ai.reveng.reait.ghidra.task.DeleteBinaryTask;
 import ai.reveng.reait.ghidra.task.GetAnalysesStatusTask;
 import ai.reveng.reait.ghidra.task.GetBinaryEmbeddingsTask;
@@ -34,6 +35,8 @@ import javax.swing.JSeparator;
 import javax.swing.JTable;
 import javax.swing.JScrollPane;
 import javax.swing.ScrollPaneConstants;
+import javax.swing.JTabbedPane;
+import java.awt.FlowLayout;
 
 public class REAITPanel extends JPanel {
 	private static final long serialVersionUID = -9128086339205968930L;
@@ -50,131 +53,19 @@ public class REAITPanel extends JPanel {
 	private int tableCursor;
 
 	private JTable analysisTable;
+	private JTable collectionsTable;
 
 	/**
 	 * Create the panel.
 	 */
 	public REAITPanel(PluginTool plugin) {
 		this.plugin = plugin;
-		setLayout(new BorderLayout(0, 0));
 
-		setPreferredSize(new Dimension(640, 230));
+		setPreferredSize(new Dimension(640, 330));
 
-		JPanel informationPanel = new JPanel();
-		add(informationPanel, BorderLayout.NORTH);
-
-		JLabel lblAPIKey = new JLabel("RevEng.AI API Key:");
-		informationPanel.add(lblAPIKey);
-
-		txtAPIKey = new JTextField();
-		lblAPIKey.setLabelFor(txtAPIKey);
-		txtAPIKey.setToolTipText("API key for connecting to RevEng.AI");
-		txtAPIKey.setHorizontalAlignment(SwingConstants.CENTER);
-		txtAPIKey.setText("Not Configured");
-		txtAPIKey.setEditable(false);
-		informationPanel.add(txtAPIKey);
-		txtAPIKey.setColumns(26);
-
-		JPanel analysisActionsPanel = new JPanel();
-		add(analysisActionsPanel, BorderLayout.WEST);
-		analysisActionsPanel.setLayout(new BoxLayout(analysisActionsPanel, BoxLayout.Y_AXIS));
-
-		JButton btnUpload = new JButton("Upload");
-		btnUpload.addMouseListener(new MouseAdapter() {
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				Task task = new UploadCurrentBinaryTask(uploadBinaryCallback);
-				TaskLauncher.launch(task);
-			}
-		});
-		analysisActionsPanel.add(btnUpload);
-
-		JButton btnRemove = new JButton("Remove");
-		btnRemove.addMouseListener(new MouseAdapter() {
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				tableCursor = analysisTable.getSelectedRow();
-
-				if (tableCursor != -1) {
-					String selectedHash = (String) analysisTable.getValueAt(tableCursor, 2);
-					Task task = new DeleteBinaryTask(deleteBinaryCallback, selectedHash);
-					TaskLauncher.launch(task);
-				}
-			}
-		});
+		AnalysisStatusTableModel analysisTableModel = new AnalysisStatusTableModel();
+		CollectionsTableModel collectionsTableModel = new CollectionsTableModel();
 		
-		JButton btnGetBinaryEmbeddings = new JButton("Get All");
-		btnGetBinaryEmbeddings.addMouseListener(new MouseAdapter() {
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				tableCursor = analysisTable.getSelectedRow();
-
-				if (tableCursor != -1) {
-					String selectedHash = (String) analysisTable.getValueAt(tableCursor, 2);
-					String selectedModel = (String) analysisTable.getValueAt(tableCursor, 1);
-					Task task = new GetBinaryEmbeddingsTask(getBinaryEmbeddingsCallback, selectedHash, selectedModel);
-					TaskLauncher.launch(task);
-				}
-			}
-		});
-		btnGetBinaryEmbeddings.setToolTipText("Get all embeddings for the current binary from the selected model");
-		analysisActionsPanel.add(btnGetBinaryEmbeddings);
-		analysisActionsPanel.add(btnRemove);
-
-		JSeparator separator = new JSeparator();
-		analysisActionsPanel.add(separator);
-
-		JButton btnRefresh = new JButton("Refresh");
-		analysisActionsPanel.add(btnRefresh);
-		btnRefresh.addMouseListener(new MouseAdapter() {
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				refreshConfig();
-			}
-		});
-
-		JPanel analysisPanel = new JPanel();
-		add(analysisPanel, BorderLayout.CENTER);
-
-		AnalysisStatusTableModel model = new AnalysisStatusTableModel();
-		analysisTable = new JTable(model);
-		JScrollPane scrollPane = new JScrollPane(analysisTable);
-		scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
-		analysisPanel.add(scrollPane);
-
-		JPanel actionPanel = new JPanel();
-		add(actionPanel, BorderLayout.SOUTH);
-		actionPanel.setLayout(new BorderLayout(0, 0));
-
-		JPanel statusPanel = new JPanel();
-		actionPanel.add(statusPanel, BorderLayout.WEST);
-
-		JLabel lblStatus = new JLabel("Status:");
-		statusPanel.add(lblStatus);
-		lblStatus.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-		txtStatus = new JTextField();
-		lblStatus.setLabelFor(txtStatus);
-		statusPanel.add(txtStatus);
-		txtStatus.setHorizontalAlignment(SwingConstants.CENTER);
-		txtStatus.setToolTipText("Status of connection to RevEng.AI Server");
-		txtStatus.setText("Disconnected");
-		txtStatus.setEditable(false);
-		txtStatus.setColumns(8);
-
-		JPanel buttonsPanel = new JPanel();
-		actionPanel.add(buttonsPanel, BorderLayout.EAST);
-
-		JButton btnEditConfig = new JButton("Edit Configuration");
-		btnEditConfig.addMouseListener(new MouseAdapter() {
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				ConfigureDockableDialog configure = new ConfigureDockableDialog();
-				plugin.showDialog(configure);
-			}
-		});
-		buttonsPanel.add(btnEditConfig);
-		btnEditConfig.setAlignmentX(Component.RIGHT_ALIGNMENT);
 
 		readConfigFileCallback = new TaskCallback<Boolean>() {
 
@@ -233,30 +124,197 @@ public class REAITPanel extends JPanel {
 
 			@Override
 			public void onTaskCompleted(JSONArray result) {
-				model.clearData();
+				analysisTableModel.clearData();
 				for (int i = 0; i < result.length(); i++) {
 					JSONObject rowStatus = result.getJSONObject(i);
 					String[] row = new String[] { rowStatus.getString("creation"), rowStatus.getString("model_name"),
 							rowStatus.getString("sha_256_hash"), rowStatus.getString("status") };
-					model.addRow(row);
+					analysisTableModel.addRow(row);
 				}
 
 			}
 		};
-		
+
 		this.getBinaryEmbeddingsCallback = new TaskCallback<JSONArray>() {
-			
+
 			@Override
 			public void onTaskError(Exception e) {
 				Msg.showError(this, null, "Get Binary Embeddings Error", e.getMessage());
 			}
-			
+
 			@Override
 			public void onTaskCompleted(JSONArray result) {
 				Msg.showInfo(this, null, "Got Embeddings", "Successfull got embeddings: ");
-				
+
 			}
 		};
+		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+
+		JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
+		add(tabbedPane);
+
+		JPanel analysisPanel = new JPanel();
+		tabbedPane.addTab("Analysis", null, analysisPanel, null);
+		analysisPanel.setLayout(new BorderLayout(0, 0));
+
+		JPanel informationPanel = new JPanel();
+		analysisPanel.add(informationPanel, BorderLayout.NORTH);
+
+		JLabel lblAPIKey = new JLabel("RevEng.AI API Key:");
+		informationPanel.add(lblAPIKey);
+
+		txtAPIKey = new JTextField();
+		lblAPIKey.setLabelFor(txtAPIKey);
+		txtAPIKey.setToolTipText("API key for connecting to RevEng.AI");
+		txtAPIKey.setHorizontalAlignment(SwingConstants.CENTER);
+		txtAPIKey.setText("Not Configured");
+		txtAPIKey.setEditable(false);
+		informationPanel.add(txtAPIKey);
+		txtAPIKey.setColumns(26);
+
+		JPanel analysisActionsPanel = new JPanel();
+		analysisPanel.add(analysisActionsPanel, BorderLayout.WEST);
+		analysisActionsPanel.setLayout(new BoxLayout(analysisActionsPanel, BoxLayout.Y_AXIS));
+
+		JButton btnUpload = new JButton("Upload");
+		btnUpload.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				Task task = new UploadCurrentBinaryTask(uploadBinaryCallback);
+				TaskLauncher.launch(task);
+			}
+		});
+		analysisActionsPanel.add(btnUpload);
+
+		JButton btnRemove = new JButton("Remove");
+		btnRemove.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				tableCursor = analysisTable.getSelectedRow();
+
+				if (tableCursor != -1) {
+					String selectedHash = (String) analysisTable.getValueAt(tableCursor, 2);
+					Task task = new DeleteBinaryTask(deleteBinaryCallback, selectedHash);
+					TaskLauncher.launch(task);
+				}
+			}
+		});
+
+		JButton btnGetBinaryEmbeddings = new JButton("Get All");
+		btnGetBinaryEmbeddings.setEnabled(false);
+		btnGetBinaryEmbeddings.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				tableCursor = analysisTable.getSelectedRow();
+
+				if (tableCursor != -1) {
+					String selectedHash = (String) analysisTable.getValueAt(tableCursor, 2);
+					String selectedModel = (String) analysisTable.getValueAt(tableCursor, 1);
+					Task task = new GetBinaryEmbeddingsTask(getBinaryEmbeddingsCallback, selectedHash, selectedModel);
+					TaskLauncher.launch(task);
+				}
+			}
+		});
+		
+		JButton btnUseAnalysis = new JButton("Use");
+		btnUseAnalysis.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				tableCursor = analysisTable.getSelectedRow();
+
+				if (tableCursor != -1) {
+					String selectedHash = (String) analysisTable.getValueAt(tableCursor, 2);
+					REAITHelper.getInstance().getClient().getConfig().setAnalysisHash(selectedHash);
+					Msg.showInfo(this, null, "Binary Embeddings", "Using Embeddings from " + selectedHash);
+				}
+			}
+		});
+		btnUseAnalysis.setToolTipText("Use the selected analysis result and model for function embeddings");
+		analysisActionsPanel.add(btnUseAnalysis);
+		btnGetBinaryEmbeddings.setToolTipText("Get all embeddings for the current binary from the selected model");
+		analysisActionsPanel.add(btnGetBinaryEmbeddings);
+		analysisActionsPanel.add(btnRemove);
+
+		JSeparator separator = new JSeparator();
+		analysisActionsPanel.add(separator);
+
+		JButton btnRefresh = new JButton("Refresh");
+		analysisActionsPanel.add(btnRefresh);
+
+		JPanel analysisTablePanel = new JPanel();
+		analysisPanel.add(analysisTablePanel, BorderLayout.CENTER);
+		analysisTable = new JTable(analysisTableModel);
+		JScrollPane scrollPane = new JScrollPane(analysisTable);
+		scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
+		analysisTablePanel.add(scrollPane);
+
+		JPanel actionPanel = new JPanel();
+		analysisPanel.add(actionPanel, BorderLayout.SOUTH);
+		actionPanel.setLayout(new BorderLayout(0, 0));
+
+		JPanel statusPanel = new JPanel();
+		actionPanel.add(statusPanel, BorderLayout.WEST);
+
+		JLabel lblStatus = new JLabel("Status:");
+		statusPanel.add(lblStatus);
+		lblStatus.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+		txtStatus = new JTextField();
+		lblStatus.setLabelFor(txtStatus);
+		statusPanel.add(txtStatus);
+		txtStatus.setHorizontalAlignment(SwingConstants.CENTER);
+		txtStatus.setToolTipText("Status of connection to RevEng.AI Server");
+		txtStatus.setText("Disconnected");
+		txtStatus.setEditable(false);
+		txtStatus.setColumns(8);
+
+		JPanel buttonsPanel = new JPanel();
+		actionPanel.add(buttonsPanel, BorderLayout.EAST);
+
+		JButton btnEditConfig = new JButton("Edit Configuration");
+		btnEditConfig.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				ConfigureDockableDialog configure = new ConfigureDockableDialog();
+				plugin.showDialog(configure);
+			}
+		});
+		buttonsPanel.add(btnEditConfig);
+		btnEditConfig.setAlignmentX(Component.RIGHT_ALIGNMENT);
+
+		JPanel CollectionsPanel = new JPanel();
+		tabbedPane.addTab("Collections", null, CollectionsPanel, null);
+		tabbedPane.setEnabledAt(1, false);
+		CollectionsPanel.setLayout(new BorderLayout(0, 0));
+		
+		JPanel collectionActionsPanel = new JPanel();
+		CollectionsPanel.add(collectionActionsPanel, BorderLayout.WEST);
+		
+		JButton btnGetCollections = new JButton("Get Collections");
+		btnGetCollections.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				
+			}
+		});
+		btnGetCollections.setToolTipText("Get the list of available collections for comparision");
+		collectionActionsPanel.add(btnGetCollections);
+		
+		JPanel collectionsTablePanel = new JPanel();
+		CollectionsPanel.add(collectionsTablePanel, BorderLayout.CENTER);
+		
+		JScrollPane collectionsTableScrollPane = new JScrollPane();
+		collectionsTableScrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
+		collectionsTablePanel.add(collectionsTableScrollPane);
+		
+		collectionsTable = new JTable(collectionsTableModel);
+		collectionsTableScrollPane.setViewportView(collectionsTable);
+		btnRefresh.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				refreshConfig();
+			}
+		});
 
 		refreshConfig();
 	}
