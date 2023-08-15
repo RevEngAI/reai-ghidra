@@ -214,11 +214,13 @@ public class Client {
 		HashMap<String, String> headers = new HashMap<String, String>();
 
 		headers.put("Authorization", this.getConfig().getApiKey());
+		headers.put("User-Agent", "Ghidra Plugin");
+		
 		try {
 			HttpClient client = HttpClient.newHttpClient();
 
 			HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
-					.uri(new URI(config.getHost() + "/analyse/recent?n=4")).GET();
+					.uri(new URI(config.getHost() + "/analyse/recent?n=125")).GET();
 
 			headers.forEach(requestBuilder::header);
 
@@ -240,6 +242,56 @@ public class Client {
 		}
 
 		return null;
+	}
+	
+	public JSONArray getBinaryEmbeddings(String hash, String model) throws REAIApiException {
+		HashMap<String, String> headers = new HashMap<String, String>();
+		HashMap<String, String> params = new HashMap<String, String>();
+
+		headers.put("Authorization", this.getConfig().getApiKey());
+		headers.put("User-Agent", "Ghidra Plugin");
+		
+		params.put("model_name", model);
+		
+		String paramsString;
+		// convert the hashmap params into a string of form key=value
+		try {
+			paramsString = this.getParamsString(params);
+		} catch (UnsupportedEncodingException | REAIApiException e) {
+			throw new REAIApiException("Error encoding analysis params");
+		}
+		
+		System.out.println("Get embeddings: " + config.getHost() + "/embeddings/"+hash+"?"+paramsString);
+		
+		try {
+			HttpClient client = HttpClient.newHttpClient();
+
+			HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+					.uri(new URI(config.getHost() + "/embeddings/"+hash+"?model_name="+model)).GET();
+
+			headers.forEach(requestBuilder::header);
+
+			HttpRequest request = requestBuilder.build();
+
+			HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
+
+			System.out.println(response.body());
+			
+			if (response.statusCode() > 299) {
+				JSONObject resJson = new JSONObject(response.body());
+
+				if (resJson.has("error")) {
+					throw new REAIApiException(resJson.getString("error"));
+				}
+				
+				return null;
+			}
+
+			return new JSONArray(response.body());
+
+		} catch (Exception e) {
+			throw new REAIApiException(e.getMessage());
+		}
 	}
 
 	public REAITConfig getConfig() {

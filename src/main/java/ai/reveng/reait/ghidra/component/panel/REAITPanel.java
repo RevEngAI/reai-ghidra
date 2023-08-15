@@ -16,6 +16,7 @@ import ai.reveng.reait.ghidra.component.ConfigureDockableDialog;
 import ai.reveng.reait.ghidra.component.model.AnalysisStatusTableModel;
 import ai.reveng.reait.ghidra.task.DeleteBinaryTask;
 import ai.reveng.reait.ghidra.task.GetAnalysesStatusTask;
+import ai.reveng.reait.ghidra.task.GetBinaryEmbeddingsTask;
 import ai.reveng.reait.ghidra.task.ReadConfigFileTask;
 import ai.reveng.reait.ghidra.task.TaskCallback;
 import ai.reveng.reait.ghidra.task.UploadCurrentBinaryTask;
@@ -28,12 +29,11 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import javax.swing.BoxLayout;
 import javax.swing.JSeparator;
 import javax.swing.JTable;
 import javax.swing.JScrollPane;
+import javax.swing.ScrollPaneConstants;
 
 public class REAITPanel extends JPanel {
 	private static final long serialVersionUID = -9128086339205968930L;
@@ -45,6 +45,7 @@ public class REAITPanel extends JPanel {
 	private TaskCallback<String> uploadBinaryCallback;
 	private TaskCallback<String> deleteBinaryCallback;
 	private TaskCallback<JSONArray> getAnalysesCallback;
+	private TaskCallback<JSONArray> getBinaryEmbeddingsCallback;
 
 	private int tableCursor;
 
@@ -101,6 +102,23 @@ public class REAITPanel extends JPanel {
 				}
 			}
 		});
+		
+		JButton btnGetBinaryEmbeddings = new JButton("Get All");
+		btnGetBinaryEmbeddings.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				tableCursor = analysisTable.getSelectedRow();
+
+				if (tableCursor != -1) {
+					String selectedHash = (String) analysisTable.getValueAt(tableCursor, 2);
+					String selectedModel = (String) analysisTable.getValueAt(tableCursor, 1);
+					Task task = new GetBinaryEmbeddingsTask(getBinaryEmbeddingsCallback, selectedHash, selectedModel);
+					TaskLauncher.launch(task);
+				}
+			}
+		});
+		btnGetBinaryEmbeddings.setToolTipText("Get all embeddings for the current binary from the selected model");
+		analysisActionsPanel.add(btnGetBinaryEmbeddings);
 		analysisActionsPanel.add(btnRemove);
 
 		JSeparator separator = new JSeparator();
@@ -121,6 +139,7 @@ public class REAITPanel extends JPanel {
 		AnalysisStatusTableModel model = new AnalysisStatusTableModel();
 		analysisTable = new JTable(model);
 		JScrollPane scrollPane = new JScrollPane(analysisTable);
+		scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
 		analysisPanel.add(scrollPane);
 
 		JPanel actionPanel = new JPanel();
@@ -222,6 +241,20 @@ public class REAITPanel extends JPanel {
 					model.addRow(row);
 				}
 
+			}
+		};
+		
+		this.getBinaryEmbeddingsCallback = new TaskCallback<JSONArray>() {
+			
+			@Override
+			public void onTaskError(Exception e) {
+				Msg.showError(this, null, "Get Binary Embeddings Error", e.getMessage());
+			}
+			
+			@Override
+			public void onTaskCompleted(JSONArray result) {
+				Msg.showInfo(this, null, "Got Embeddings", "Successfull got embeddings: ");
+				
 			}
 		};
 
