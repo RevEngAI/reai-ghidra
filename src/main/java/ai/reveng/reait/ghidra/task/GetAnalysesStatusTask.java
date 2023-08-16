@@ -13,7 +13,7 @@ public class GetAnalysesStatusTask extends Task {
 	private TaskCallback<JSONArray> callback;
 
 	public GetAnalysesStatusTask(TaskCallback<JSONArray> callback) {
-		super("Delete Binary", true, false, false);
+		super("Get Status", true, false, false);
 		this.callback = callback;
 	}
 

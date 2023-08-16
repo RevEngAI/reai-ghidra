@@ -12,6 +12,7 @@ import org.json.JSONObject;
 
 import ai.reveng.reait.REAITConfig;
 import ai.reveng.reait.ghidra.REAITHelper;
+import ai.reveng.reait.ghidra.component.AutoAnalyseDockableDialog;
 import ai.reveng.reait.ghidra.component.ConfigureDockableDialog;
 import ai.reveng.reait.ghidra.component.model.AnalysisStatusTableModel;
 import ai.reveng.reait.ghidra.component.model.CollectionsTableModel;
@@ -267,20 +268,33 @@ public class REAITPanel extends JPanel {
 		txtStatus.setText("Disconnected");
 		txtStatus.setEditable(false);
 		txtStatus.setColumns(8);
-
-		JPanel buttonsPanel = new JPanel();
-		actionPanel.add(buttonsPanel, BorderLayout.EAST);
-
-		JButton btnEditConfig = new JButton("Edit Configuration");
-		btnEditConfig.addMouseListener(new MouseAdapter() {
+		
+		JPanel listingActionsPanel = new JPanel();
+		actionPanel.add(listingActionsPanel, BorderLayout.CENTER);
+		
+		JButton btnAutoAnalyse = new JButton("Auto Analyse");
+		btnAutoAnalyse.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
-				ConfigureDockableDialog configure = new ConfigureDockableDialog();
-				plugin.showDialog(configure);
+				AutoAnalyseDockableDialog autoAnalyse = new AutoAnalyseDockableDialog();
+				plugin.showDialog(autoAnalyse);
 			}
 		});
-		buttonsPanel.add(btnEditConfig);
-		btnEditConfig.setAlignmentX(Component.RIGHT_ALIGNMENT);
+		listingActionsPanel.add(btnAutoAnalyse);
+		
+				JPanel buttonsPanel = new JPanel();
+				actionPanel.add(buttonsPanel, BorderLayout.EAST);
+				
+						JButton btnEditConfig = new JButton("Edit Configuration");
+						btnEditConfig.addMouseListener(new MouseAdapter() {
+							@Override
+							public void mouseClicked(MouseEvent e) {
+								ConfigureDockableDialog configure = new ConfigureDockableDialog();
+								plugin.showDialog(configure);
+							}
+						});
+						buttonsPanel.add(btnEditConfig);
+						btnEditConfig.setAlignmentX(Component.RIGHT_ALIGNMENT);
 
 		JPanel CollectionsPanel = new JPanel();
 		tabbedPane.addTab("Collections", null, CollectionsPanel, null);
