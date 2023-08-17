@@ -19,7 +19,7 @@ public class UploadCurrentBinaryTask extends Task {
 	private TaskCallback<String> callback;
 
 	public UploadCurrentBinaryTask(TaskCallback<String> callback) {
-		super(RE_AIPluginPackage.WINDOW_PREFIX+"Upload Binary", true, false, false);
+		super(RE_AIPluginPackage.WINDOW_PREFIX + "Upload Binary", true, false, false);
 		this.callback = callback;
 	}
 
@@ -58,18 +58,6 @@ public class UploadCurrentBinaryTask extends Task {
 			return;
 		}
 
-		BinaryExporter exporter = new BinaryExporter();
-		String path = RE_AIToolkitHelper.getInstance().getExportBinPath();
-		File outputFile = new File(path);
-		// make sure the directory exists
-		outputFile.getParentFile().mkdirs();
-		try {
-			exporter.export(outputFile, program, program.getMemory().getAllInitializedAddressSet(), TaskMonitor.DUMMY);
-		} catch (IOException | ExporterException e) {
-			callback.onTaskError(e);
-			return;
-		}
-
 		String modelName = null;
 		try {
 			modelName = RE_AIToolkitHelper.getInstance().getClient().getConfig().getModel().toString();
@@ -77,15 +65,18 @@ public class UploadCurrentBinaryTask extends Task {
 			callback.onTaskError(new Exception(
 					"Could not read model name, please make sure you have setup your ghidra client using the configuration window"));
 		}
-		String isa = RE_AIToolkitHelper.getInstance().getFlatAPI().getCurrentProgram().getLanguage().getProcessor().toString();
+		String isa = RE_AIToolkitHelper.getInstance().getFlatAPI().getCurrentProgram().getLanguage().getProcessor()
+				.toString();
 		String os = inferOSFromFormat(
 				RE_AIToolkitHelper.getInstance().getFlatAPI().getCurrentProgram().getExecutableFormat().toUpperCase());
 		String fileType = inferTypeFromFormat(
 				RE_AIToolkitHelper.getInstance().getFlatAPI().getCurrentProgram().getExecutableFormat().toUpperCase());
 
 		try {
-			String hash = RE_AIToolkitHelper.getInstance().getClient().analyse(path, modelName, isa, os,
-					RE_AIToolkitHelper.getInstance().getFlatAPI().getProgramFile().getName().toString(), fileType, false, "\"\"");
+			String hash = RE_AIToolkitHelper.getInstance().getClient().analyse(
+					RE_AIToolkitHelper.getInstance().getFlatAPI().getProgramFile().getAbsolutePath(), modelName, isa,
+					os, RE_AIToolkitHelper.getInstance().getFlatAPI().getProgramFile().getName().toString(), fileType,
+					false, "\"\"");
 			callback.onTaskCompleted(hash);
 		} catch (JSONException | RE_AIApiException e) {
 			callback.onTaskError(e);
