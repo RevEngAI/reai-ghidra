@@ -16,7 +16,10 @@ import ai.reveng.toolkit.ghidra.RE_AIToolkitHelper;
 import ai.reveng.toolkit.ghidra.task.GetBinaryEmbeddingsTask;
 import ai.reveng.toolkit.ghidra.task.TaskCallback;
 import ghidra.program.model.listing.Function;
+import ghidra.program.model.symbol.SourceType;
 import ghidra.util.Msg;
+import ghidra.util.exception.DuplicateNameException;
+import ghidra.util.exception.InvalidInputException;
 import ghidra.util.task.Task;
 import ghidra.util.task.TaskLauncher;
 
@@ -27,7 +30,7 @@ import java.util.Vector;
 
 public class AutoAnalysePanel extends JPanel {
 	private static final long serialVersionUID = -2434211840839666156L;
-	
+
 	private TaskCallback<JSONArray> getBinaryEmbeddingsCallback;
 	private JSlider confidenceSlider;
 
@@ -36,30 +39,30 @@ public class AutoAnalysePanel extends JPanel {
 	 */
 	public AutoAnalysePanel() {
 		setLayout(new BorderLayout(0, 0));
-		
+
 		JPanel titlePanel = new JPanel();
 		add(titlePanel, BorderLayout.NORTH);
-		
+
 		JLabel lblTitle = new JLabel("Auto Analyse");
 		titlePanel.add(lblTitle);
-		
+
 		JPanel optionsPanel = new JPanel();
 		add(optionsPanel);
 		optionsPanel.setLayout(new BorderLayout(0, 0));
-		
+
 		JPanel confidencePanel = new JPanel();
 		optionsPanel.add(confidencePanel, BorderLayout.SOUTH);
 		confidencePanel.setLayout(new BorderLayout(0, 0));
-		
+
 		JPanel valuePanel = new JPanel();
 		confidencePanel.add(valuePanel, BorderLayout.NORTH);
-		
+
 		JLabel lblConfidence = new JLabel("Confidence:");
 		valuePanel.add(lblConfidence);
-		
+
 		JLabel lblConfidenceValue = new JLabel("\n");
 		valuePanel.add(lblConfidenceValue);
-		
+
 		confidenceSlider = new JSlider();
 		confidenceSlider.setMajorTickSpacing(10);
 		confidenceSlider.addChangeListener(new ChangeListener() {
@@ -74,11 +77,11 @@ public class AutoAnalysePanel extends JPanel {
 		confidenceSlider.setMinorTickSpacing(5);
 		confidenceSlider.setPaintTicks(true);
 		confidencePanel.add(confidenceSlider);
-		
+
 		JPanel actionPanel = new JPanel();
 		add(actionPanel, BorderLayout.SOUTH);
 		actionPanel.setLayout(new BorderLayout(0, 0));
-		
+
 		JButton btnStartAnalysis = new JButton("Start");
 		btnStartAnalysis.addMouseListener(new MouseAdapter() {
 			@Override
@@ -91,26 +94,26 @@ public class AutoAnalysePanel extends JPanel {
 			}
 		});
 		actionPanel.add(btnStartAnalysis, BorderLayout.SOUTH);
-		
+
 		getBinaryEmbeddingsCallback = new TaskCallback<JSONArray>() {
 
 			@Override
 			public void onTaskError(Exception e) {
-				Msg.showError(this, null, RE_AIPluginPackage.WINDOW_PREFIX+"", e.getMessage());
+				Msg.showError(this, null, RE_AIPluginPackage.WINDOW_PREFIX + "", e.getMessage());
 
 			}
 
 			@Override
 			public void onTaskCompleted(JSONArray result) {
-				for (Function f : RE_AIToolkitHelper.getInstance().getFlatAPI().getCurrentProgram().getFunctionManager().getFunctions(true)) {
+				for (Function f : RE_AIToolkitHelper.getInstance().getFlatAPI().getCurrentProgram().getFunctionManager()
+						.getFunctions(true)) {
 					processFunction(f, result);
 				}
 			}
 		};
-		
 
 	}
-	
+
 	private void processFunction(Function functionUnderReview, JSONArray embeddings) {
 		// find the embedding for this function
 		for (int i = 0; i < embeddings.length(); i++) {
@@ -124,22 +127,40 @@ public class AutoAnalysePanel extends JPanel {
 				}
 				System.out.println("Got embeddings for: " + embedding.getString("name"));
 				try {
-					JSONArray similarFunctions = RE_AIToolkitHelper.getInstance().getClient().ann_symbols(0.2, 8, "", functionEmbeddings, RE_AIToolkitHelper.getInstance().getClient().getConfig().getAnalysisHash());
+					JSONArray similarFunctions = RE_AIToolkitHelper.getInstance().getClient().ann_symbols(0.2, 8, "",
+							functionEmbeddings,
+							RE_AIToolkitHelper.getInstance().getClient().getConfig().getAnalysisHash());
 					String canidateName = "None";
 					double canidateDistance = 200;
 					for (int k = 0; k < similarFunctions.length(); k++) {
 						JSONObject funct = similarFunctions.getJSONObject(k);
 						Double distance = funct.getDouble("distance");
-						if (distance >= getConfidenceSlider().getValue()/100 && distance < canidateDistance) {
+						if (distance >= getConfidenceSlider().getValue() / 100 && distance < canidateDistance) {
 							canidateDistance = distance;
 							canidateName = funct.getString("name");
 						}
 					}
-					
-					System.out.println("Canidate Function Name: " + canidateName + " with distance: " + canidateDistance);
-					
+
+					// if the distance is greater than 100, then there were no matches and we should
+					// leave things alone for now
+					if (canidateDistance > 100) {
+						return;
+					}
+
+					System.out
+							.println("Canidate Function Name: " + canidateName + " with distance: " + canidateDistance);
+					int transactionID = RE_AIToolkitHelper.getInstance().getFlatAPI().getCurrentProgram()
+							.startTransaction("Rename function from autoanalysis");
+					functionUnderReview.setName(canidateName, SourceType.USER_DEFINED);
+					RE_AIToolkitHelper.getInstance().getFlatAPI().getCurrentProgram().endTransaction(transactionID,
+							true);
+
 				} catch (RE_AIApiException e) {
-					Msg.showError(this, null, RE_AIPluginPackage.WINDOW_PREFIX+"ANN Error", e.getMessage());
+					Msg.showError(this, null, RE_AIPluginPackage.WINDOW_PREFIX + "Auto Analysis Error", e.getMessage());
+				} catch (DuplicateNameException e) {
+					Msg.showError(this, null, RE_AIPluginPackage.WINDOW_PREFIX + "Auto Analysis Error", e.getMessage());
+				} catch (InvalidInputException e) {
+					Msg.showError(this, null, RE_AIPluginPackage.WINDOW_PREFIX + "Auto Analysis Error", e.getMessage());
 				}
 			}
 		}
