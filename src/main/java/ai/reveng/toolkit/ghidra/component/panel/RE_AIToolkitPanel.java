@@ -92,7 +92,7 @@ public class RE_AIToolkitPanel extends JPanel {
 
 			@Override
 			public void onTaskCompleted(String result) {
-				Msg.showInfo(this, null, RE_AIPluginPackage.WINDOW_PREFIX+"Binary Upload Complete", "Successfull upload binary with hash: " + result);
+				Msg.showInfo(this, null, RE_AIPluginPackage.WINDOW_PREFIX+"Binary Upload Complete", String.format("Successfully uploaded binary!\n\nHash: %s", result));
 				refreshStatus();
 			}
 		};
