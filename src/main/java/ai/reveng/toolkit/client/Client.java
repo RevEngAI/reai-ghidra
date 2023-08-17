@@ -330,7 +330,7 @@ public class Client {
 		return null;
 	}
 	
-	public JSONArray ann_symbols(double distance, int numNeighbours, String regex, Vector<Double> embedding) throws RE_AIApiException {
+	public JSONArray ann_symbols(double distance, int numNeighbours, String regex, Vector<Double> embedding, String hashes) throws RE_AIApiException {
 		HashMap<String, String> headers = new HashMap<String, String>();
 		
 		headers.put("Authorization", this.getConfig().getApiKey());
@@ -342,7 +342,7 @@ public class Client {
 
 			HttpClient client = HttpClient.newHttpClient();
 
-			HttpRequest.Builder requestBuilder = HttpRequest.newBuilder().uri(new URI(config.getHost() + "/ann/symbol?distance="+distance+"&nns="+numNeighbours))
+			HttpRequest.Builder requestBuilder = HttpRequest.newBuilder().uri(new URI(config.getHost() + "/ann/symbol?distance="+distance+"&nns="+numNeighbours+"&ignore_hashes="+hashes))
 					.POST(HttpRequest.BodyPublishers.ofString("["+rawData+"]"));
 
 			headers.forEach(requestBuilder::header);

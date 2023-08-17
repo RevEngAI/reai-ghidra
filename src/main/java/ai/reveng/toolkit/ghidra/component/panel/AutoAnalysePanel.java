@@ -124,7 +124,7 @@ public class AutoAnalysePanel extends JPanel {
 				}
 				System.out.println("Got embeddings for: " + embedding.getString("name"));
 				try {
-					JSONArray similarFunctions = RE_AIToolkitHelper.getInstance().getClient().ann_symbols(0.2, 8, "", functionEmbeddings);
+					JSONArray similarFunctions = RE_AIToolkitHelper.getInstance().getClient().ann_symbols(0.2, 8, "", functionEmbeddings, RE_AIToolkitHelper.getInstance().getClient().getConfig().getAnalysisHash());
 					String canidateName = "None";
 					double canidateDistance = 200;
 					for (int k = 0; k < similarFunctions.length(); k++) {

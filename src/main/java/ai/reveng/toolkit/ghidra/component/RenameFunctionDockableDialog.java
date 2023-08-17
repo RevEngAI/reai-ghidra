@@ -12,7 +12,7 @@ public class RenameFunctionDockableDialog extends DialogComponentProvider {
 	private Function func;
 
 	public RenameFunctionDockableDialog(Function func) {
-		super(RE_AIPluginPackage.WINDOW_PREFIX+"REAIT Function Rename", true);
+		super(RE_AIPluginPackage.WINDOW_PREFIX+"Function Rename", true);
 		this.func = func;
 		buildPanel();
 	}
