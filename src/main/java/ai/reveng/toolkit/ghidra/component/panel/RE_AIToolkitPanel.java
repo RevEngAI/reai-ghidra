@@ -38,6 +38,8 @@ import javax.swing.JTable;
 import javax.swing.JScrollPane;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.JTabbedPane;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 
 public class RE_AIToolkitPanel extends JPanel {
 	private static final long serialVersionUID = -9128086339205968930L;
@@ -53,6 +55,7 @@ public class RE_AIToolkitPanel extends JPanel {
 
 	private JTable analysisTable;
 	private JTable collectionsTable;
+	private JButton btnGetBinaryEmbeddings;
 
 	/**
 	 * Create the panel.
@@ -62,7 +65,6 @@ public class RE_AIToolkitPanel extends JPanel {
 
 		AnalysisStatusTableModel analysisTableModel = new AnalysisStatusTableModel();
 		CollectionsTableModel collectionsTableModel = new CollectionsTableModel();
-		
 
 		readConfigFileCallback = new TaskCallback<Boolean>() {
 
@@ -87,12 +89,13 @@ public class RE_AIToolkitPanel extends JPanel {
 
 			@Override
 			public void onTaskError(Exception e) {
-				Msg.showError(this, null, RE_AIPluginPackage.WINDOW_PREFIX+"Upload Binary Error", e.getMessage());
+				Msg.showError(this, null, RE_AIPluginPackage.WINDOW_PREFIX + "Upload Binary Error", e.getMessage());
 			}
 
 			@Override
 			public void onTaskCompleted(String result) {
-				Msg.showInfo(this, null, RE_AIPluginPackage.WINDOW_PREFIX+"Binary Upload Complete", String.format("Successfully uploaded binary!\n\nHash: %s", result));
+				Msg.showInfo(this, null, RE_AIPluginPackage.WINDOW_PREFIX + "Binary Upload Complete",
+						String.format("Successfully uploaded binary!\n\nHash: %s", result));
 				refreshStatus();
 			}
 		};
@@ -101,12 +104,12 @@ public class RE_AIToolkitPanel extends JPanel {
 
 			@Override
 			public void onTaskError(Exception e) {
-				Msg.showError(this, null, RE_AIPluginPackage.WINDOW_PREFIX+"Delete Binary Error", e.getMessage());
+				Msg.showError(this, null, RE_AIPluginPackage.WINDOW_PREFIX + "Delete Binary Error", e.getMessage());
 			}
 
 			@Override
 			public void onTaskCompleted(String result) {
-				Msg.showInfo(this, null, RE_AIPluginPackage.WINDOW_PREFIX+"Binary Delete Complete", result);
+				Msg.showInfo(this, null, RE_AIPluginPackage.WINDOW_PREFIX + "Binary Delete Complete", result);
 				refreshStatus();
 			}
 		};
@@ -115,7 +118,7 @@ public class RE_AIToolkitPanel extends JPanel {
 
 			@Override
 			public void onTaskError(Exception e) {
-				Msg.showError(this, null, RE_AIPluginPackage.WINDOW_PREFIX+"Get Analyses Error", e.getMessage());
+				Msg.showError(this, null, RE_AIPluginPackage.WINDOW_PREFIX + "Get Analyses Error", e.getMessage());
 
 			}
 
@@ -136,12 +139,14 @@ public class RE_AIToolkitPanel extends JPanel {
 
 			@Override
 			public void onTaskError(Exception e) {
-				Msg.showError(this, null, RE_AIPluginPackage.WINDOW_PREFIX+"Get Binary Embeddings Error", e.getMessage());
+				Msg.showError(this, null, RE_AIPluginPackage.WINDOW_PREFIX + "Get Binary Embeddings Error",
+						e.getMessage());
 			}
 
 			@Override
 			public void onTaskCompleted(JSONArray result) {
-				Msg.showInfo(this, null, RE_AIPluginPackage.WINDOW_PREFIX+"Got Embeddings", "Successfull got embeddings: ");
+				Msg.showInfo(this, null, RE_AIPluginPackage.WINDOW_PREFIX + "Got Embeddings",
+						"Successfull got embeddings: ");
 
 			}
 		};
@@ -197,7 +202,7 @@ public class RE_AIToolkitPanel extends JPanel {
 			}
 		});
 
-		JButton btnGetBinaryEmbeddings = new JButton("Get All");
+		btnGetBinaryEmbeddings = new JButton("Download Results");
 		btnGetBinaryEmbeddings.setEnabled(false);
 		btnGetBinaryEmbeddings.addMouseListener(new MouseAdapter() {
 			@Override
@@ -212,22 +217,6 @@ public class RE_AIToolkitPanel extends JPanel {
 				}
 			}
 		});
-		
-		JButton btnUseAnalysis = new JButton("Use");
-		btnUseAnalysis.addMouseListener(new MouseAdapter() {
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				tableCursor = analysisTable.getSelectedRow();
-
-				if (tableCursor != -1) {
-					String selectedHash = (String) analysisTable.getValueAt(tableCursor, 2);
-					RE_AIToolkitHelper.getInstance().getClient().getConfig().setAnalysisHash(selectedHash);
-					Msg.showInfo(this, null, RE_AIPluginPackage.WINDOW_PREFIX+"Binary Embeddings", "Using Embeddings from " + selectedHash);
-				}
-			}
-		});
-		btnUseAnalysis.setToolTipText("Use the selected analysis result and model for function embeddings");
-		analysisActionsPanel.add(btnUseAnalysis);
 		btnGetBinaryEmbeddings.setToolTipText("Get all embeddings for the current binary from the selected model");
 		analysisActionsPanel.add(btnGetBinaryEmbeddings);
 		analysisActionsPanel.add(btnRemove);
@@ -241,6 +230,18 @@ public class RE_AIToolkitPanel extends JPanel {
 		JPanel analysisTablePanel = new JPanel();
 		analysisPanel.add(analysisTablePanel, BorderLayout.CENTER);
 		analysisTable = new JTable(analysisTableModel);
+		analysisTable.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyReleased(KeyEvent e) {
+				analysisTableTick();
+			}
+		});
+		analysisTable.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				analysisTableTick();
+			}
+		});
 		JScrollPane scrollPane = new JScrollPane(analysisTable);
 		scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
 		analysisTablePanel.add(scrollPane);
@@ -264,10 +265,10 @@ public class RE_AIToolkitPanel extends JPanel {
 		txtStatus.setText("Disconnected");
 		txtStatus.setEditable(false);
 		txtStatus.setColumns(8);
-		
+
 		JPanel listingActionsPanel = new JPanel();
 		actionPanel.add(listingActionsPanel, BorderLayout.CENTER);
-		
+
 		JButton btnAutoAnalyse = new JButton("Auto Analyse");
 		btnAutoAnalyse.addMouseListener(new MouseAdapter() {
 			@Override
@@ -277,46 +278,46 @@ public class RE_AIToolkitPanel extends JPanel {
 			}
 		});
 		listingActionsPanel.add(btnAutoAnalyse);
-		
-				JPanel buttonsPanel = new JPanel();
-				actionPanel.add(buttonsPanel, BorderLayout.EAST);
-				
-						JButton btnEditConfig = new JButton("Edit Configuration");
-						btnEditConfig.addMouseListener(new MouseAdapter() {
-							@Override
-							public void mouseClicked(MouseEvent e) {
-								ConfigureDockableDialog configure = new ConfigureDockableDialog();
-								plugin.showDialog(configure);
-							}
-						});
-						buttonsPanel.add(btnEditConfig);
-						btnEditConfig.setAlignmentX(Component.RIGHT_ALIGNMENT);
+
+		JPanel buttonsPanel = new JPanel();
+		actionPanel.add(buttonsPanel, BorderLayout.EAST);
+
+		JButton btnEditConfig = new JButton("Edit Configuration");
+		btnEditConfig.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				ConfigureDockableDialog configure = new ConfigureDockableDialog();
+				plugin.showDialog(configure);
+			}
+		});
+		buttonsPanel.add(btnEditConfig);
+		btnEditConfig.setAlignmentX(Component.RIGHT_ALIGNMENT);
 
 		JPanel CollectionsPanel = new JPanel();
 		tabbedPane.addTab("Collections", null, CollectionsPanel, null);
 		tabbedPane.setEnabledAt(1, false);
 		CollectionsPanel.setLayout(new BorderLayout(0, 0));
-		
+
 		JPanel collectionActionsPanel = new JPanel();
 		CollectionsPanel.add(collectionActionsPanel, BorderLayout.WEST);
-		
+
 		JButton btnGetCollections = new JButton("Get Collections");
 		btnGetCollections.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
-				
+
 			}
 		});
 		btnGetCollections.setToolTipText("Get the list of available collections for comparision");
 		collectionActionsPanel.add(btnGetCollections);
-		
+
 		JPanel collectionsTablePanel = new JPanel();
 		CollectionsPanel.add(collectionsTablePanel, BorderLayout.CENTER);
-		
+
 		JScrollPane collectionsTableScrollPane = new JScrollPane();
 		collectionsTableScrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
 		collectionsTablePanel.add(collectionsTableScrollPane);
-		
+
 		collectionsTable = new JTable(collectionsTableModel);
 		collectionsTableScrollPane.setViewportView(collectionsTable);
 		btnRefresh.addMouseListener(new MouseAdapter() {
@@ -327,6 +328,30 @@ public class RE_AIToolkitPanel extends JPanel {
 		});
 
 		refreshConfig();
+	}
+	
+	private void analysisTableTick() {
+		setBinaryHash();
+		checkDownloadResults();
+	}
+	
+	private void checkDownloadResults() {
+		int row = analysisTable.getSelectedRow();
+		String status = (String) analysisTable.getValueAt(row, 3);
+		System.out.println("Status: " + status);
+		
+		if (status.equals("Complete")) {
+			getBtnGetBinaryEmbeddings().setEnabled(true);
+		} else {
+			getBtnGetBinaryEmbeddings().setEnabled(false);
+		}
+	}
+	
+	private void setBinaryHash() {
+		int row = analysisTable.getSelectedRow();
+		String hash = (String) analysisTable.getValueAt(row, 2);
+		System.out.println("Using hash: " + hash);
+		RE_AIToolkitHelper.getInstance().getClient().getConfig().setAnalysisHash(hash);
 	}
 
 	private void refreshStatus() {
@@ -348,4 +373,7 @@ public class RE_AIToolkitPanel extends JPanel {
 		txtStatus.setText(status);
 	}
 
+	protected JButton getBtnGetBinaryEmbeddings() {
+		return btnGetBinaryEmbeddings;
+	}
 }
