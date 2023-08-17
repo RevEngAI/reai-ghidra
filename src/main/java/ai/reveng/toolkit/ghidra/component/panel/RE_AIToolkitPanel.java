@@ -139,14 +139,14 @@ public class RE_AIToolkitPanel extends JPanel {
 
 			@Override
 			public void onTaskError(Exception e) {
-				Msg.showError(this, null, RE_AIPluginPackage.WINDOW_PREFIX + "Get Binary Embeddings Error",
+				Msg.showError(this, null, RE_AIPluginPackage.WINDOW_PREFIX + "Get Results Error",
 						e.getMessage());
 			}
 
 			@Override
 			public void onTaskCompleted(JSONArray result) {
-				Msg.showInfo(this, null, RE_AIPluginPackage.WINDOW_PREFIX + "Got Embeddings",
-						"Successfull got embeddings: ");
+				Msg.showInfo(this, null, RE_AIPluginPackage.WINDOW_PREFIX + "Got Analysis Results",
+						"Successfully got results");
 
 			}
 		};

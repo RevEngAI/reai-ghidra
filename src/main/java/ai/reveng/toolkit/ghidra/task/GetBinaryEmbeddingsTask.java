@@ -1,5 +1,11 @@
 package ai.reveng.toolkit.ghidra.task;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 
@@ -25,7 +31,32 @@ public class GetBinaryEmbeddingsTask extends Task {
 	@Override
 	public void run(TaskMonitor monitor) throws CancelledException {
 		try {
-			JSONArray result = RE_AIToolkitHelper.getInstance().getClient().getBinaryEmbeddings(binHash, model);
+			JSONArray result = null;
+			File embeddingsFile = new File(RE_AIToolkitHelper.getInstance().getReaiDir()+"/"+RE_AIToolkitHelper.getInstance().getClient().getConfig().getAnalysisHash()+".json");
+			// check if we already have the embeddings for this binary stored locally
+			if (embeddingsFile.exists()) {
+				try (BufferedReader reader = new BufferedReader(new FileReader(embeddingsFile))) {
+					StringBuffer jsonContent = new StringBuffer();
+					String line;
+					while ((line = reader.readLine()) != null) {
+						jsonContent.append(line);
+					}
+					
+					result = new JSONArray(jsonContent.toString());
+					System.out.println("Read embeddings from file: " + embeddingsFile.getAbsolutePath());
+				} catch (IOException e) {
+					callback.onTaskError(e);
+				}
+			} else {
+				result = RE_AIToolkitHelper.getInstance().getClient().getBinaryEmbeddings(binHash, model);
+				try (FileWriter fileWriter = new FileWriter(embeddingsFile)) {
+					fileWriter.write(result.toString());
+					System.out.println("Wrote embeddings to file: " + embeddingsFile.getAbsolutePath());
+				} catch (IOException e) {
+					callback.onTaskError(e);
+				}
+				
+			}
 			callback.onTaskCompleted(result);
 		} catch (JSONException | RE_AIApiException e) {
 			callback.onTaskError(e);
