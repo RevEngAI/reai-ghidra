@@ -53,8 +53,8 @@ public class RE_AIToolkitPlugin extends ProgramPlugin {
 	}
 
 	private void createActions() {
-		RenameFunctionFromSimilarFunctionsAction renameFromEmbeddingsAction = new RenameFunctionFromSimilarFunctionsAction("Rename From Embedding", tool);
-		renameFromEmbeddingsAction.setPopupMenuData(new MenuData(new String[] { "Rename From Embedding" }, null, "Reveng.AI"));
+		RenameFunctionFromSimilarFunctionsAction renameFromEmbeddingsAction = new RenameFunctionFromSimilarFunctionsAction("Rename From Similar Functions", tool);
+		renameFromEmbeddingsAction.setPopupMenuData(new MenuData(new String[] { "Rename From Similar Functions" }, null, "Reveng.AI"));
 
 		tool.addAction(renameFromEmbeddingsAction);
 	}

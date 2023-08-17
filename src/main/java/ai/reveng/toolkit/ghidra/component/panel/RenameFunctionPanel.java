@@ -67,7 +67,7 @@ public class RenameFunctionPanel extends JPanel {
 		add(ActionsPanel, BorderLayout.WEST);
 		ActionsPanel.setLayout(new BoxLayout(ActionsPanel, BoxLayout.Y_AXIS));
 
-		JButton btnGetEmbeddings = new JButton("Get Embeddings");
+		JButton btnGetEmbeddings = new JButton("Find Functions");
 		btnGetEmbeddings.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
@@ -134,7 +134,7 @@ public class RenameFunctionPanel extends JPanel {
 						}
 						System.out.println("Got embeddings for: " + embedding.getString("name"));
 						try {
-							JSONArray similarFunctions = RE_AIToolkitHelper.getInstance().getClient().ann_symbols(0.2, 8, "", functionEmbeddings);
+							JSONArray similarFunctions = RE_AIToolkitHelper.getInstance().getClient().ann_symbols(0.2, 8, "", functionEmbeddings, RE_AIToolkitHelper.getInstance().getClient().getConfig().getAnalysisHash());
 							for (int k = 0; k < similarFunctions.length(); k++) {
 								JSONObject funct = similarFunctions.getJSONObject(k);
 								feTableModel.addRow(new String[] {funct.getString("name"), funct.get("distance").toString(), funct.getString("binary_name")});

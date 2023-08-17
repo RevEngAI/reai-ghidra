@@ -10,7 +10,7 @@ public class AutoAnalyseDockableDialog extends DialogComponentProvider {
 	private AutoAnalysePanel panel;
 
 	public AutoAnalyseDockableDialog() {
-		super(RE_AIPluginPackage.WINDOW_PREFIX+"REAIT Function Rename", true);
+		super(RE_AIPluginPackage.WINDOW_PREFIX+"Function Rename", true);
 		buildPanel();
 	}
 
