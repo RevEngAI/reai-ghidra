@@ -146,7 +146,7 @@ public class RE_AIToolkitPanel extends JPanel {
 			@Override
 			public void onTaskCompleted(JSONArray result) {
 				Msg.showInfo(this, null, RE_AIPluginPackage.WINDOW_PREFIX + "Got Analysis Results",
-						"Successfull got results");
+						"Successfully got results");
 
 			}
 		};
