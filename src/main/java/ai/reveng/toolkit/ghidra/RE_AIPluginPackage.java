@@ -8,6 +8,7 @@ import resources.ResourceManager;
  */
 public class RE_AIPluginPackage extends PluginPackage {
 	public static final String NAME = "RevEng.AI";
+	public static final String WINDOW_PREFIX="RevEng.AI Toolkit: ";
 
 	/**
 	 * Create a Top Level Plugin Package that uses the RevEng.AI logo

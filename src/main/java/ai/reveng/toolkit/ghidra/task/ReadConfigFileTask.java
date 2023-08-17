@@ -6,6 +6,7 @@ import com.moandjiezana.toml.Toml;
 
 import ai.reveng.toolkit.RE_AIConfig;
 import ai.reveng.toolkit.exceptions.RE_AIConfigException;
+import ai.reveng.toolkit.ghidra.RE_AIPluginPackage;
 import ai.reveng.toolkit.ghidra.RE_AIToolkitHelper;
 import ai.reveng.toolkit.model.ModelInfo;
 import ghidra.util.exception.CancelledException;
@@ -16,7 +17,7 @@ public class ReadConfigFileTask extends Task {
 	private TaskCallback<Boolean> callback;
 
 	public ReadConfigFileTask(TaskCallback<Boolean> callback) {
-		super("Read Config File from Disk", true, false, false);
+		super(RE_AIPluginPackage.WINDOW_PREFIX+"Read Config File from Disk", true, false, false);
 		this.callback = callback;
 	}
 

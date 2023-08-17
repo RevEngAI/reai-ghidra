@@ -3,6 +3,7 @@ package ai.reveng.toolkit.ghidra.task;
 import org.json.JSONException;
 
 import ai.reveng.toolkit.exceptions.RE_AIApiException;
+import ai.reveng.toolkit.ghidra.RE_AIPluginPackage;
 import ai.reveng.toolkit.ghidra.RE_AIToolkitHelper;
 import ghidra.util.exception.CancelledException;
 import ghidra.util.task.Task;
@@ -14,7 +15,7 @@ public class DeleteBinaryTask extends Task {
 	private String binHash;
 
 	public DeleteBinaryTask(TaskCallback<String> callback, String binHash) {
-		super("Delete Binary", true, false, false);
+		super(RE_AIPluginPackage.WINDOW_PREFIX+"Delete Binary", true, false, false);
 		this.callback = callback;
 		this.binHash = binHash;
 	}

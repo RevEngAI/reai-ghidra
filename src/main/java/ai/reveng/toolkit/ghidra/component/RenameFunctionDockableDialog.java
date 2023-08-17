@@ -2,6 +2,7 @@ package ai.reveng.toolkit.ghidra.component;
 
 import javax.swing.JComponent;
 
+import ai.reveng.toolkit.ghidra.RE_AIPluginPackage;
 import ai.reveng.toolkit.ghidra.component.panel.RenameFunctionPanel;
 import docking.DialogComponentProvider;
 import ghidra.program.model.listing.Function;
@@ -11,7 +12,7 @@ public class RenameFunctionDockableDialog extends DialogComponentProvider {
 	private Function func;
 
 	public RenameFunctionDockableDialog(Function func) {
-		super("REAIT Function Rename", true);
+		super(RE_AIPluginPackage.WINDOW_PREFIX+"REAIT Function Rename", true);
 		this.func = func;
 		buildPanel();
 	}

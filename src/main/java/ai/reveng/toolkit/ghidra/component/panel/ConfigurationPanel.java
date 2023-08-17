@@ -15,6 +15,7 @@ import javax.swing.JTextField;
 import ghidra.util.Msg;
 import ghidra.util.task.Task;
 import ghidra.util.task.TaskLauncher;
+import ai.reveng.toolkit.ghidra.RE_AIPluginPackage;
 import ai.reveng.toolkit.ghidra.RE_AIToolkitHelper;
 import ai.reveng.toolkit.ghidra.task.GetREAIModelsTask;
 import ai.reveng.toolkit.ghidra.task.TaskCallback;
@@ -60,7 +61,7 @@ public class ConfigurationPanel extends JPanel {
 
 			@Override
 			public void onTaskError(Exception e) {
-				Msg.showError(this, null, "API Error", e.getMessage());
+				Msg.showError(this, null, RE_AIPluginPackage.WINDOW_PREFIX+"API Error", e.getMessage());
 
 			}
 		};
@@ -69,14 +70,14 @@ public class ConfigurationPanel extends JPanel {
 
 			@Override
 			public void onTaskError(Exception e) {
-				Msg.showError(this, null, "Write Config Error", e.getMessage());
+				Msg.showError(this, null, RE_AIPluginPackage.WINDOW_PREFIX+"Write Config Error", e.getMessage());
 				return;
 
 			}
 
 			@Override
 			public void onTaskCompleted(String result) {
-				Msg.showInfo(this, null, "Write Config", "Wrote Config to: " + result);
+				Msg.showInfo(this, null, RE_AIPluginPackage.WINDOW_PREFIX+"Write Config", "Wrote Config to: " + result);
 			}
 		};
 

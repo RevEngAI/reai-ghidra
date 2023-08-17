@@ -4,6 +4,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 
 import ai.reveng.toolkit.exceptions.RE_AIApiException;
+import ai.reveng.toolkit.ghidra.RE_AIPluginPackage;
 import ai.reveng.toolkit.ghidra.RE_AIToolkitHelper;
 import ghidra.util.exception.CancelledException;
 import ghidra.util.task.Task;
@@ -13,7 +14,7 @@ public class GetAvailableCollectionsTask extends Task {
 	private TaskCallback<JSONArray> callback;
 
 	public GetAvailableCollectionsTask(TaskCallback<JSONArray> callback) {
-		super("Get Collections", true, false, false);
+		super(RE_AIPluginPackage.WINDOW_PREFIX+"Get Collections", true, false, false);
 		this.callback = callback;
 	}
 

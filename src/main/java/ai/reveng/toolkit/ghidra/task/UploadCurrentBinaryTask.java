@@ -6,6 +6,7 @@ import java.io.IOException;
 import org.json.JSONException;
 
 import ai.reveng.toolkit.exceptions.RE_AIApiException;
+import ai.reveng.toolkit.ghidra.RE_AIPluginPackage;
 import ai.reveng.toolkit.ghidra.RE_AIToolkitHelper;
 import ghidra.app.util.exporter.BinaryExporter;
 import ghidra.app.util.exporter.ExporterException;
@@ -18,7 +19,7 @@ public class UploadCurrentBinaryTask extends Task {
 	private TaskCallback<String> callback;
 
 	public UploadCurrentBinaryTask(TaskCallback<String> callback) {
-		super("Upload Binary", true, false, false);
+		super(RE_AIPluginPackage.WINDOW_PREFIX+"Upload Binary", true, false, false);
 		this.callback = callback;
 	}
 
