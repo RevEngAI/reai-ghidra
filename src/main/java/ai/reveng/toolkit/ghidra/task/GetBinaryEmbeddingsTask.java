@@ -4,6 +4,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 
 import ai.reveng.toolkit.exceptions.RE_AIApiException;
+import ai.reveng.toolkit.ghidra.RE_AIPluginPackage;
 import ai.reveng.toolkit.ghidra.RE_AIToolkitHelper;
 import ghidra.util.exception.CancelledException;
 import ghidra.util.task.Task;
@@ -15,7 +16,7 @@ public class GetBinaryEmbeddingsTask extends Task {
 	private String model;
 
 	public GetBinaryEmbeddingsTask(TaskCallback<JSONArray> callback, String binHash, String model) {
-		super("Get Binary Embeddings", true, false, false);
+		super(RE_AIPluginPackage.WINDOW_PREFIX+"Get Binary Embeddings", true, false, false);
 		this.callback = callback;
 		this.binHash = binHash;
 		this.model = model;

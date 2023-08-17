@@ -7,6 +7,7 @@ import org.json.JSONException;
 
 import ai.reveng.toolkit.client.Client;
 import ai.reveng.toolkit.exceptions.RE_AIApiException;
+import ai.reveng.toolkit.ghidra.RE_AIPluginPackage;
 import ai.reveng.toolkit.ghidra.RE_AIToolkitHelper;
 import ai.reveng.toolkit.model.ModelInfo;
 import ghidra.util.Msg;
@@ -32,7 +33,7 @@ public class GetREAIModelsTask extends Task {
 	 * @param callback interface for passing results to frontend
 	 */
 	public GetREAIModelsTask(String apikey, String hostname, TaskCallback<Vector<String>> callback) {
-		super("Get Models", false, false, false);
+		super(RE_AIPluginPackage.WINDOW_PREFIX+"Get Models", false, false, false);
 		this.callback = callback;
 		this.apiKey = apikey;
 		this.hostname = hostname;
@@ -46,7 +47,7 @@ public class GetREAIModelsTask extends Task {
 			return;
 		}
 		if (this.apiKey.equals("xxxx-xxxx-xxxx-xxxx") || this.apiKey.equals("")) {
-			Msg.showError(this, null, "Invalid API Key", "Please Enter a Valid API Key");
+			Msg.showError(this, null, RE_AIPluginPackage.WINDOW_PREFIX+"Invalid API Key", "Please Enter a Valid API Key");
 			return;
 		}
 		monitor.setMessage("Connecting to API server...");

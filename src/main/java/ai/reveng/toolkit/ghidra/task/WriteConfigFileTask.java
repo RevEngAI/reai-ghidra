@@ -7,6 +7,7 @@ import java.util.HashMap;
 import com.moandjiezana.toml.TomlWriter;
 
 import ai.reveng.toolkit.RE_AIConfig;
+import ai.reveng.toolkit.ghidra.RE_AIPluginPackage;
 import ai.reveng.toolkit.ghidra.RE_AIToolkitHelper;
 import ghidra.util.exception.CancelledException;
 import ghidra.util.task.Task;
@@ -16,7 +17,7 @@ public class WriteConfigFileTask extends Task {
 	private TaskCallback<String> callback;
 
 	public WriteConfigFileTask(TaskCallback<String> callback) {
-		super("Write Config File to disk", true, false, false);
+		super(RE_AIPluginPackage.WINDOW_PREFIX+"Write Config File to disk", true, false, false);
 		this.callback = callback;
 	}
 

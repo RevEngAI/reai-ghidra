@@ -11,6 +11,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import ai.reveng.toolkit.RE_AIConfig;
+import ai.reveng.toolkit.ghidra.RE_AIPluginPackage;
 import ai.reveng.toolkit.ghidra.RE_AIToolkitHelper;
 import ai.reveng.toolkit.ghidra.component.AutoAnalyseDockableDialog;
 import ai.reveng.toolkit.ghidra.component.ConfigureDockableDialog;
@@ -86,12 +87,12 @@ public class RE_AIToolkitPanel extends JPanel {
 
 			@Override
 			public void onTaskError(Exception e) {
-				Msg.showError(this, null, "Upload Binary Error", e.getMessage());
+				Msg.showError(this, null, RE_AIPluginPackage.WINDOW_PREFIX+"Upload Binary Error", e.getMessage());
 			}
 
 			@Override
 			public void onTaskCompleted(String result) {
-				Msg.showInfo(this, null, "Binary Upload Complete", "Successfull upload binary with hash: " + result);
+				Msg.showInfo(this, null, RE_AIPluginPackage.WINDOW_PREFIX+"Binary Upload Complete", "Successfull upload binary with hash: " + result);
 				refreshStatus();
 			}
 		};
@@ -100,12 +101,12 @@ public class RE_AIToolkitPanel extends JPanel {
 
 			@Override
 			public void onTaskError(Exception e) {
-				Msg.showError(this, null, "Delete Binary Error", e.getMessage());
+				Msg.showError(this, null, RE_AIPluginPackage.WINDOW_PREFIX+"Delete Binary Error", e.getMessage());
 			}
 
 			@Override
 			public void onTaskCompleted(String result) {
-				Msg.showInfo(this, null, "Binary Delete Complete", result);
+				Msg.showInfo(this, null, RE_AIPluginPackage.WINDOW_PREFIX+"Binary Delete Complete", result);
 				refreshStatus();
 			}
 		};
@@ -114,7 +115,7 @@ public class RE_AIToolkitPanel extends JPanel {
 
 			@Override
 			public void onTaskError(Exception e) {
-				Msg.showError(this, null, "Get Analyses Error", e.getMessage());
+				Msg.showError(this, null, RE_AIPluginPackage.WINDOW_PREFIX+"Get Analyses Error", e.getMessage());
 
 			}
 
@@ -135,12 +136,12 @@ public class RE_AIToolkitPanel extends JPanel {
 
 			@Override
 			public void onTaskError(Exception e) {
-				Msg.showError(this, null, "Get Binary Embeddings Error", e.getMessage());
+				Msg.showError(this, null, RE_AIPluginPackage.WINDOW_PREFIX+"Get Binary Embeddings Error", e.getMessage());
 			}
 
 			@Override
 			public void onTaskCompleted(JSONArray result) {
-				Msg.showInfo(this, null, "Got Embeddings", "Successfull got embeddings: ");
+				Msg.showInfo(this, null, RE_AIPluginPackage.WINDOW_PREFIX+"Got Embeddings", "Successfull got embeddings: ");
 
 			}
 		};
@@ -221,7 +222,7 @@ public class RE_AIToolkitPanel extends JPanel {
 				if (tableCursor != -1) {
 					String selectedHash = (String) analysisTable.getValueAt(tableCursor, 2);
 					RE_AIToolkitHelper.getInstance().getClient().getConfig().setAnalysisHash(selectedHash);
-					Msg.showInfo(this, null, "Binary Embeddings", "Using Embeddings from " + selectedHash);
+					Msg.showInfo(this, null, RE_AIPluginPackage.WINDOW_PREFIX+"Binary Embeddings", "Using Embeddings from " + selectedHash);
 				}
 			}
 		});

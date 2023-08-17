@@ -11,6 +11,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import ai.reveng.toolkit.exceptions.RE_AIApiException;
+import ai.reveng.toolkit.ghidra.RE_AIPluginPackage;
 import ai.reveng.toolkit.ghidra.RE_AIToolkitHelper;
 import ai.reveng.toolkit.ghidra.task.GetBinaryEmbeddingsTask;
 import ai.reveng.toolkit.ghidra.task.TaskCallback;
@@ -95,7 +96,7 @@ public class AutoAnalysePanel extends JPanel {
 
 			@Override
 			public void onTaskError(Exception e) {
-				Msg.showError(this, null, "", e.getMessage());
+				Msg.showError(this, null, RE_AIPluginPackage.WINDOW_PREFIX+"", e.getMessage());
 
 			}
 
@@ -138,7 +139,7 @@ public class AutoAnalysePanel extends JPanel {
 					System.out.println("Canidate Function Name: " + canidateName + " with distance: " + canidateDistance);
 					
 				} catch (RE_AIApiException e) {
-					Msg.showError(this, null, "ANN Error", e.getMessage());
+					Msg.showError(this, null, RE_AIPluginPackage.WINDOW_PREFIX+"ANN Error", e.getMessage());
 				}
 			}
 		}
