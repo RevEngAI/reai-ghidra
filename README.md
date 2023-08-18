@@ -4,7 +4,8 @@
 
 Released as open source by Binary AI Ltd - https://reveng.ai
 
-Released under the Apache 2.0 license (see [LICENSE](LICENSE) for more information)
+<!-- TODO -->
+<!-- Released under the Apache 2.0 license (see [LICENSE](LICENSE) for more information) -->
 
 ![REAIT interface](screenshots/reait-interface.png)
 
@@ -32,7 +33,7 @@ The RevEng.AI Toolkit allows you to interact with our API from within Ghidra. Th
 
 ## Installation
 
-The latest stable version of REAIT can be downloaded from the [Releases](https://github.com/revengai/reait-ghidra/releases/latest) page.
+The latest stable version of the RevEng.AI Toolkit for Ghidra can be downloaded from the [Releases](https://github.com/revengai/reait-ghidra/releases/latest) page.
 
 ### Loading the Plugin
 
