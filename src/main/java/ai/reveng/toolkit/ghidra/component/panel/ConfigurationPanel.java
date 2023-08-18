@@ -26,6 +26,8 @@ import javax.swing.JSeparator;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.Vector;
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
 
 /**
  * GUI for setting up workspace configuration options
@@ -61,7 +63,7 @@ public class ConfigurationPanel extends JPanel {
 
 			@Override
 			public void onTaskError(Exception e) {
-				Msg.showError(this, null, RE_AIPluginPackage.WINDOW_PREFIX+"API Error", e.getMessage());
+				Msg.showError(this, null, RE_AIPluginPackage.WINDOW_PREFIX + "API Error", e.getMessage());
 
 			}
 		};
@@ -70,14 +72,15 @@ public class ConfigurationPanel extends JPanel {
 
 			@Override
 			public void onTaskError(Exception e) {
-				Msg.showError(this, null, RE_AIPluginPackage.WINDOW_PREFIX+"Write Config Error", e.getMessage());
+				Msg.showError(this, null, RE_AIPluginPackage.WINDOW_PREFIX + "Write Config Error", e.getMessage());
 				return;
 
 			}
 
 			@Override
 			public void onTaskCompleted(String result) {
-				Msg.showInfo(this, null, RE_AIPluginPackage.WINDOW_PREFIX+"Write Config", "Wrote Config to: " + result);
+				Msg.showInfo(this, null, RE_AIPluginPackage.WINDOW_PREFIX + "Write Config",
+						"Wrote Config to: " + result);
 			}
 		};
 
@@ -108,6 +111,13 @@ public class ConfigurationPanel extends JPanel {
 		apiKeyPanel.add(lblAPIKey);
 
 		tfAPIKey = new JTextField();
+		tfAPIKey.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				Task task = new GetREAIModelsTask(tfAPIKey.getText().toString(), tfHostname.getText().toString(),
+						getModelsCallback);
+				TaskLauncher.launch(task);
+			}
+		});
 		tfAPIKey.setText("xxxx-xxxx-xxxx-xxxx");
 		apiKeyPanel.add(tfAPIKey);
 		tfAPIKey.setColumns(10);
@@ -135,27 +145,6 @@ public class ConfigurationPanel extends JPanel {
 		cbModelName = new JComboBox<String>();
 		cbModelName.setEnabled(false);
 		modelParamsPanel.add(cbModelName);
-
-//		JLabel lblModelVersion = new JLabel("Version");
-//		modelParamsPanel.add(lblModelVersion);
-//		
-//		cbModelVersion = new JComboBox<Object>();
-//		cbModelVersion.setEnabled(false);
-//		modelParamsPanel.add(cbModelVersion);
-
-		JPanel modelUpdatesPanel = new JPanel();
-		modelPanel.add(modelUpdatesPanel);
-
-		JButton btnGetModels = new JButton("Check for Updates");
-		btnGetModels.addMouseListener(new MouseAdapter() {
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				Task task = new GetREAIModelsTask(tfAPIKey.getText().toString(), tfHostname.getText().toString(),
-						getModelsCallback);
-				TaskLauncher.launch(task);
-			}
-		});
-		modelUpdatesPanel.add(btnGetModels);
 
 		JPanel actionPanel = new JPanel();
 		add(actionPanel, BorderLayout.SOUTH);
