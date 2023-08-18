@@ -25,6 +25,8 @@ public class GetAnalysesStatusTask extends Task {
 			callback.onTaskCompleted(result);
 		} catch (JSONException | RE_AIApiException e) {
 			callback.onTaskError(e);
+		} catch (NullPointerException e) {
+			System.err.println("No config file found");
 		}
 
 	}
