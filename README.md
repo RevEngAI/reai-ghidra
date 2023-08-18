@@ -59,14 +59,14 @@ Once installed, you can enable the plugin via the `Configure` tool.
 In this section, we provide an example workflow for our plugin that uses test binaries from `src/test/resources/test-bins`.
 
 Once the plugin is loaded, there will be additional controls in the CodeBrowser window.
-You can access these Under `Wndows->RevEng.AI Toolkit`.
+You can access these under `Wndows->RevEng.AI Toolkit`.
 This opens the main Toolkit GUI.
 
 ![Main GUI](screenshots/main-gui-fresh.png)
 
-You can "_dock_" this window within the Ghidra Program Tool to suit your preference, we like docking the window as below
+You can "_dock_" this window within the Ghidra Program Tool to suit your preference, we like docking the window as below.
 
-![Docked GUI](screenshots/main-gui-docked.png).
+![Docked GUI](screenshots/main-gui-docked.png)
 
 The first thing we need to do is configure the tool with our API key and the desired "model"
 - Each **model** defines a different set of features you want the AI to find in you binary.
@@ -75,9 +75,12 @@ Click the `Edit Configuration` button to open the configuration window.
 
 ![Config Window](screenshots/config-gui-empty.png)
 
-When you open this window you will notice that the model name is disabled. To enable it, you need to enter your API Key from the [RevEng.AI Portal](https://portal.reveng.ai/settings) into the API Key field. Enter you API key and `press <ENTER>`. This will contact the API and display a list of models available to your account.
+> When you open this window you will notice that the model name is disabled.
+> To enable it, you need to enter your API Key from the [RevEng.AI Portal](https://portal.reveng.ai/settings) into the API Key field.
+> Enter you API key and `press <ENTER>`.
+> This will contact the API and display a list of models available to your account.
 
-![Config Window Complete](screenshots/config-gui-set.png).
+![Config Window Complete](screenshots/config-gui-set.png)
 
 Clicking `Save Configuration` will create the `.reaiconf.toml` file in you systems home directory.
 
@@ -89,7 +92,7 @@ You are now ready to upload a binary.
 
 Import `src/test/resources/test-bins/fdupes` into Ghidra and then click `Upload` in the toolkit GUI. This will update the analysis table with the hash, model, and status of you Binary in the RevEng.AI server. After you click upload, the plugin uploads your binary and returns the hash for the file. We store the hash as it is used as a parameter for all future requests concerning this file.
 
-We are using `fdupes` with symbols to allow the model to learn what these functions look like, and to provide meaningful labels that we can use later to rename similar binaries.
+> We are using `fdupes` with symbols to allow the model to learn what these functions look like, and to provide meaningful labels that we can use later to rename similar binaries.
 
 ![Main GUI After Upload](screenshots/main-gui-binary-upload.png)
 
