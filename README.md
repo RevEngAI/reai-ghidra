@@ -86,7 +86,7 @@ Clicking `Save Configuration` will create the `.reaiconf.toml` file in you syste
 
 Close the configuration window and click `Refresh` to update the main GUI.
 
-![Main GUI Updated](screenshots/main-gui-updated.png).
+![Main GUI Updated](screenshots/main-gui-updated.png)
 
 You are now ready to upload a binary.
 
