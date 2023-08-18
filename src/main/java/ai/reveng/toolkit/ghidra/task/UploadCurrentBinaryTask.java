@@ -8,6 +8,7 @@ import org.json.JSONException;
 import ai.reveng.toolkit.exceptions.RE_AIApiException;
 import ai.reveng.toolkit.ghidra.RE_AIPluginPackage;
 import ai.reveng.toolkit.ghidra.RE_AIToolkitHelper;
+import ai.reveng.toolkit.ghidra.utils.FileSelector;
 import ghidra.app.util.exporter.BinaryExporter;
 import ghidra.app.util.exporter.ExporterException;
 import ghidra.program.model.listing.Program;
@@ -57,6 +58,20 @@ public class UploadCurrentBinaryTask extends Task {
 			callback.onTaskError(new Exception("No program loaded"));
 			return;
 		}
+		
+		File binFile;
+		if (new File(RE_AIToolkitHelper.getInstance().getFlatAPI().getProgramFile().getAbsolutePath()).exists()) {
+			binFile = new File(RE_AIToolkitHelper.getInstance().getFlatAPI().getProgramFile().getAbsolutePath());
+		} else {
+			binFile = FileSelector.askForFile();
+	        if (binFile != null) {
+	            System.out.println("Selected file: " + binFile.getAbsolutePath());
+	        } else {
+	            System.out.println("No file selected.");
+	            callback.onTaskError(new Exception("No binary file selected"));
+	            return;
+	        }
+		}
 
 		String modelName = null;
 		try {
@@ -74,7 +89,7 @@ public class UploadCurrentBinaryTask extends Task {
 
 		try {
 			String hash = RE_AIToolkitHelper.getInstance().getClient().analyse(
-					RE_AIToolkitHelper.getInstance().getFlatAPI().getProgramFile().getAbsolutePath(), modelName, isa,
+					binFile.getAbsolutePath(), modelName, isa,
 					os, RE_AIToolkitHelper.getInstance().getFlatAPI().getProgramFile().getName().toString(), fileType,
 					false, "\"\"");
 			callback.onTaskCompleted(hash);

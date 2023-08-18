@@ -3,6 +3,7 @@ package ai.reveng.toolkit.ghidra;
 import java.io.File;
 
 import ai.reveng.toolkit.client.Client;
+import docking.widgets.filechooser.GhidraFileChooser;
 import ghidra.program.flatapi.FlatProgramAPI;
 
 /**
