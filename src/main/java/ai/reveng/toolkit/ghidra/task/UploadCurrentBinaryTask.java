@@ -63,7 +63,7 @@ public class UploadCurrentBinaryTask extends Task {
 		if (new File(RE_AIToolkitHelper.getInstance().getFlatAPI().getProgramFile().getAbsolutePath()).exists()) {
 			binFile = new File(RE_AIToolkitHelper.getInstance().getFlatAPI().getProgramFile().getAbsolutePath());
 		} else {
-			binFile = FileSelector.askForFile();
+			binFile = FileSelector.askForFile(RE_AIPluginPackage.WINDOW_PREFIX+"Binary file to upload");
 	        if (binFile != null) {
 	            System.out.println("Selected file: " + binFile.getAbsolutePath());
 	        } else {
