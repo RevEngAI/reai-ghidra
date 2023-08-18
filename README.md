@@ -17,6 +17,7 @@ The RevEng.AI Toolkit allows you to interact with our API from within Ghidra. Th
 - [Key Features](#key-features)
 - [Installation](#installation)
   - [Loading the Plugin](#loading-the-plugin)
+  - [Enabling the Plugin](#enabling-the-plugin)
 - [Usage](#usage)
 - [Contributing](#contributing)
   - [Building from Source](#building-from-source)
@@ -97,7 +98,7 @@ We now have uploaded fdupes to our dataset, meaning we can now use it for our bi
 
 Import `src/test/resources/test-bins/fdupes.stripped` using the same steps as before. You will now have two files in the analysis table.
 
-![main-gui-two-uploads](screenshots/main-gui-two-uploads.png).
+![main-gui-two-uploads](screenshots/main-gui-two-uploads.png)
 
 Once the stripped binary is processed (`Status` will be `Complete`), select it in the analysis table and the `Download Results` button will be enabled. The plugin will then download your analysis results and store them in the `.reai` folder in you home directory. We can now use these results to query our dataset.
 
