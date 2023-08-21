@@ -97,7 +97,7 @@ public class RE_AIToolkitPlugin extends ProgramPlugin {
 	@Override
 	public void init() {
 		super.init();
-
+		
 //		createDropdownMenu();
 		createActions();
 	}

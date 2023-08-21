@@ -391,15 +391,15 @@ public class Client {
 
 			System.out.println(response.body());
 
-			if (response.statusCode() > 299) {
-				JSONObject resJson = new JSONObject(response.body());
-
-				if (resJson.has("error")) {
-					throw new RE_AIApiException(resJson.getString("error"));
-				}
-				
-				return null;
-			}
+//			if (response.statusCode() > 299) {
+//				JSONObject resJson = new JSONObject(response.body());
+//
+//				if (resJson.has("error")) {
+//					throw new RE_AIApiException(resJson.getString("error"));
+//				}
+//				
+//				return null;
+//			}
 
 			return response.body();
 
