@@ -15,8 +15,15 @@
  */
 package ai.reveng.toolkit.ghidra;
 
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
+
 import ai.reveng.toolkit.ghidra.actions.RenameFunctionFromSimilarFunctionsAction;
+import ai.reveng.toolkit.ghidra.component.AutoAnalyseDockableDialog;
 import ai.reveng.toolkit.ghidra.component.RE_AIToolkitComponentProvider;
+import docking.ActionContext;
+import docking.action.DockingAction;
+import docking.action.KeyBindingData;
 import docking.action.MenuData;
 import ghidra.app.plugin.PluginCategoryNames;
 import ghidra.app.plugin.ProgramPlugin;
@@ -55,8 +62,23 @@ public class RE_AIToolkitPlugin extends ProgramPlugin {
 	private void createActions() {
 		RenameFunctionFromSimilarFunctionsAction renameFromEmbeddingsAction = new RenameFunctionFromSimilarFunctionsAction("Rename From Similar Functions", tool);
 		renameFromEmbeddingsAction.setPopupMenuData(new MenuData(new String[] { "Rename From Similar Functions" }, null, "Reveng.AI"));
+		// default to ctrl+shift R
+		renameFromEmbeddingsAction.setKeyBindingData(new KeyBindingData(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
+		
+		DockingAction autoAnalysisAction = new DockingAction("Auto Analysis Similar Functions", this.getName()) {
+			
+			@Override
+			public void actionPerformed(ActionContext context) {
+				AutoAnalyseDockableDialog autoAnalyse = new AutoAnalyseDockableDialog();
+				tool.showDialog(autoAnalyse);
+				
+			}
+		};
+		// default to ctrl+shift A
+		autoAnalysisAction.setKeyBindingData(new KeyBindingData(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
 
 		tool.addAction(renameFromEmbeddingsAction);
+		tool.addAction(autoAnalysisAction);
 	}
 
 	@Override
