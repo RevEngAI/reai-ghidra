@@ -18,6 +18,7 @@ package ai.reveng.toolkit.ghidra;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 
+import ai.reveng.toolkit.ghidra.actions.AskForFunctionExplanation;
 import ai.reveng.toolkit.ghidra.actions.RenameFunctionFromSimilarFunctionsAction;
 import ai.reveng.toolkit.ghidra.component.AutoAnalyseDockableDialog;
 import ai.reveng.toolkit.ghidra.component.RE_AIToolkitComponentProvider;
@@ -76,9 +77,12 @@ public class RE_AIToolkitPlugin extends ProgramPlugin {
 		};
 		// default to ctrl+shift A
 		autoAnalysisAction.setKeyBindingData(new KeyBindingData(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
+		
+		AskForFunctionExplanation explainFunctionAction = new AskForFunctionExplanation(this);
 
 		tool.addAction(renameFromEmbeddingsAction);
 		tool.addAction(autoAnalysisAction);
+		tool.addAction(explainFunctionAction);
 	}
 
 	@Override
