@@ -369,6 +369,44 @@ public class Client {
 			throw new RE_AIApiException("Error sending analysis request -> " + e.getMessage());
 		}
 	}
+	
+	public String explain(String decompiledFunction) throws RE_AIApiException {
+		HashMap<String, String> headers = new HashMap<String, String>();
+		
+		headers.put("Authorization", this.getConfig().getApiKey());
+		headers.put("User-Agent", "Ghidra Plugin");
+		
+		try {
+
+			HttpClient client = HttpClient.newHttpClient();
+
+			HttpRequest.Builder requestBuilder = HttpRequest.newBuilder().uri(new URI(config.getHost() + "/explain"))
+					.POST(HttpRequest.BodyPublishers.ofString(decompiledFunction));
+
+			headers.forEach(requestBuilder::header);
+
+			HttpRequest request = requestBuilder.build();
+
+			HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+			System.out.println(response.body());
+
+			if (response.statusCode() > 299) {
+				JSONObject resJson = new JSONObject(response.body());
+
+				if (resJson.has("error")) {
+					throw new RE_AIApiException(resJson.getString("error"));
+				}
+				
+				return null;
+			}
+
+			return response.body();
+
+		} catch (Exception e) {
+			throw new RE_AIApiException("Error sending analysis request -> " + e.getMessage());
+		}
+	} 
 
 	public RE_AIConfig getConfig() {
 		return config;
