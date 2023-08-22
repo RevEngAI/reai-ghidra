@@ -9,6 +9,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -378,7 +379,7 @@ public class Client {
 		
 		try {
 
-			HttpClient client = HttpClient.newHttpClient();
+			HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(300)).build();
 
 			HttpRequest.Builder requestBuilder = HttpRequest.newBuilder().uri(new URI(config.getHost() + "/explain"))
 					.POST(HttpRequest.BodyPublishers.ofString(decompiledFunction));
@@ -391,17 +392,23 @@ public class Client {
 
 			System.out.println(response.body());
 
-//			if (response.statusCode() > 299) {
-//				JSONObject resJson = new JSONObject(response.body());
-//
-//				if (resJson.has("error")) {
-//					throw new RE_AIApiException(resJson.getString("error"));
-//				}
-//				
-//				return null;
-//			}
+			if (response.statusCode() > 299) {
+				JSONObject resJson = new JSONObject(response.body());
 
-			return response.body();
+				if (resJson.has("error")) {
+					throw new RE_AIApiException(resJson.getString("error"));
+				}
+				
+				return null;
+			}
+
+			JSONObject resJson = new JSONObject(response.body());
+
+			if (resJson.has("error")) {
+				throw new RE_AIApiException(resJson.getString("error"));
+			}
+
+			return resJson.getString("explanation");
 
 		} catch (Exception e) {
 			throw new RE_AIApiException("Error sending analysis request -> " + e.getMessage());
