@@ -106,18 +106,25 @@ Import `src/test/resources/test-bins/fdupes.stripped` using the same steps as be
 
 Once the stripped binary is processed (`Status` will be `Complete`), select it in the analysis table and the `Download Results` button will be enabled. The plugin will then download your analysis results and store them in the `.reai` folder in you home directory. We can now use these results to query our dataset.
 
-Select a funtion in Ghidra's listing view, and `right-click -> Rename from Similar Functions`. This will open the function renaming window.
+![Select Analysis Result](screenshots/main-gui-select-result.png)
 
-![Function Renaming Window]()
+Select a funtion in Ghidra's listing view, and `right-click -> Rename from Similar Functions`, or `CTRL-Shift +R`. This will open the function renaming window.
+
+![Function Rename Action](screenshots/rename-selection.png)
+![Function Renaming Window](screenshots/rename-gui.png)
 
 Click on `Find similar functions` to queue RevEng.AI for functions in the dataset that appear similar. The list of functions is returned and displayed inside this panel for you.
 You can then click `rename` to update the function name.
 
+![Finding Similar Functions Results](screenshots/rename-find-gui.png)
+
 You can also batch analyse the binary to rename functions using the `Auto Analyse` tool.
 
-![Auto Analyse Tool][]
+![Auto Analyse Tool](screenshots/gui-auto-analysis.png)
 
-Move the slider to determine the confidence level you want to use for batch renaming. Any function returned that is higher than this value will automatically be renamed in the listing view.
+Move the slider to determine the confidence level you want to use for batch renaming. Any function returned that is higher than this value will automatically be renamed in the listing view. For instance, the auto analysis will successful find and rename the `findarg` function without analyst intervention.
+
+![Auto Analyse Result](screenshots/auto-analysis-results.png)
 
 ## Contributing
 
