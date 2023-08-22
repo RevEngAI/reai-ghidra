@@ -1,6 +1,9 @@
 package ai.reveng.toolkit.ghidra;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 import ai.reveng.toolkit.client.Client;
 import docking.widgets.filechooser.GhidraFileChooser;
@@ -27,7 +30,11 @@ public final class RE_AIToolkitHelper {
 	 */
 	private RE_AIToolkitHelper() {
 		this.reaiDir = System.getProperty("user.home") + File.separator + ".reait";
-		this.setExportBinPath(this.reaiDir + File.separator + "exported.bin");
+		try {
+			Files.createDirectories(Paths.get(this.reaiDir));
+		} catch (IOException e) {
+			System.err.println("could not create reait directory");
+		}
 		if (new File(configPath).exists()) {
 			System.out.println("here");
 			client = new Client(configPath);
