@@ -223,7 +223,7 @@ public class Client {
 			HttpClient client = HttpClient.newHttpClient();
 
 			HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
-					.uri(new URI(config.getHost() + "/analyse/recent?n=125")).GET();
+					.uri(new URI(config.getHost() + "/analyse/recent?n=1000")).GET();
 
 			headers.forEach(requestBuilder::header);
 
