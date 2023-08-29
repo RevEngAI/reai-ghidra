@@ -1,2 +1,41 @@
-/bin/
-*.DS_Store
+# Compiled bytecode
+*.class
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
+*.war
+*.ear
+
+# Log files
+*.log
+
+# Gradle related
+.gradle/
+build/
+
+# Ignore Gradle properties file (often contains sensitive information like API keys)
+gradle.properties
+
+# Mac OS related
+.DS_Store
+
+# Java related
+*.hprof
+*.idea/
+
+# Eclipse related
+*.metadata
+*.recommenders
+*.settings/
+*.project
+*.classpath
+
+# Windows related
+Thumbs.db
+*.db
+
+# Kotlin
+*.kotlin_metadata
+*.kotlin_builtins
+
+# Ignore development config files
+lib/src/test/resources/reai-dev-config.toml
