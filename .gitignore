@@ -39,3 +39,5 @@ Thumbs.db
 
 # Ignore development config files
 lib/src/test/resources/reai-dev-config.toml
+bin
+.antProperties.xml
