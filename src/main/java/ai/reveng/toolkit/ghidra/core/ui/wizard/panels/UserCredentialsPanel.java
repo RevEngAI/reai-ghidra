@@ -1,22 +1,13 @@
 package ai.reveng.toolkit.ghidra.core.ui.wizard.panels;
 
-import java.awt.Component;
-
-import javax.swing.JComponent;
 import javax.swing.JPanel;
 
-import ai.reveng.toolkit.ghidra.core.services.configuration.ConfigurationData;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardStateKey;
 import docking.wizard.AbstractMageJPanel;
-import docking.wizard.AbstractWizardJPanel;
 import docking.wizard.IllegalPanelStateException;
-import docking.wizard.MagePanel;
-import docking.wizard.WizardPanel;
 import docking.wizard.WizardPanelDisplayability;
-import docking.wizard.WizardPanelListener;
 import docking.wizard.WizardState;
 import ghidra.framework.plugintool.PluginTool;
-import ghidra.util.HelpLocation;
 import java.awt.BorderLayout;
 import javax.swing.JLabel;
 import javax.swing.BoxLayout;

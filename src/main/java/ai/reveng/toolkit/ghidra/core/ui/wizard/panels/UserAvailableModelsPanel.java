@@ -9,10 +9,15 @@ import java.awt.BorderLayout;
 import javax.swing.JPanel;
 import javax.swing.JLabel;
 import javax.swing.BoxLayout;
+import javax.swing.DefaultComboBoxModel;
 import javax.swing.JComboBox;
 import java.awt.FlowLayout;
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
 
 public class UserAvailableModelsPanel extends AbstractMageJPanel<SetupWizardStateKey> {
+	private JComboBox cbModel;
+	
 	public UserAvailableModelsPanel() {
 		setLayout(new BorderLayout(0, 0));
 		
@@ -33,7 +38,13 @@ public class UserAvailableModelsPanel extends AbstractMageJPanel<SetupWizardStat
 		JLabel lblModel = new JLabel("Model");
 		modelSelectionPanel.add(lblModel);
 		
-		JComboBox cbModel = new JComboBox();
+		cbModel = new JComboBox();
+		cbModel.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				notifyListenersOfValidityChanged();
+			}
+		});
+		cbModel.setEnabled(false);
 		modelSelectionPanel.add(cbModel);
 	}
 
@@ -52,18 +63,24 @@ public class UserAvailableModelsPanel extends AbstractMageJPanel<SetupWizardStat
 	@Override
 	public void enterPanel(WizardState<SetupWizardStateKey> state) throws IllegalPanelStateException {
 		// TODO Auto-generated method stub
+		String[] values = {"TestModel1"};
+		DefaultComboBoxModel<String> cbModelNames = new DefaultComboBoxModel<String>(values);
+		cbModel.setModel(cbModelNames);
+		cbModel.setEnabled(true);
 		
 	}
 
 	@Override
 	public void leavePanel(WizardState<SetupWizardStateKey> state) {
-		// TODO Auto-generated method stub
+		updateStateObjectWithPanelInfo(state);
 		
 	}
 
 	@Override
 	public void updateStateObjectWithPanelInfo(WizardState<SetupWizardStateKey> state) {
-		// TODO Auto-generated method stub
+		String model = cbModel.getSelectedItem().toString();
+		state.put(SetupWizardStateKey.MODEL, model);
+		System.out.println("Using Model: " + model);
 		
 	}
 
@@ -80,7 +97,11 @@ public class UserAvailableModelsPanel extends AbstractMageJPanel<SetupWizardStat
 
 	@Override
 	public boolean isValidInformation() {
-		// TODO Auto-generated method stub
+		if (!cbModel.isEnabled()) {
+			notifyListenersOfStatusMessage("Please select a model");
+			return false;
+		}
+		notifyListenersOfStatusMessage(" ");
 		return true;
 	}
 
@@ -89,5 +110,4 @@ public class UserAvailableModelsPanel extends AbstractMageJPanel<SetupWizardStat
 		// TODO Auto-generated method stub
 		
 	}
-
 }
