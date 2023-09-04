@@ -15,29 +15,17 @@
  */
 package ai.reveng.toolkit.ghidra.core;
 
-import java.awt.BorderLayout;
-
-import javax.swing.*;
-
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.core.services.api.ApiService;
 import ai.reveng.toolkit.ghidra.core.services.configuration.ConfigurationService;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardManager;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardStateKey;
-import docking.ActionContext;
-import docking.ComponentProvider;
-import docking.action.DockingAction;
-import docking.action.ToolBarData;
 import docking.wizard.WizardManager;
 import docking.wizard.WizardState;
-import ghidra.app.ExamplesPluginPackage;
 import ghidra.app.plugin.PluginCategoryNames;
 import ghidra.app.plugin.ProgramPlugin;
 import ghidra.framework.plugintool.*;
 import ghidra.framework.plugintool.util.PluginStatus;
-import ghidra.util.HelpLocation;
-import ghidra.util.Msg;
-import resources.Icons;
 
 /**
  * TODO: Provide class-level documentation that describes what this plugin does.

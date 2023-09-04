@@ -1,5 +1,8 @@
 package ai.reveng.toolkit.ghidra.core.ui.wizard.panels;
 
+import ai.reveng.toolkit.ghidra.core.services.api.ApiResponse;
+import ai.reveng.toolkit.ghidra.core.services.api.ReaiApiProxy;
+import ai.reveng.toolkit.ghidra.core.services.api.Utils;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardStateKey;
 import docking.wizard.AbstractMageJPanel;
 import docking.wizard.IllegalPanelStateException;
@@ -7,6 +10,9 @@ import docking.wizard.WizardPanelDisplayability;
 import docking.wizard.WizardState;
 import java.awt.BorderLayout;
 import javax.swing.JPanel;
+
+import org.json.JSONArray;
+
 import javax.swing.JLabel;
 import javax.swing.BoxLayout;
 import javax.swing.DefaultComboBoxModel;
@@ -62,9 +68,23 @@ public class UserAvailableModelsPanel extends AbstractMageJPanel<SetupWizardStat
 
 	@Override
 	public void enterPanel(WizardState<SetupWizardStateKey> state) throws IllegalPanelStateException {
+		String apiKey = state.get(SetupWizardStateKey.API_KEY).toString();
+		String hostname = state.get(SetupWizardStateKey.HOSTNAME).toString();
+		
+		System.out.println("API Key: " + apiKey);
+		System.out.println("Hostname: " + hostname);
+		
+		ReaiApiProxy api = new ReaiApiProxy(hostname, apiKey);
+		ApiResponse res = api.models();
+		
+		JSONArray jModelNames = res.getJsonObject().getJSONArray("models");
+		
+		System.out.println(jModelNames);
+		
+		String[] modelNames = Utils.jsonArrayToStringArray(jModelNames);
+		
 		// TODO Auto-generated method stub
-		String[] values = {"TestModel1"};
-		DefaultComboBoxModel<String> cbModelNames = new DefaultComboBoxModel<String>(values);
+		DefaultComboBoxModel<String> cbModelNames = new DefaultComboBoxModel<String>(modelNames);
 		cbModel.setModel(cbModelNames);
 		cbModel.setEnabled(true);
 		
