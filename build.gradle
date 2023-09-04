@@ -52,24 +52,12 @@ repositories {
 	// dropped into the lib/ directory.
 	// See https://docs.gradle.org/current/userguide/declaring_repositories.html for more info.
 	// Ex: mavenCentral()
-	mavenCentral()
 }
 
 dependencies {
 	// Any external dependencies added here will automatically be copied to the lib/ directory when
-	// this extension is built.
-	implementation 'com.moandjiezana.toml:toml4j:0.7.2'
-  	implementation 'org.json:json:20230618'
-    implementation project(':ext:reait-java:lib')
+	// this extension is built.	
 }
 
 // Exclude additional files from the built extension
 // Ex: buildExtension.exclude '.idea/**'
-
-task copyReaitLibraryJar(type: Copy) {
-	from 'ext/reait-java/build/libs'
-	into 'lib'
-	include 'reait.jar'
-}
-
-build.dependsOn copyReaitLibraryJar
