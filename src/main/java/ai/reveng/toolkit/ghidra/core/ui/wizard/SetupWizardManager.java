@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import ai.reveng.toolkit.ghidra.core.ui.wizard.panels.UserAvailableModelsPanel;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.panels.UserCredentialsPanel;
 import docking.wizard.AbstractMagePanelManager;
 import docking.wizard.IllegalPanelStateException;
@@ -23,6 +24,7 @@ public class SetupWizardManager extends AbstractMagePanelManager<SetupWizardStat
 	protected List<MagePanel<SetupWizardStateKey>> createPanels() {
 		List<MagePanel<SetupWizardStateKey>> panels = new ArrayList<MagePanel<SetupWizardStateKey>>();
 		panels.add(new UserCredentialsPanel(tool));
+		panels.add(new UserAvailableModelsPanel());
 
 		return panels;
 	}

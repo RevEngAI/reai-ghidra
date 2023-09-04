@@ -21,6 +21,8 @@ import java.awt.BorderLayout;
 import javax.swing.JLabel;
 import javax.swing.BoxLayout;
 import javax.swing.JTextField;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 
 public class UserCredentialsPanel extends AbstractMageJPanel<SetupWizardStateKey> {
 	private PluginTool tool;
@@ -48,6 +50,12 @@ public class UserCredentialsPanel extends AbstractMageJPanel<SetupWizardStateKey
 		apiKeyPanel.add(lblApiKey);
 		
 		tfApiKey = new JTextField();
+		tfApiKey.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyTyped(KeyEvent e) {
+				notifyListenersOfValidityChanged();
+			}
+		});
 		tfApiKey.setToolTipText("API key from your account settings");
 		apiKeyPanel.add(tfApiKey);
 		tfApiKey.setColumns(10);
@@ -59,6 +67,12 @@ public class UserCredentialsPanel extends AbstractMageJPanel<SetupWizardStateKey
 		hostnamePanel.add(lblHostname);
 		
 		tfHostname = new JTextField();
+		tfHostname.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyTyped(KeyEvent e) {
+				notifyListenersOfValidityChanged();
+			}
+		});
 		tfHostname.setToolTipText("URL hosting the RevEng.ai Server");
 		tfHostname.setText("https://api.reveng.ai");
 		hostnamePanel.add(tfHostname);
@@ -110,9 +124,16 @@ public class UserCredentialsPanel extends AbstractMageJPanel<SetupWizardStateKey
 	@Override
 	public boolean isValidInformation() {
 		// check each of the provided fields
-		tfApiKey.getText().isEmpty();
-		tfHostname.getText().isEmpty();
+		if (tfApiKey.getText().isEmpty()) {
+			notifyListenersOfStatusMessage("Please provide your API key");
+			return false;
+		}
+		if (tfHostname.getText().isEmpty()) {
+			notifyListenersOfStatusMessage("Please enter a hostname for you API server");
+			return false;
+		}
 		
+		notifyListenersOfStatusMessage(" ");
 		return true;
 	}
 
