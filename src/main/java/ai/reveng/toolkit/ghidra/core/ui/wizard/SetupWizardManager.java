@@ -33,6 +33,8 @@ public class SetupWizardManager extends AbstractMagePanelManager<SetupWizardStat
 	protected void doFinish() throws IllegalPanelStateException {
 		getWizardManager().completed(true);
 		cleanup();
+		
+		// write config to file
 
 	}
 
