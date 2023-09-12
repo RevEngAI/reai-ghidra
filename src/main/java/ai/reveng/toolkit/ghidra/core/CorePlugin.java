@@ -62,7 +62,7 @@ public class CorePlugin extends ProgramPlugin {
 		// check if we have already run the first time setup
 		if (!hasSetupWizardRun()) {
 			runSetupWizard();
-//			setWizardRun();
+			setWizardRun();
 		}
 		
 		String apikey = tool.getOptions("Preferences").getString(ReaiPluginPackage.OPTION_KEY_APIKEY, "invalid");

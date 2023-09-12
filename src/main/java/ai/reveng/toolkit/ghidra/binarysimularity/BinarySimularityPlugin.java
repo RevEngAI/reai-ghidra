@@ -15,23 +15,23 @@
  */
 package ai.reveng.toolkit.ghidra.binarysimularity;
 
-import java.awt.BorderLayout;
+import java.io.File;
 
-import javax.swing.*;
-
+import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
+import ai.reveng.toolkit.ghidra.binarysimularity.tasks.UploadBinaryTask;
+import ai.reveng.toolkit.ghidra.core.services.api.AnalysisOptions;
 import ai.reveng.toolkit.ghidra.core.services.api.ApiService;
 import docking.ActionContext;
-import docking.ComponentProvider;
 import docking.action.DockingAction;
-import docking.action.ToolBarData;
-import ghidra.app.ExamplesPluginPackage;
+import docking.action.MenuData;
+import docking.widgets.filechooser.GhidraFileChooser;
+import docking.widgets.filechooser.GhidraFileChooserMode;
 import ghidra.app.plugin.PluginCategoryNames;
 import ghidra.app.plugin.ProgramPlugin;
 import ghidra.framework.plugintool.*;
 import ghidra.framework.plugintool.util.PluginStatus;
-import ghidra.util.HelpLocation;
 import ghidra.util.Msg;
-import resources.Icons;
+import ghidra.util.task.TaskLauncher;
 
 /**
  * TODO: Provide class-level documentation that describes what this plugin does.
@@ -39,16 +39,15 @@ import resources.Icons;
 //@formatter:off
 @PluginInfo(
 	status = PluginStatus.STABLE,
-	packageName = ExamplesPluginPackage.NAME,
-	category = PluginCategoryNames.EXAMPLES,
-	shortDescription = "Plugin 2 short description goes here.",
-	description = "Plugin 2 long description goes here.",
+	packageName = ReaiPluginPackage.NAME,
+	category = PluginCategoryNames.DIFF,
+	shortDescription = "Support for Binary Simularity Featrues of RevEng.AI Toolkit.",
+	description = "Enable features that support binary simlularity operations, including binary upload, and auto-renaming",
 	servicesRequired = { ApiService.class }
 )
 //@formatter:on
 public class BinarySimularityPlugin extends ProgramPlugin {
-
-	MyProvider provider;
+	private ApiService apiService;
 
 	/**
 	 * Plugin constructor.
@@ -57,15 +56,44 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 	 */
 	public BinarySimularityPlugin(PluginTool tool) {
 		super(tool);
+	
+		setupActions();
+	}
+	
+	private void setupActions() {
+		DockingAction uploadBinary = new DockingAction("Upload Binary", getName()) {
 
-		// TODO: Customize provider (or remove if a provider is not desired)
-		String pluginName = getName();
-		provider = new MyProvider(this, pluginName);
-
-		// TODO: Customize help (or remove if help is not desired)
-		String topicName = this.getClass().getPackage().getName();
-		String anchorName = "HelpAnchor";
-		provider.setHelpLocation(new HelpLocation(topicName, anchorName));
+			@Override
+			public void actionPerformed(ActionContext context) {
+				System.out.println("Upload bin");
+				File binFile;
+				
+				System.out.println("Attempting to read:" + currentProgram.getExecutablePath());
+				
+				if (new File(currentProgram.getExecutablePath()).exists()) {
+					binFile = new File(currentProgram.getExecutablePath());
+				}
+				else {
+					GhidraFileChooser fileChooser = new GhidraFileChooser(null);
+					fileChooser.setFileSelectionMode(GhidraFileChooserMode.FILES_ONLY);
+					
+					binFile = fileChooser.getSelectedFile(true);
+					fileChooser.dispose();
+				}
+				
+				if (binFile == null) {
+					System.err.println("No file selected for upload");
+					Msg.showError(binFile, null, ReaiPluginPackage.WINDOW_PREFIX+"Upload Binary", "No Binary Selected", null);
+					return;
+				}
+				
+				apiService.analyse(binFile.toPath(), Integer.valueOf(currentProgram.getImageBase().toString()), new AnalysisOptions.Builder().build());
+			}
+			
+		};
+		uploadBinary.setMenuBarData(new MenuData(new String[] {ReaiPluginPackage.MENU_GROUP_NAME, "Upload Binary"}, ReaiPluginPackage.NAME));
+		uploadBinary.setPopupMenuData(new MenuData(new String[] {ReaiPluginPackage.MENU_GROUP_NAME, "Upload Binary"}, ReaiPluginPackage.NAME));
+		tool.addAction(uploadBinary);
 	}
 
 	@Override
@@ -73,46 +101,6 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 		super.init();
 
 		// TODO: Acquire services if necessary
-	}
-
-	// TODO: If provider is desired, it is recommended to move it to its own file
-	private static class MyProvider extends ComponentProvider {
-
-		private JPanel panel;
-		private DockingAction action;
-
-		public MyProvider(Plugin plugin, String owner) {
-			super(plugin.getTool(), owner, owner);
-			buildPanel();
-			createActions();
-		}
-
-		// Customize GUI
-		private void buildPanel() {
-			panel = new JPanel(new BorderLayout());
-			JTextArea textArea = new JTextArea(5, 25);
-			textArea.setEditable(false);
-			panel.add(new JScrollPane(textArea));
-			setVisible(true);
-		}
-
-		// TODO: Customize actions
-		private void createActions() {
-			action = new DockingAction("My Action", getName()) {
-				@Override
-				public void actionPerformed(ActionContext context) {
-					Msg.showInfo(getClass(), panel, "Custom Action", "Hello!");
-				}
-			};
-			action.setToolBarData(new ToolBarData(Icons.ADD_ICON, null));
-			action.setEnabled(true);
-			action.markHelpUnnecessary();
-			dockingTool.addLocalAction(this, action);
-		}
-
-		@Override
-		public JComponent getComponent() {
-			return panel;
-		}
+		apiService = tool.getService(ApiService.class);
 	}
 }
