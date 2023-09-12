@@ -12,26 +12,64 @@ import ai.reveng.toolkit.ghidra.core.services.api.types.FunctionEmbedding;
 import java.awt.BorderLayout;
 
 import docking.widgets.table.GTable;
+import ghidra.app.services.ProgramManager;
+import ghidra.framework.plugintool.PluginTool;
 import ghidra.program.model.listing.Function;
+import ghidra.program.model.listing.Program;
+import ghidra.program.model.symbol.SourceType;
 import ghidra.util.Msg;
+import ghidra.util.exception.DuplicateNameException;
+import ghidra.util.exception.InvalidInputException;
 
 import javax.swing.JScrollPane;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+import javax.swing.JButton;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 
 public class RenameFunctionFromSimilarFunctionsPanel extends JPanel {
 	private GTable canidateFunctionsTable;
 	private CanidateFunctionModel cfm = new CanidateFunctionModel();
 	private Function functionUnderReview;
 	
-	public RenameFunctionFromSimilarFunctionsPanel(Function functionUnderReview, ApiService apiService, String currentBinaryHash) {
+	public RenameFunctionFromSimilarFunctionsPanel(Function functionUnderReview, PluginTool tool) {
 		this.functionUnderReview = functionUnderReview;
+		ProgramManager programManager = tool.getService(ProgramManager.class);
+		Program currentProgram = programManager.getCurrentProgram();
+		ApiService apiService = tool.getService(ApiService.class);
+		String currentBinaryHash = currentProgram.getExecutableSHA256();
 		
 		setLayout(new BorderLayout(0, 0));
 		
 		JPanel actionButtonPanel = new JPanel();
 		add(actionButtonPanel, BorderLayout.WEST);
+		
+		JButton btnRename = new JButton("Rename");
+		btnRename.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				
+				int tableCursor = canidateFunctionsTable.getSelectedRow();
+				
+				if (tableCursor != -1) {
+					int transactionID = currentProgram.startTransaction("Rename function from similar functions");
+					try {
+						functionUnderReview.setName((String) canidateFunctionsTable.getValueAt(tableCursor, 0), SourceType.USER_DEFINED);
+						currentProgram.endTransaction(transactionID, true);
+					} catch (DuplicateNameException exc) {
+						System.err.println("Symbol already exists");
+						currentProgram.endTransaction(transactionID, false);
+						Msg.showError(actionButtonPanel, btnRename, ReaiPluginPackage.WINDOW_PREFIX+"Rename Function Error", exc.getMessage());
+					} catch (Exception exc) {
+						currentProgram.endTransaction(transactionID, false);
+						System.err.println("Unknown Error");
+					}
+				}
+			}
+		});
+		actionButtonPanel.add(btnRename);
 		
 		JScrollPane canidateFunctionsScrollPanel = new JScrollPane();
 		add(canidateFunctionsScrollPanel, BorderLayout.CENTER);

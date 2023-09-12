@@ -6,6 +6,7 @@ import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.binarysimularity.ui.functionsimularity.panels.RenameFunctionFromSimilarFunctionsPanel;
 import ai.reveng.toolkit.ghidra.core.services.api.ApiService;
 import docking.DialogComponentProvider;
+import ghidra.app.services.ProgramManager;
 import ghidra.framework.plugintool.PluginTool;
 import ghidra.program.model.listing.Function;
 import ghidra.program.model.listing.Program;
@@ -13,13 +14,14 @@ import ghidra.program.model.listing.Program;
 public class FunctionSimularityDockableDialog extends DialogComponentProvider {
 	private RenameFunctionFromSimilarFunctionsPanel panel;
 
-	public FunctionSimularityDockableDialog(Function func, ApiService apiService, Program currentProgram) {
+	public FunctionSimularityDockableDialog(Function func, PluginTool tool) {
 		super(ReaiPluginPackage.WINDOW_PREFIX+"Function Rename", true);
-		buildPanel(func, apiService, currentProgram);
+		
+		buildPanel(func, tool);
 	}
 
-	private void buildPanel(Function func, ApiService apiService, Program currentProgram) {
-		panel = new RenameFunctionFromSimilarFunctionsPanel(func, apiService, currentProgram.getExecutableSHA256());
+	private void buildPanel(Function func, PluginTool tool) {
+		panel = new RenameFunctionFromSimilarFunctionsPanel(func, tool);
 	}
 
 	@Override

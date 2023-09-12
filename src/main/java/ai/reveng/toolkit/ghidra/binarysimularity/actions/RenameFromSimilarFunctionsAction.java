@@ -47,10 +47,7 @@ public class RenameFromSimilarFunctionsAction extends DockingAction {
 				Function function = functionManager.getFunctionContaining(addr);
 
 				if (function != null) {
-					ProgramManager programManager = tool.getService(ProgramManager.class);
-					Program currentProgram = programManager.getCurrentProgram();
-
-					FunctionSimularityDockableDialog renameDialogue = new FunctionSimularityDockableDialog(function, tool.getService(ApiService.class), currentProgram);
+					FunctionSimularityDockableDialog renameDialogue = new FunctionSimularityDockableDialog(function, tool);
 					tool.showDialog(renameDialogue);
 				}
 			}
