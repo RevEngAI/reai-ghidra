@@ -110,6 +110,7 @@ public class CorePlugin extends ProgramPlugin {
 		SetupWizardManager setupManager = new SetupWizardManager(new WizardState<SetupWizardStateKey>(), getTool());
 		WizardManager wizardManager = new WizardManager("RevEng.ai Setup Wizard", true, setupManager);
 		wizardManager.showWizard(tool.getToolFrame());
+		
 		return;
 	}
 

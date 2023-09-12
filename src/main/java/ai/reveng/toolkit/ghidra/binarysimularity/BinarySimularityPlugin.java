@@ -20,6 +20,7 @@ import java.io.File;
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.binarysimularity.tasks.UploadBinaryTask;
 import ai.reveng.toolkit.ghidra.core.services.api.AnalysisOptions;
+import ai.reveng.toolkit.ghidra.core.services.api.ApiResponse;
 import ai.reveng.toolkit.ghidra.core.services.api.ApiService;
 import docking.ActionContext;
 import docking.action.DockingAction;
@@ -94,6 +95,18 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 		uploadBinary.setMenuBarData(new MenuData(new String[] {ReaiPluginPackage.MENU_GROUP_NAME, "Upload Binary"}, ReaiPluginPackage.NAME));
 		uploadBinary.setPopupMenuData(new MenuData(new String[] {ReaiPluginPackage.MENU_GROUP_NAME, "Upload Binary"}, ReaiPluginPackage.NAME));
 		tool.addAction(uploadBinary);
+		
+		DockingAction checkStatusAction = new DockingAction("Check Analysis Status", getName()) {
+			
+			@Override
+			public void actionPerformed(ActionContext context) {
+				ApiResponse res = apiService.status(currentProgram.getExecutableSHA256());
+				Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX+"Check Analysis Status", "Status: "+ res.getJsonObject().get("status"));
+			}
+		};
+		checkStatusAction.setMenuBarData(new MenuData(new String[] {ReaiPluginPackage.MENU_GROUP_NAME, "Check Analysis Status"}, ReaiPluginPackage.NAME));
+		checkStatusAction.setPopupMenuData(new MenuData(new String[] {ReaiPluginPackage.MENU_GROUP_NAME, "Check Analysis Status"}, ReaiPluginPackage.NAME));
+		tool.addAction(checkStatusAction);
 	}
 
 	@Override
