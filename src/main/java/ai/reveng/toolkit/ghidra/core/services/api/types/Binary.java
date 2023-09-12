@@ -9,6 +9,7 @@ import org.json.JSONArray;
 
 public class Binary {
 	private final Map<String, FunctionEmbedding> functionEmbeddings;
+
 	private final List<Double> binaryEmbedding;
 	
 	public Binary(JSONArray jBinaryEmbeddings) {
@@ -28,6 +29,10 @@ public class Binary {
 			embedding.addAll(fe.getEmbedding());
 			
 		return embedding;
+	}
+	
+	public Map<String, FunctionEmbedding> getFunctionEmbeddings() {
+		return functionEmbeddings;
 	}
 	
 	public FunctionEmbedding getFunctionEmbedding(String fName) {

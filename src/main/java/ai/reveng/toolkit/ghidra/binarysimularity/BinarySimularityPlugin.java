@@ -15,20 +15,24 @@
  */
 package ai.reveng.toolkit.ghidra.binarysimularity;
 
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
 import java.io.File;
 
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
-import ai.reveng.toolkit.ghidra.binarysimularity.tasks.UploadBinaryTask;
+import ai.reveng.toolkit.ghidra.binarysimularity.actions.RenameFromSimilarFunctionsAction;
 import ai.reveng.toolkit.ghidra.core.services.api.AnalysisOptions;
 import ai.reveng.toolkit.ghidra.core.services.api.ApiResponse;
 import ai.reveng.toolkit.ghidra.core.services.api.ApiService;
 import docking.ActionContext;
 import docking.action.DockingAction;
+import docking.action.KeyBindingData;
 import docking.action.MenuData;
 import docking.widgets.filechooser.GhidraFileChooser;
 import docking.widgets.filechooser.GhidraFileChooserMode;
 import ghidra.app.plugin.PluginCategoryNames;
 import ghidra.app.plugin.ProgramPlugin;
+import ghidra.app.services.ProgramManager;
 import ghidra.framework.plugintool.*;
 import ghidra.framework.plugintool.util.PluginStatus;
 import ghidra.util.Msg;
@@ -44,7 +48,7 @@ import ghidra.util.task.TaskLauncher;
 	category = PluginCategoryNames.DIFF,
 	shortDescription = "Support for Binary Simularity Featrues of RevEng.AI Toolkit.",
 	description = "Enable features that support binary simlularity operations, including binary upload, and auto-renaming",
-	servicesRequired = { ApiService.class }
+	servicesRequired = { ApiService.class, ProgramManager.class }
 )
 //@formatter:on
 public class BinarySimularityPlugin extends ProgramPlugin {
@@ -107,6 +111,12 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 		checkStatusAction.setMenuBarData(new MenuData(new String[] {ReaiPluginPackage.MENU_GROUP_NAME, "Check Analysis Status"}, ReaiPluginPackage.NAME));
 		checkStatusAction.setPopupMenuData(new MenuData(new String[] {ReaiPluginPackage.MENU_GROUP_NAME, "Check Analysis Status"}, ReaiPluginPackage.NAME));
 		tool.addAction(checkStatusAction);
+		
+		RenameFromSimilarFunctionsAction rsfAction = new RenameFromSimilarFunctionsAction(getName(), getTool());
+		rsfAction.setPopupMenuData(new MenuData(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Rename From Similar Functions" }, ReaiPluginPackage.NAME));
+		// default to ctrl+shift R
+		rsfAction.setKeyBindingData(new KeyBindingData(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
+		tool.addAction(rsfAction);
 	}
 
 	@Override
