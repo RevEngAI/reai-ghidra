@@ -1,7 +1,7 @@
 package ai.reveng.toolkit.ghidra.core.ui.wizard.panels;
 
 import ai.reveng.toolkit.ghidra.core.services.api.ApiResponse;
-import ai.reveng.toolkit.ghidra.core.services.api.ReaiApiProxy;
+import ai.reveng.toolkit.ghidra.core.services.api.ApiServiceImpl;
 import ai.reveng.toolkit.ghidra.core.services.api.Utils;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardStateKey;
 import docking.wizard.AbstractMageJPanel;
@@ -22,7 +22,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 
 public class UserAvailableModelsPanel extends AbstractMageJPanel<SetupWizardStateKey> {
-	private JComboBox cbModel;
+	private JComboBox<String> cbModel;
 	
 	public UserAvailableModelsPanel() {
 		setLayout(new BorderLayout(0, 0));
@@ -74,7 +74,7 @@ public class UserAvailableModelsPanel extends AbstractMageJPanel<SetupWizardStat
 		System.out.println("API Key: " + apiKey);
 		System.out.println("Hostname: " + hostname);
 		
-		ReaiApiProxy api = new ReaiApiProxy(hostname, apiKey);
+		ApiServiceImpl api = new ApiServiceImpl(hostname, apiKey);
 		ApiResponse res = api.models();
 		
 		JSONArray jModelNames = res.getJsonObject().getJSONArray("models");
@@ -83,7 +83,6 @@ public class UserAvailableModelsPanel extends AbstractMageJPanel<SetupWizardStat
 		
 		String[] modelNames = Utils.jsonArrayToStringArray(jModelNames);
 		
-		// TODO Auto-generated method stub
 		DefaultComboBoxModel<String> cbModelNames = new DefaultComboBoxModel<String>(modelNames);
 		cbModel.setModel(cbModelNames);
 		cbModel.setEnabled(true);

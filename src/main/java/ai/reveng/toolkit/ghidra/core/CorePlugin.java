@@ -17,14 +17,19 @@ package ai.reveng.toolkit.ghidra.core;
 
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.core.services.api.ApiService;
+import ai.reveng.toolkit.ghidra.core.services.api.ApiServiceImpl;
 import ai.reveng.toolkit.ghidra.core.services.configuration.ConfigurationService;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardManager;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardStateKey;
+import docking.ActionContext;
+import docking.action.DockingAction;
+import docking.action.MenuData;
 import docking.wizard.WizardManager;
 import docking.wizard.WizardState;
 import ghidra.app.plugin.PluginCategoryNames;
 import ghidra.app.plugin.ProgramPlugin;
 import ghidra.framework.plugintool.*;
+import ghidra.framework.plugintool.util.OptionsService;
 import ghidra.framework.plugintool.util.PluginStatus;
 
 /**
@@ -37,11 +42,14 @@ import ghidra.framework.plugintool.util.PluginStatus;
 	category = PluginCategoryNames.MISC,
 	shortDescription = "Toolkit for using RevEngAI API",
 	description = "Toolkit for using RevEng.AI API",
-	servicesProvided = { ApiService.class, ConfigurationService.class }
+	servicesRequired = { OptionsService.class },
+	servicesProvided = { ApiService.class }
 )
 //@formatter:on
 public class CorePlugin extends ProgramPlugin {
 	private static final String REAI_WIZARD_RUN_PREF = "REAISetupWizardRun";
+	
+	private ApiService apiService;
 
 	/**
 	 * Plugin constructor.
@@ -56,14 +64,36 @@ public class CorePlugin extends ProgramPlugin {
 			runSetupWizard();
 //			setWizardRun();
 		}
+		
+		String apikey = tool.getOptions("Preferences").getString(ReaiPluginPackage.OPTION_KEY_APIKEY, "invalid");
+		String hostname = tool.getOptions("Preferences").getString(ReaiPluginPackage.OPTION_KEY_HOSTNAME, "unknown");
+		String modelname = tool.getOptions("Preferences").getString(ReaiPluginPackage.OPTION_KEY_MODEL, "unknown");
+		apiService = new ApiServiceImpl(hostname, apikey, modelname);
+		
+		registerServiceProvided(ApiService.class, apiService);
+		
+		setupActions();
 
+	}
+	
+	private void setupActions() {
+		DockingAction runWizard = new DockingAction("Run Setup Wizard", getName()) {
+
+			@Override
+			public void actionPerformed(ActionContext context) {
+				runSetupWizard();
+				
+			}
+			
+		};
+		runWizard.setMenuBarData(new MenuData(new String[] {ReaiPluginPackage.MENU_GROUP_NAME, "Run Setup Wizard"}, ReaiPluginPackage.NAME));
+		tool.addAction(runWizard);
 	}
 
 	@Override
 	public void init() {
 		super.init();
-
-		// TODO: Acquire services if necessary
+		
 	}
 	
 	private boolean hasSetupWizardRun() {

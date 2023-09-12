@@ -13,7 +13,7 @@ import java.util.Map;
  * Useful for intercepting requests for logging and caching. The goal with this
  * class is to provide user-friendly methods that wrap the ApiRequests interface
  */
-public class ReaiApiProxy implements ApiService {
+public class ApiServiceImpl implements ApiService {
 	private ApiRequesterImpl apiRequester;
 	private String baseUrl;
 	private String modelName;
@@ -24,14 +24,14 @@ public class ReaiApiProxy implements ApiService {
 	 * 
 	 * @param baseUrl url of API host, e.g. https://reveng.ai
 	 */
-	public ReaiApiProxy(String baseUrl, String apiKey, String modelName) {
+	public ApiServiceImpl(String baseUrl, String apiKey, String modelName) {
 		apiRequester = new ApiRequesterImpl(baseUrl);
 		this.baseUrl = baseUrl;
 		this.modelName = modelName;
 
 		headers = new HashMap<>();
-		headers.put("Authorization", apiKey);
-		headers.put("User-Agent", "REAIT Java Proxy");
+		addHeader("Authorization", apiKey);
+		addHeader("User-Agent", "REAIT Java Proxy");
 	}
 	
 	/**
@@ -39,13 +39,17 @@ public class ReaiApiProxy implements ApiService {
 	 * 
 	 * @param baseUrl url of API host, e.g. https://reveng.ai
 	 */
-	public ReaiApiProxy(String baseUrl, String apiKey) {
+	public ApiServiceImpl(String baseUrl, String apiKey) {
 		apiRequester = new ApiRequesterImpl(baseUrl);
 		this.baseUrl = baseUrl;
 
 		headers = new HashMap<>();
-		headers.put("Authorization", apiKey);
-		headers.put("User-Agent", "REAIT Java Proxy");
+		addHeader("Authorization", apiKey);
+		addHeader("User-Agent", "REAIT Java Proxy");
+	}
+	
+	private void addHeader(String key, String Value) {
+		headers.put(key, Value);
 	}
 
 	/**
