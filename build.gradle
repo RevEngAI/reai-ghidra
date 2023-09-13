@@ -56,7 +56,9 @@ repositories {
 
 dependencies {
 	// Any external dependencies added here will automatically be copied to the lib/ directory when
-	// this extension is built.	
+	// this extension is built.
+	implementation 'com.moandjiezana.toml:toml4j:0.7.2'
+  	implementation 'org.json:json:20230618'
 }
 
 // Exclude additional files from the built extension
