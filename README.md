@@ -128,23 +128,46 @@ Move the slider to determine the confidence level you want to use for batch rena
 
 ## Contributing
 
-### Building from Source
+We welcome pull requests from the community.
+
+### Code Overview
+
+We have tried to decompose the plugin into a series of individual plugins dependent on a **CorePlugin**.
+
+The **CorePlugin** provides services that are shared across all parts of the toolkit, namely configuration and API Services.
+
+You should therefore group related features into a Feature Plugin, and then aquire services from the CorePlugin as required. This gives users the flexiblity to enable / disable features based on their use-case and/or preferences.
+
+### Building
 
 Gradle can be used to build REAIT from its source code.
 
+#### No Eclipse
+
 1. Clone the REAIT for Ghidra GitHub repository.
    ```
-   $ git clone https://github.com/RevEngAI/reait-ghidra.git
+   git clone https://github.com/RevEngAI/reait-ghidra.git
    ```
 
 2. Enter the repository and build with gradle.
    ```
-   $ cd reait-ghidra
-   $ gradle -PGHIDRA_INSTALL_DIR=<ghidra_install_dir>
+   cd reait-ghidra
+   gradle -PGHIDRA_INSTALL_DIR=<ghidra_install_dir>
    ```
    * Replace `<ghidra_install_dir>` with the path to your local Ghidra installation path.
 
 3. After building, the plugin ZIP file will be located in the `dist/` folder.
+
+#### Using Eclipse
+
+Developing in Eclipse is the prefered method, but it does require some setup on the developers part, below is a (non-exhaustive) summary of what you need to do.
+
+1. Import the project into Eclipse
+2. Under **Preferences -> Gradle**
+   - Add a Program Argument: `-PGHIDRA_INSTALL_DIR=PATH2GHIDRA`
+3. Link you project with Ghidra using GhidraDev
+4. Update your classpath to point at `jar`'s in `lib/`
+   - Again this can be found in your project `preferences`
 
 ### Reporting Bugs
 
