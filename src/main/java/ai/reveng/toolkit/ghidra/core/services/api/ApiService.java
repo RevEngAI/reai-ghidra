@@ -3,6 +3,10 @@ package ai.reveng.toolkit.ghidra.core.services.api;
 import java.nio.file.Path;
 import java.util.List;
 
+import ai.reveng.toolkit.ghidra.core.CorePlugin;
+import ghidra.framework.plugintool.ServiceInfo;
+
+@ServiceInfo(defaultProvider = CorePlugin.class, description = "Interact with RevEngAi API")
 public interface ApiService {
 	public ApiResponse echo();
 	
