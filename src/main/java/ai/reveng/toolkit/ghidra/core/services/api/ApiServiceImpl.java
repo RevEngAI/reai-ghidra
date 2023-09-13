@@ -33,7 +33,7 @@ public class ApiServiceImpl implements ApiService {
 		addHeader("Authorization", apiKey);
 		addHeader("User-Agent", "REAIT Java Proxy");
 	}
-	
+
 	/**
 	 * Creates a new proxy
 	 * 
@@ -47,7 +47,7 @@ public class ApiServiceImpl implements ApiService {
 		addHeader("Authorization", apiKey);
 		addHeader("User-Agent", "REAIT Java Proxy");
 	}
-	
+
 	private void addHeader(String key, String Value) {
 		headers.put(key, Value);
 	}
@@ -186,10 +186,10 @@ public class ApiServiceImpl implements ApiService {
 	public ApiResponse embeddings(String binHash, String modelName) {
 		Map<String, String> pathParams = new HashMap<>();
 		pathParams.put("sha_256_hash", binHash);
-		
+
 		Map<String, String> params = new HashMap<>();
 		params.put("model_name", modelName);
-		
+
 		try {
 			return send(ApiEndpoint.EMBEDDINGS, pathParams, null, null, null, headers);
 		} catch (IOException | InterruptedException e) {
@@ -206,27 +206,28 @@ public class ApiServiceImpl implements ApiService {
 	public ApiResponse embeddings(String binHash) {
 		return embeddings(binHash, modelName);
 	}
-	
+
 	public ApiResponse signature(String binHash, String modelName) {
 		Map<String, String> pathParams = new HashMap<>();
 		pathParams.put("sha_256_hash", binHash);
-		
+
 		Map<String, String> params = new HashMap<>();
 		params.put("model_name", modelName);
-		
+
 		try {
 			return send(ApiEndpoint.SIGNATURE, pathParams, params, null, null, headers);
 		} catch (IOException | InterruptedException e) {
 			return new ApiResponse(-1, e.getMessage());
 		}
 	}
-	
+
 	public ApiResponse signature(String binHash) {
 		return signature(binHash, modelName);
 	}
-	
+
 	/**
 	 * TODO
+	 * 
 	 * @param binHash
 	 * @param startVAddr
 	 * @param endVAddr
@@ -234,62 +235,63 @@ public class ApiServiceImpl implements ApiService {
 	 * @param modelName
 	 * @return
 	 */
-	private ApiResponse embedding(String binHash, int startVAddr, Integer endVAddr, Integer baseVAddr, String modelName) {
+	private ApiResponse embedding(String binHash, int startVAddr, Integer endVAddr, Integer baseVAddr,
+			String modelName) {
 		Map<String, String> pathParams = new HashMap<>();
 		pathParams.put("sha_256_hash", binHash);
 		pathParams.put("start_vaddr", Integer.toHexString(startVAddr));
-		
+
 		Map<String, String> params = new HashMap<>();
 		params.put("model_name", modelName);
-		
+
 		if (endVAddr != null)
 			params.put("end_vaddr", Integer.toHexString(endVAddr));
 		if (baseVAddr != null)
 			params.put("base_vaddr", Integer.toHexString(baseVAddr));
-		
+
 		try {
 			return send(ApiEndpoint.EMBEDDING, pathParams, params, null, null, headers);
 		} catch (IOException | InterruptedException e) {
 			return new ApiResponse(-1, e.getMessage());
 		}
 	}
-	
+
 	private ApiResponse embedding(String binHash, int startVAddr, Integer endVAddr, Integer baseVAddr) {
 		return embedding(binHash, startVAddr, endVAddr, baseVAddr, modelName);
 	}
-	
+
 	public ApiResponse logs(String binHash, String modelName) {
 		Map<String, String> pathParams = new HashMap<>();
 		pathParams.put("sha_256_hash", binHash);
-		
+
 		Map<String, String> params = new HashMap<>();
 		params.put("model_name", modelName);
-		
+
 		try {
 			return send(ApiEndpoint.LOGS, pathParams, params, null, null, headers);
 		} catch (IOException | InterruptedException e) {
 			return new ApiResponse(-1, e.getMessage());
 		}
 	}
-	
+
 	public ApiResponse logs(String binHash) {
 		return logs(binHash, modelName);
 	}
-	
+
 	public ApiResponse cves(String binHash, String modelName) {
 		Map<String, String> pathParams = new HashMap<>();
 		pathParams.put("sha_256_hash", binHash);
-		
+
 		Map<String, String> params = new HashMap<>();
 		params.put("model_name", modelName);
-		
+
 		try {
 			return send(ApiEndpoint.CVES, pathParams, params, null, null, headers);
 		} catch (IOException | InterruptedException e) {
 			return new ApiResponse(-1, e.getMessage());
 		}
 	}
-	
+
 	public ApiResponse cves(String binHash) {
 		return cves(binHash, modelName);
 	}
@@ -298,59 +300,67 @@ public class ApiServiceImpl implements ApiService {
 		Map<String, String> params = new HashMap<>();
 		params.put("model_name", modelName);
 		params.put("nns", Integer.toString(nns));
-		
+
 		try {
 			return send(ApiEndpoint.ANN_SYMBOL, null, params, embedding, ApiBodyType.EMBEDDING, headers);
 		} catch (IOException | InterruptedException e) {
 			return new ApiResponse(-1, e.getMessage());
 		}
 	}
-	
+
 	public ApiResponse nearestSymbols(List<Double> embedding, int nns, String[] collections) {
 		return nearestSymbols(embedding, modelName, nns, collections);
 	}
-	
+
 	public ApiResponse nearestBinaries(List<Double> embedding, int nns, String[] collections) {
 		return nearestBinaries(embedding, modelName, nns, collections);
 	}
-	
+
 	public ApiResponse nearestBinaries(List<Double> embedding, String modelName, int nns, String[] collections) {
 		Map<String, String> params = new HashMap<>();
 		params.put("model_name", modelName);
 		params.put("nns", Integer.toString(nns));
-		
+
 		try {
 			return send(ApiEndpoint.ANN_BINARY, null, params, embedding, ApiBodyType.EMBEDDING, headers);
 		} catch (IOException | InterruptedException e) {
 			return new ApiResponse(-1, e.getMessage());
 		}
 	}
-	
+
 	public ApiResponse sbom(String binHash, String modelName) {
 		Map<String, String> pathParams = new HashMap<>();
 		pathParams.put("sha_256_hash", binHash);
-		
+
 		Map<String, String> params = new HashMap<>();
 		params.put("model_name", modelName);
-		
+
 		try {
 			return send(ApiEndpoint.SBOM, pathParams, params, null, null, headers);
 		} catch (IOException | InterruptedException e) {
 			return new ApiResponse(-1, e.getMessage());
 		}
 	}
-	
+
 	public ApiResponse sbom(String binHash) {
 		return cves(binHash, modelName);
 	}
-	
+
 	public ApiResponse models() {
 		Map<String, String> pathParams = new HashMap<>();
-		
+
 		Map<String, String> params = new HashMap<>();
-		
+
 		try {
 			return send(ApiEndpoint.MODELS, pathParams, params, null, null, headers);
+		} catch (IOException | InterruptedException e) {
+			return new ApiResponse(-1, e.getMessage());
+		}
+	}
+
+	public ApiResponse explain(String decompiledFunction) {
+		try {
+			return send(ApiEndpoint.EXPLAIN, null, null, decompiledFunction, ApiBodyType.DECOMPILED_FUNCTION, headers);
 		} catch (IOException | InterruptedException e) {
 			return new ApiResponse(-1, e.getMessage());
 		}

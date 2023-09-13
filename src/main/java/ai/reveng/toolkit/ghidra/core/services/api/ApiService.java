@@ -36,4 +36,6 @@ public interface ApiService {
 	public ApiResponse sbom(String binHash);
 	
 	public ApiResponse models();
+	
+	public ApiResponse explain(String decompiledFunction);
 }

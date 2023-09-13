@@ -65,6 +65,8 @@ public class ApiRequesterImpl implements IApiRequester {
 					String rawData = ((List<Double>) body).stream().map(Object::toString).collect(Collectors.joining(","));
 					requestBuilder.POST(HttpRequest.BodyPublishers.ofString("["+rawData+"]"));
 					break;
+				case DECOMPILED_FUNCTION:
+					requestBuilder.POST(HttpRequest.BodyPublishers.ofString((String) body));
 				default:
 					break;
 				}
