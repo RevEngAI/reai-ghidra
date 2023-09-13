@@ -55,7 +55,6 @@ public class FunctionExplanationPlugin extends ProgramPlugin {
 
 	private void setupActions() {
 		AskForFunctionExplanationAction feAction = new AskForFunctionExplanationAction(tool);
-		
 		tool.addAction(feAction);
 	}
 
