@@ -2,7 +2,7 @@
 
 ### AI Assisted Binary Analysis
 
-Released as open source by Binary AI Ltd - https://reveng.ai
+Released as open source by RevEng.ai - https://reveng.ai
 
 <!-- TODO -->
 <!-- Released under the Apache 2.0 license (see [LICENSE](LICENSE) for more information) -->
