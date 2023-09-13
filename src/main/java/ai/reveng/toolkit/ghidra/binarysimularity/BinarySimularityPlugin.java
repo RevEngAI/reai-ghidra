@@ -132,7 +132,7 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 
 			@Override
 			public void actionPerformed(ActionContext context) {
-				AutoAnalysisDockableDialog autoAnalyse = new AutoAnalysisDockableDialog();
+				AutoAnalysisDockableDialog autoAnalyse = new AutoAnalysisDockableDialog(tool);
 				tool.showDialog(autoAnalyse);
 
 			}
