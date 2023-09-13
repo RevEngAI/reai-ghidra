@@ -52,6 +52,7 @@ repositories {
 	// dropped into the lib/ directory.
 	// See https://docs.gradle.org/current/userguide/declaring_repositories.html for more info.
 	// Ex: mavenCentral()
+	mavenCentral()
 }
 
 dependencies {
