@@ -2,6 +2,8 @@
 *.class
 *.jar
 !gradle/wrapper/gradle-wrapper.jar
+!lib/json-20230618.jar
+!lib/toml4j-0.7.2.jar
 *.war
 *.ear
 
