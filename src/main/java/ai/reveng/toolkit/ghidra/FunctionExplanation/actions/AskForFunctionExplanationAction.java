@@ -29,7 +29,7 @@ public class AskForFunctionExplanationAction extends DockingAction {
 
     public AskForFunctionExplanationAction(PluginTool tool) {
         super("CustomDecompilerAction", tool.getName());
-        setPopupMenuData(new MenuData(new String[] {ReaiPluginPackage.MENU_GROUP_NAME, "Explain this function" }, ReaiPluginPackage.NAME));
+        setPopupMenuData(new MenuData(new String[] { "Explain this function" }, ReaiPluginPackage.NAME));
         this.tool = tool;
     }
 

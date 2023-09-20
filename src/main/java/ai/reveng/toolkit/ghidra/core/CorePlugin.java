@@ -19,6 +19,8 @@ import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.core.services.api.ApiService;
 import ai.reveng.toolkit.ghidra.core.services.api.ApiServiceImpl;
 import ai.reveng.toolkit.ghidra.core.services.configuration.ConfigurationService;
+import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoundariesService;
+import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoundariesServiceImpl;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardManager;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardStateKey;
 import docking.ActionContext;
@@ -43,13 +45,14 @@ import ghidra.framework.plugintool.util.PluginStatus;
 	shortDescription = "Toolkit for using RevEngAI API",
 	description = "Toolkit for using RevEng.AI API",
 	servicesRequired = { OptionsService.class },
-	servicesProvided = { ApiService.class }
+	servicesProvided = { ApiService.class, ExportFunctionBoundariesService.class }
 )
 //@formatter:on
 public class CorePlugin extends ProgramPlugin {
 	private static final String REAI_WIZARD_RUN_PREF = "REAISetupWizardRun";
 	
 	private ApiService apiService;
+	private ExportFunctionBoundariesService exportFunctionBoundariesService;
 
 	/**
 	 * Plugin constructor.
@@ -71,6 +74,10 @@ public class CorePlugin extends ProgramPlugin {
 		apiService = new ApiServiceImpl(hostname, apikey, modelname);
 		
 		registerServiceProvided(ApiService.class, apiService);
+		
+		exportFunctionBoundariesService = new ExportFunctionBoundariesServiceImpl(tool);
+		
+		registerServiceProvided(ExportFunctionBoundariesService.class, exportFunctionBoundariesService);
 		
 		setupActions();
 
