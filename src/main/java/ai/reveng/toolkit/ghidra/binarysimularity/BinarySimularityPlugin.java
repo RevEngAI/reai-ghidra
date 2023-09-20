@@ -100,7 +100,7 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 		};
 		uploadBinary.setMenuBarData(new MenuData(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Upload Binary" },
 				ReaiPluginPackage.NAME));
-		uploadBinary.setPopupMenuData(new MenuData(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Upload Binary" },
+		uploadBinary.setPopupMenuData(new MenuData(new String[] { "Upload Binary" },
 				ReaiPluginPackage.NAME));
 		tool.addAction(uploadBinary);
 
@@ -116,12 +116,12 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 		checkStatusAction.setMenuBarData(new MenuData(
 				new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Check Analysis Status" }, ReaiPluginPackage.NAME));
 		checkStatusAction.setPopupMenuData(new MenuData(
-				new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Check Analysis Status" }, ReaiPluginPackage.NAME));
+				new String[] { "Check Analysis Status" }, ReaiPluginPackage.NAME));
 		tool.addAction(checkStatusAction);
 
 		RenameFromSimilarFunctionsAction rsfAction = new RenameFromSimilarFunctionsAction(getName(), getTool());
 		rsfAction.setPopupMenuData(
-				new MenuData(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Rename From Similar Functions" },
+				new MenuData(new String[] { "Rename From Similar Functions" },
 						ReaiPluginPackage.NAME));
 		// default to ctrl+shift R
 		rsfAction.setKeyBindingData(
@@ -140,7 +140,7 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 		autoAnalysisAction.setMenuBarData(new MenuData(
 				new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Auto Analyse Binary Symbols" }, ReaiPluginPackage.NAME));
 		autoAnalysisAction.setPopupMenuData(new MenuData(
-				new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Auto Analyse Binary Symbols" }, ReaiPluginPackage.NAME));
+				new String[] { "Auto Analyse Binary Symbols" }, ReaiPluginPackage.NAME));
 		// default to ctrl+shift A
 		autoAnalysisAction.setKeyBindingData(
 				new KeyBindingData(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
