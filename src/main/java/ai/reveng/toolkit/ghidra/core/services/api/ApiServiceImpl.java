@@ -7,6 +7,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.json.JSONObject;
+
 /**
  * Proxy that manages API actions.
  * 
@@ -97,7 +99,7 @@ public class ApiServiceImpl implements ApiService {
 	 * @param opts
 	 * @return
 	 */
-	public ApiResponse analyse(Path binPath, String modelName, int baseAddr, AnalysisOptions opts) {
+	public ApiResponse analyse(Path binPath, JSONObject functionBoundaries, String modelName, int baseAddr, AnalysisOptions opts) {
 		File bin = binPath.toFile();
 
 		if (!bin.exists())
@@ -108,6 +110,7 @@ public class ApiServiceImpl implements ApiService {
 		params.put("base_vaddr", Integer.toHexString(baseAddr));
 		params.put("model", modelName);
 		params.put("priority", Integer.toString(10));
+		params.put("function_boundaries", functionBoundaries.toString());
 		params.putAll(opts.toMap());
 
 		try {
@@ -125,8 +128,8 @@ public class ApiServiceImpl implements ApiService {
 	 * @param opts
 	 * @return
 	 */
-	public ApiResponse analyse(Path binPath, int baseAddr, AnalysisOptions opts) {
-		return analyse(binPath, modelName, baseAddr, opts);
+	public ApiResponse analyse(Path binPath, JSONObject functionBoundaries, int baseAddr, AnalysisOptions opts) {
+		return analyse(binPath, functionBoundaries, modelName, baseAddr, opts);
 	}
 
 	/**

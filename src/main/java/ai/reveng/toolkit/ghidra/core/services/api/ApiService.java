@@ -3,6 +3,8 @@ package ai.reveng.toolkit.ghidra.core.services.api;
 import java.nio.file.Path;
 import java.util.List;
 
+import org.json.JSONObject;
+
 import ai.reveng.toolkit.ghidra.core.CorePlugin;
 import ghidra.framework.plugintool.ServiceInfo;
 
@@ -10,8 +12,8 @@ import ghidra.framework.plugintool.ServiceInfo;
 public interface ApiService {
 	public ApiResponse echo();
 	
-	public ApiResponse analyse(Path binPath, String modelName, int baseAddr, AnalysisOptions opts);
-	public ApiResponse analyse(Path binPath, int baseAddr, AnalysisOptions opts);
+	public ApiResponse analyse(Path binPath, JSONObject functionBoundaries, String modelName, int baseAddr, AnalysisOptions opts);
+	public ApiResponse analyse(Path binPath, JSONObject functionBoundaries, int baseAddr, AnalysisOptions opts);
 	
 	public ApiResponse status(String binHash);
 	
