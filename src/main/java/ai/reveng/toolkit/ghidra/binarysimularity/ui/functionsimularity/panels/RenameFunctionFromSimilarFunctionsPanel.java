@@ -34,12 +34,6 @@ import javax.swing.JLabel;
 import java.awt.Component;
 import javax.swing.JCheckBox;
 import java.awt.FlowLayout;
-import javax.swing.SpringLayout;
-import java.awt.GridLayout;
-import java.awt.GridBagLayout;
-import java.awt.GridBagConstraints;
-import java.awt.Insets;
-import net.miginfocom.swing.MigLayout;
 
 public class RenameFunctionFromSimilarFunctionsPanel extends JPanel {
 	private GTable canidateFunctionsTable;
