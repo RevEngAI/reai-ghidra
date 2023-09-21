@@ -19,12 +19,15 @@ import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.io.File;
 
+import org.json.JSONObject;
+
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.binarysimularity.actions.RenameFromSimilarFunctionsAction;
 import ai.reveng.toolkit.ghidra.binarysimularity.ui.autoanalysis.AutoAnalysisDockableDialog;
 import ai.reveng.toolkit.ghidra.core.services.api.AnalysisOptions;
 import ai.reveng.toolkit.ghidra.core.services.api.ApiResponse;
 import ai.reveng.toolkit.ghidra.core.services.api.ApiService;
+import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoundariesService;
 import docking.ActionContext;
 import docking.action.DockingAction;
 import docking.action.KeyBindingData;
@@ -49,11 +52,12 @@ import ghidra.util.task.TaskLauncher;
 	category = PluginCategoryNames.DIFF,
 	shortDescription = "Support for Binary Simularity Featrues of RevEng.AI Toolkit.",
 	description = "Enable features that support binary simlularity operations, including binary upload, and auto-renaming",
-	servicesRequired = { ApiService.class, ProgramManager.class }
+	servicesRequired = { ApiService.class, ProgramManager.class, ExportFunctionBoundariesService.class }
 )
 //@formatter:on
 public class BinarySimularityPlugin extends ProgramPlugin {
 	private ApiService apiService;
+	private ExportFunctionBoundariesService exportFunctionBoundariesService;
 
 	/**
 	 * Plugin constructor.
@@ -92,7 +96,11 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 							"No Binary Selected", null);
 					return;
 				}
-
+				
+				JSONObject funcBoundaries = exportFunctionBoundariesService.getFunctions();
+				
+				System.out.println(funcBoundaries);
+				
 				apiService.analyse(binFile.toPath(), Integer.valueOf(currentProgram.getImageBase().toString()),
 						new AnalysisOptions.Builder().build());
 			}
@@ -100,7 +108,7 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 		};
 		uploadBinary.setMenuBarData(new MenuData(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Upload Binary" },
 				ReaiPluginPackage.NAME));
-		uploadBinary.setPopupMenuData(new MenuData(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Upload Binary" },
+		uploadBinary.setPopupMenuData(new MenuData(new String[] { "Upload Binary" },
 				ReaiPluginPackage.NAME));
 		tool.addAction(uploadBinary);
 
@@ -116,12 +124,12 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 		checkStatusAction.setMenuBarData(new MenuData(
 				new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Check Analysis Status" }, ReaiPluginPackage.NAME));
 		checkStatusAction.setPopupMenuData(new MenuData(
-				new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Check Analysis Status" }, ReaiPluginPackage.NAME));
+				new String[] { "Check Analysis Status" }, ReaiPluginPackage.NAME));
 		tool.addAction(checkStatusAction);
 
 		RenameFromSimilarFunctionsAction rsfAction = new RenameFromSimilarFunctionsAction(getName(), getTool());
 		rsfAction.setPopupMenuData(
-				new MenuData(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Rename From Similar Functions" },
+				new MenuData(new String[] { "Rename From Similar Functions" },
 						ReaiPluginPackage.NAME));
 		// default to ctrl+shift R
 		rsfAction.setKeyBindingData(
@@ -140,7 +148,7 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 		autoAnalysisAction.setMenuBarData(new MenuData(
 				new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Auto Analyse Binary Symbols" }, ReaiPluginPackage.NAME));
 		autoAnalysisAction.setPopupMenuData(new MenuData(
-				new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Auto Analyse Binary Symbols" }, ReaiPluginPackage.NAME));
+				new String[] { "Auto Analyse Binary Symbols" }, ReaiPluginPackage.NAME));
 		// default to ctrl+shift A
 		autoAnalysisAction.setKeyBindingData(
 				new KeyBindingData(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
@@ -153,5 +161,6 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 
 		// TODO: Acquire services if necessary
 		apiService = tool.getService(ApiService.class);
+		exportFunctionBoundariesService = tool.getService(ExportFunctionBoundariesService.class);
 	}
 }

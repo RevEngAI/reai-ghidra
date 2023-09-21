@@ -105,7 +105,7 @@ public class AutoAnalysisPanel extends JPanel {
 					FunctionEmbedding fe = bin.getFunctionEmbedding(func.getName());
 					if (fe == null)
 						continue;
-					res = apiService.nearestSymbols(fe.getEmbedding(), 1, null);
+					res = apiService.nearestSymbols(fe.getEmbedding(), currentBinaryHash, 1, null);
 					
 					JSONObject jFunc = res.getJsonArray().getJSONObject(0);
 					Double distance = 1 - jFunc.getDouble("distance");
