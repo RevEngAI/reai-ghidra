@@ -296,10 +296,11 @@ public class ApiServiceImpl implements ApiService {
 		return cves(binHash, modelName);
 	}
 
-	public ApiResponse nearestSymbols(List<Double> embedding, String modelName, int nns, String[] collections) {
+	public ApiResponse nearestSymbols(List<Double> embedding, String ignoreHash, String modelName, int nns, String[] collections) {
 		Map<String, String> params = new HashMap<>();
 		params.put("model_name", modelName);
 		params.put("nns", Integer.toString(nns));
+		params.put("ignore_hashes", ignoreHash);
 
 		try {
 			return send(ApiEndpoint.ANN_SYMBOL, null, params, embedding, ApiBodyType.EMBEDDING, headers);
@@ -308,8 +309,8 @@ public class ApiServiceImpl implements ApiService {
 		}
 	}
 
-	public ApiResponse nearestSymbols(List<Double> embedding, int nns, String[] collections) {
-		return nearestSymbols(embedding, modelName, nns, collections);
+	public ApiResponse nearestSymbols(List<Double> embedding, String ignoreHash, int nns, String[] collections) {
+		return nearestSymbols(embedding, ignoreHash, modelName, nns, collections);
 	}
 
 	public ApiResponse nearestBinaries(List<Double> embedding, int nns, String[] collections) {
