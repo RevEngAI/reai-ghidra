@@ -1,5 +1,7 @@
 # RevEng.AI Ghidra Plugin
 
+[Video Overview](https://vimeo.com/867118159)
+
 ### AI Assisted Binary Analysis
 
 Released as open source by RevEng.ai - https://reveng.ai
