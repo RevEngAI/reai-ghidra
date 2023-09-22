@@ -13,21 +13,27 @@ import ghidra.program.model.listing.FunctionManager;
 import ghidra.program.model.listing.Program;
 
 public class ExportFunctionBoundariesServiceImpl implements ExportFunctionBoundariesService {
-	
-	private static final String JSONArray = null;
-	private PluginTool tool;
 	private FunctionManager fm;
+	private Program currentProgram;
 	
 	public ExportFunctionBoundariesServiceImpl(PluginTool tool) {
 		ProgramManager programManager = tool.getService(ProgramManager.class);
-		Program currentProgram = programManager.getCurrentProgram();
-		this.fm = currentProgram.getFunctionManager();
+		currentProgram = programManager.getCurrentProgram();
 		
-		this.tool = tool;
+		if (currentProgram == null)
+			return;
+		
+		initFunctionManager();
+	}
+	
+	public void initFunctionManager() {
+		this.fm = currentProgram.getFunctionManager();
 	}
 
 	@Override
 	public JSONObject getFunctionAt(Address entry) {
+		initFunctionManager();
+		
 		Function f = fm.getFunctionAt(entry);
 		
 		JSONObject jFunctionBoundaries = new JSONObject();
@@ -40,6 +46,8 @@ public class ExportFunctionBoundariesServiceImpl implements ExportFunctionBounda
 
 	@Override
 	public JSONObject getFunctions() {
+		initFunctionManager();
+		
 		JSONObject jFunctions = new JSONObject();
 		
 		JSONArray fArray = new JSONArray();
