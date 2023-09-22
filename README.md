@@ -28,8 +28,8 @@ The RevEng.AI Toolkit allows you to interact with our API from within Ghidra. Th
 ## Key Features
 
 * Upload the current binary for analysis
-* Manage you analyses locally from ghidra
-* Rename a function based on similar functions in our dataset
+* Rename a function based on similar functions from our dataset
+* Ask for a human readable function explanation
 
 ## Installation
 
@@ -56,7 +56,7 @@ Once installed, you can enable the plugin via the `Configure` tool.
 
 ![Plugin Config](screenshots/plugin-config.png)
 
-Each plugin is dependent on the `CorePlugin`, so by enabling the `BinarySimularityPlugin` you will automatically enable the `CorePlugin`.
+Each plugin is dependent on the `CorePlugin`, for instance, by enabling the `BinarySimularityPlugin` you will automatically enable the `CorePlugin`.
 
 ## Usage
 
@@ -93,7 +93,7 @@ We now have uploaded fdupes to our dataset, meaning we can now use it for our bi
 
 Import `src/test/resourcesfdupes.stripped` using the same steps as before. Once this has been completed, you can move on to the next step.
 
-With fdupes.stripped open in Ghidra, select a funtion in Ghidra's listing view, and `right-click -> Rename from Similar Functions`, or `CTRL-Shift +R`. This will open the function renaming window.
+With fdupes.stripped open in Ghidra, select a funtion in Ghidra's listing view, and `right-click -> Rename from Similar Functions`, or `CTRL-Shift + R`. This will open the function renaming window.
 
 > Note that you need to select the start of the function in order for this menu-item to appear in the right context.
 
