@@ -15,6 +15,10 @@ import ghidra.util.exception.CancelledException;
 import ghidra.util.task.Task;
 import ghidra.util.task.TaskMonitor;
 
+/**
+ * Task that iterates over all functions held by the function manager and
+ * renames it based on the most confident result from the RevEng.AI API
+ */
 public class AutoAnalyseBinary extends Task {
 	private ApiService apiService;
 	private Program currentProgram;
@@ -30,20 +34,21 @@ public class AutoAnalyseBinary extends Task {
 	public void run(TaskMonitor monitor) throws CancelledException {
 
 		FunctionManager fm = currentProgram.getFunctionManager();
-		
+
 		String currentBinaryHash = currentProgram.getExecutableSHA256();
 
 		ApiResponse res = apiService.embeddings(currentBinaryHash);
 
 		if (res.getStatusCode() > 299) {
-			Msg.showError(fm, null, ReaiPluginPackage.WINDOW_PREFIX + "Auto Analysis", res.getJsonObject().get("error"));
+			Msg.showError(fm, null, ReaiPluginPackage.WINDOW_PREFIX + "Auto Analysis",
+					res.getJsonObject().get("error"));
 			return;
 		}
 
 		Binary bin = new Binary(res.getJsonArray());
-		
+
 		for (Function func : fm.getFunctions(true)) {
-			System.out.println("Searching for suitable name for '"+func.getName()+"'");
+			System.out.println("Searching for suitable name for '" + func.getName() + "'");
 			FunctionEmbedding fe = bin.getFunctionEmbedding(func.getName());
 			res = apiService.nearestSymbols(fe.getEmbedding(), currentBinaryHash, 1, null);
 		}

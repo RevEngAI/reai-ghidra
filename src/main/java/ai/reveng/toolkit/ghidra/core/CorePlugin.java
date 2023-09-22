@@ -36,7 +36,7 @@ import ghidra.framework.plugintool.util.PluginStatus;
 import ghidra.program.model.listing.Program;
 
 /**
- * TODO: Provide class-level documentation that describes what this plugin does.
+ * CorePlugin for accessing the RevEng.AI Platform
  */
 //@formatter:off
 @PluginInfo(
@@ -51,74 +51,70 @@ import ghidra.program.model.listing.Program;
 //@formatter:on
 public class CorePlugin extends ProgramPlugin {
 	private static final String REAI_WIZARD_RUN_PREF = "REAISetupWizardRun";
-	
+
 	private ApiService apiService;
 	private ExportFunctionBoundariesService exportFunctionBoundariesService;
 
-	/**
-	 * Plugin constructor.
-	 * 
-	 * @param tool The plugin tool that this plugin is added to.
-	 */
 	public CorePlugin(PluginTool tool) {
 		super(tool);
-		
+
 		// check if we have already run the first time setup
 		if (!hasSetupWizardRun()) {
 			runSetupWizard();
 			setWizardRun();
 		}
-		
+
 		String apikey = tool.getOptions("Preferences").getString(ReaiPluginPackage.OPTION_KEY_APIKEY, "invalid");
 		String hostname = tool.getOptions("Preferences").getString(ReaiPluginPackage.OPTION_KEY_HOSTNAME, "unknown");
 		String modelname = tool.getOptions("Preferences").getString(ReaiPluginPackage.OPTION_KEY_MODEL, "unknown");
 		apiService = new ApiServiceImpl(hostname, apikey, modelname);
-		
+
 		registerServiceProvided(ApiService.class, apiService);
-		
+
 		exportFunctionBoundariesService = new ExportFunctionBoundariesServiceImpl(tool);
-		
+
 		registerServiceProvided(ExportFunctionBoundariesService.class, exportFunctionBoundariesService);
-		
+
 		setupActions();
 
 	}
-	
+
 	private void setupActions() {
 		DockingAction runWizard = new DockingAction("Run Setup Wizard", getName()) {
 
 			@Override
 			public void actionPerformed(ActionContext context) {
 				runSetupWizard();
-				
+
 			}
-			
+
 		};
-		runWizard.setMenuBarData(new MenuData(new String[] {ReaiPluginPackage.MENU_GROUP_NAME, "Run Setup Wizard"}, ReaiPluginPackage.NAME));
+		runWizard.setMenuBarData(new MenuData(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Run Setup Wizard" },
+				ReaiPluginPackage.NAME));
 		tool.addAction(runWizard);
 	}
 
 	@Override
 	public void init() {
 		super.init();
-		
+
 	}
-	
+
 	private boolean hasSetupWizardRun() {
 		String value = tool.getOptions("Preferences").getString(REAI_WIZARD_RUN_PREF, "false");
 		return Boolean.parseBoolean(value);
 	}
-	
+
 	private void setWizardRun() {
 		tool.getOptions("Preferences").setString(REAI_WIZARD_RUN_PREF, "true");
 	}
-	
+
 	private void runSetupWizard() {
 		System.out.println("Running first time setup");
 		SetupWizardManager setupManager = new SetupWizardManager(new WizardState<SetupWizardStateKey>(), getTool());
 		WizardManager wizardManager = new WizardManager("RevEng.ai Setup Wizard", true, setupManager);
 		wizardManager.showWizard(tool.getToolFrame());
-		
+
 		return;
 	}
 

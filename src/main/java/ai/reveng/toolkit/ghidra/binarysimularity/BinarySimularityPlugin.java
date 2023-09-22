@@ -40,10 +40,10 @@ import ghidra.app.services.ProgramManager;
 import ghidra.framework.plugintool.*;
 import ghidra.framework.plugintool.util.PluginStatus;
 import ghidra.util.Msg;
-import ghidra.util.task.TaskLauncher;
 
 /**
- * TODO: Provide class-level documentation that describes what this plugin does.
+ * This plugin provides features for performing binary code similarity using the
+ * RevEng.AI API
  */
 //@formatter:off
 @PluginInfo(
@@ -96,20 +96,20 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 							"No Binary Selected", null);
 					return;
 				}
-				
+
 				JSONObject funcBoundaries = exportFunctionBoundariesService.getFunctions();
-				
+
 				System.out.println(funcBoundaries);
-				
-				apiService.analyse(binFile.toPath(), funcBoundaries, Integer.valueOf(currentProgram.getImageBase().toString()),
+
+				apiService.analyse(binFile.toPath(), funcBoundaries,
+						Integer.valueOf(currentProgram.getImageBase().toString()),
 						new AnalysisOptions.Builder().build());
 			}
 
 		};
 		uploadBinary.setMenuBarData(new MenuData(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Upload Binary" },
 				ReaiPluginPackage.NAME));
-		uploadBinary.setPopupMenuData(new MenuData(new String[] { "Upload Binary" },
-				ReaiPluginPackage.NAME));
+		uploadBinary.setPopupMenuData(new MenuData(new String[] { "Upload Binary" }, ReaiPluginPackage.NAME));
 		tool.addAction(uploadBinary);
 
 		DockingAction checkStatusAction = new DockingAction("Check Analysis Status", getName()) {
@@ -123,14 +123,13 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 		};
 		checkStatusAction.setMenuBarData(new MenuData(
 				new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Check Analysis Status" }, ReaiPluginPackage.NAME));
-		checkStatusAction.setPopupMenuData(new MenuData(
-				new String[] { "Check Analysis Status" }, ReaiPluginPackage.NAME));
+		checkStatusAction
+				.setPopupMenuData(new MenuData(new String[] { "Check Analysis Status" }, ReaiPluginPackage.NAME));
 		tool.addAction(checkStatusAction);
 
 		RenameFromSimilarFunctionsAction rsfAction = new RenameFromSimilarFunctionsAction(getName(), getTool());
 		rsfAction.setPopupMenuData(
-				new MenuData(new String[] { "Rename From Similar Functions" },
-						ReaiPluginPackage.NAME));
+				new MenuData(new String[] { "Rename From Similar Functions" }, ReaiPluginPackage.NAME));
 		// default to ctrl+shift R
 		rsfAction.setKeyBindingData(
 				new KeyBindingData(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
@@ -145,10 +144,11 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 
 			}
 		};
-		autoAnalysisAction.setMenuBarData(new MenuData(
-				new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Auto Analyse Binary Symbols" }, ReaiPluginPackage.NAME));
-		autoAnalysisAction.setPopupMenuData(new MenuData(
-				new String[] { "Auto Analyse Binary Symbols" }, ReaiPluginPackage.NAME));
+		autoAnalysisAction.setMenuBarData(
+				new MenuData(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Auto Analyse Binary Symbols" },
+						ReaiPluginPackage.NAME));
+		autoAnalysisAction
+				.setPopupMenuData(new MenuData(new String[] { "Auto Analyse Binary Symbols" }, ReaiPluginPackage.NAME));
 		// default to ctrl+shift A
 		autoAnalysisAction.setKeyBindingData(
 				new KeyBindingData(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
@@ -158,8 +158,7 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 	@Override
 	public void init() {
 		super.init();
-
-		// TODO: Acquire services if necessary
+		
 		apiService = tool.getService(ApiService.class);
 		exportFunctionBoundariesService = tool.getService(ExportFunctionBoundariesService.class);
 	}

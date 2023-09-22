@@ -1,7 +1,6 @@
 package ai.reveng.toolkit.ghidra.core.ui.wizard;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
@@ -33,11 +32,14 @@ public class SetupWizardManager extends AbstractMagePanelManager<SetupWizardStat
 	@Override
 	protected void doFinish() throws IllegalPanelStateException {
 		getWizardManager().completed(true);
-		tool.getOptions("Preferences").setString(ReaiPluginPackage.OPTION_KEY_APIKEY, (String) getState().get(SetupWizardStateKey.API_KEY));
-		tool.getOptions("Preferences").setString(ReaiPluginPackage.OPTION_KEY_HOSTNAME, (String) getState().get(SetupWizardStateKey.HOSTNAME));
-		tool.getOptions("Preferences").setString(ReaiPluginPackage.OPTION_KEY_MODEL, (String) getState().get(SetupWizardStateKey.MODEL));
+		tool.getOptions("Preferences").setString(ReaiPluginPackage.OPTION_KEY_APIKEY,
+				(String) getState().get(SetupWizardStateKey.API_KEY));
+		tool.getOptions("Preferences").setString(ReaiPluginPackage.OPTION_KEY_HOSTNAME,
+				(String) getState().get(SetupWizardStateKey.HOSTNAME));
+		tool.getOptions("Preferences").setString(ReaiPluginPackage.OPTION_KEY_MODEL,
+				(String) getState().get(SetupWizardStateKey.MODEL));
 		cleanup();
-		
+
 		// TODO write config to file
 
 	}

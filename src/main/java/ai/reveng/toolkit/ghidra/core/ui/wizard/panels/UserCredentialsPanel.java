@@ -17,20 +17,12 @@ import javax.swing.JTextField;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
-import java.awt.event.InputMethodListener;
-import java.awt.event.InputMethodEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.ActionEvent;
-
 public class UserCredentialsPanel extends AbstractMageJPanel<SetupWizardStateKey> {
-	private PluginTool tool;
+	private static final long serialVersionUID = -9045013459967405703L;
 	private JTextField tfApiKey;
 	private JTextField tfHostname;
 
 	public UserCredentialsPanel(PluginTool tool) {
-		this.tool = tool;
 		setLayout(new BorderLayout(0, 0));
 
 		JPanel infoPanel = new JPanel();
