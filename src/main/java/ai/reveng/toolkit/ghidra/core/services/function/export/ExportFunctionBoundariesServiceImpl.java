@@ -1,7 +1,5 @@
 package ai.reveng.toolkit.ghidra.core.services.function.export;
 
-import java.util.List;
-
 import org.json.JSONObject;
 import org.json.JSONArray;
 
@@ -14,20 +12,31 @@ import ghidra.program.model.listing.Program;
 
 public class ExportFunctionBoundariesServiceImpl implements ExportFunctionBoundariesService {
 	
-	private static final String JSONArray = null;
 	private PluginTool tool;
 	private FunctionManager fm;
 	
+	private boolean isReady;
+	
 	public ExportFunctionBoundariesServiceImpl(PluginTool tool) {
+		this.tool = tool;
+		isReady = false;
+	}
+	
+	/**
+	 * This is done separately to the constructor as current program will be null if the plugin is being configured without a binary loaded
+	 */
+	private void init() {
 		ProgramManager programManager = tool.getService(ProgramManager.class);
 		Program currentProgram = programManager.getCurrentProgram();
-		this.fm = currentProgram.getFunctionManager();
-		
-		this.tool = tool;
+		fm = currentProgram.getFunctionManager();
+		isReady = true;
 	}
 
 	@Override
 	public JSONObject getFunctionAt(Address entry) {
+		if (!isReady)
+			init();
+		
 		Function f = fm.getFunctionAt(entry);
 		
 		JSONObject jFunctionBoundaries = new JSONObject();
@@ -40,6 +49,9 @@ public class ExportFunctionBoundariesServiceImpl implements ExportFunctionBounda
 
 	@Override
 	public JSONObject getFunctions() {
+		if (!isReady)
+			init();
+		
 		JSONObject jFunctions = new JSONObject();
 		
 		JSONArray fArray = new JSONArray();

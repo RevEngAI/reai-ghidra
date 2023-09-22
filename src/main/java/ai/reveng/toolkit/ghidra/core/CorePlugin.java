@@ -69,14 +69,6 @@ public class CorePlugin extends ProgramPlugin {
 			setWizardRun();
 		}
 		
-		setupActions();
-
-	}
-	
-	@Override
-	public void programActivated(Program program) {
-		super.programActivated(program);
-
 		String apikey = tool.getOptions("Preferences").getString(ReaiPluginPackage.OPTION_KEY_APIKEY, "invalid");
 		String hostname = tool.getOptions("Preferences").getString(ReaiPluginPackage.OPTION_KEY_HOSTNAME, "unknown");
 		String modelname = tool.getOptions("Preferences").getString(ReaiPluginPackage.OPTION_KEY_MODEL, "unknown");
@@ -87,6 +79,9 @@ public class CorePlugin extends ProgramPlugin {
 		exportFunctionBoundariesService = new ExportFunctionBoundariesServiceImpl(tool);
 		
 		registerServiceProvided(ExportFunctionBoundariesService.class, exportFunctionBoundariesService);
+		
+		setupActions();
+
 	}
 	
 	private void setupActions() {
