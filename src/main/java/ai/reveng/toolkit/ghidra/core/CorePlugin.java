@@ -33,6 +33,7 @@ import ghidra.app.plugin.ProgramPlugin;
 import ghidra.framework.plugintool.*;
 import ghidra.framework.plugintool.util.OptionsService;
 import ghidra.framework.plugintool.util.PluginStatus;
+import ghidra.program.model.listing.Program;
 
 /**
  * TODO: Provide class-level documentation that describes what this plugin does.
@@ -68,6 +69,14 @@ public class CorePlugin extends ProgramPlugin {
 			setWizardRun();
 		}
 		
+		setupActions();
+
+	}
+	
+	@Override
+	public void programActivated(Program program) {
+		super.programActivated(program);
+
 		String apikey = tool.getOptions("Preferences").getString(ReaiPluginPackage.OPTION_KEY_APIKEY, "invalid");
 		String hostname = tool.getOptions("Preferences").getString(ReaiPluginPackage.OPTION_KEY_HOSTNAME, "unknown");
 		String modelname = tool.getOptions("Preferences").getString(ReaiPluginPackage.OPTION_KEY_MODEL, "unknown");
@@ -78,9 +87,6 @@ public class CorePlugin extends ProgramPlugin {
 		exportFunctionBoundariesService = new ExportFunctionBoundariesServiceImpl(tool);
 		
 		registerServiceProvided(ExportFunctionBoundariesService.class, exportFunctionBoundariesService);
-		
-		setupActions();
-
 	}
 	
 	private void setupActions() {
