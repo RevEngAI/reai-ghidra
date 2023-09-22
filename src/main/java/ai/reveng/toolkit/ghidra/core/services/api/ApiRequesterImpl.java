@@ -67,6 +67,7 @@ public class ApiRequesterImpl implements IApiRequester {
 					break;
 				case DECOMPILED_FUNCTION:
 					requestBuilder.POST(HttpRequest.BodyPublishers.ofString((String) body));
+					break;
 				default:
 					break;
 				}
