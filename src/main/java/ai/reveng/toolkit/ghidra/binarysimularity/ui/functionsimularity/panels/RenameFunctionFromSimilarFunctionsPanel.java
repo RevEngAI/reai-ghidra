@@ -35,7 +35,11 @@ import java.awt.Component;
 import javax.swing.JCheckBox;
 import java.awt.FlowLayout;
 
+/**
+ * GUI for displaying results from a FunctionSimularity request
+ */
 public class RenameFunctionFromSimilarFunctionsPanel extends JPanel {
+	private static final long serialVersionUID = -7365592104915627273L;
 	private GTable canidateFunctionsTable;
 	private CanidateFunctionModel cfm = new CanidateFunctionModel();
 	private Function functionUnderReview;
@@ -51,36 +55,38 @@ public class RenameFunctionFromSimilarFunctionsPanel extends JPanel {
 	private JPanel debugSymbolsCheckPanel;
 	private JCheckBox chckbxNewCheckBox;
 	private JLabel lblParamsPanelTitle;
-	
+
 	public RenameFunctionFromSimilarFunctionsPanel(Function functionUnderReview, PluginTool tool) {
 		this.functionUnderReview = functionUnderReview;
 		ProgramManager programManager = tool.getService(ProgramManager.class);
 		Program currentProgram = programManager.getCurrentProgram();
 		apiService = tool.getService(ApiService.class);
 		currentBinaryHash = currentProgram.getExecutableSHA256();
-		
+
 		setLayout(new BorderLayout(0, 0));
-		
+
 		actionButtonPanel = new JPanel();
 		add(actionButtonPanel, BorderLayout.WEST);
-		
+
 		JButton btnRename = new JButton("Rename");
 		btnRename.setAlignmentX(Component.CENTER_ALIGNMENT);
 		btnRename.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
-				
+
 				int tableCursor = canidateFunctionsTable.getSelectedRow();
-				
+
 				if (tableCursor != -1) {
 					int transactionID = currentProgram.startTransaction("Rename function from similar functions");
 					try {
-						functionUnderReview.setName((String) canidateFunctionsTable.getValueAt(tableCursor, 0), SourceType.USER_DEFINED);
+						functionUnderReview.setName((String) canidateFunctionsTable.getValueAt(tableCursor, 0),
+								SourceType.USER_DEFINED);
 						currentProgram.endTransaction(transactionID, true);
 					} catch (DuplicateNameException exc) {
 						System.err.println("Symbol already exists");
 						currentProgram.endTransaction(transactionID, false);
-						Msg.showError(actionButtonPanel, btnRename, ReaiPluginPackage.WINDOW_PREFIX+"Rename Function Error", exc.getMessage());
+						Msg.showError(actionButtonPanel, btnRename,
+								ReaiPluginPackage.WINDOW_PREFIX + "Rename Function Error", exc.getMessage());
 					} catch (Exception exc) {
 						currentProgram.endTransaction(transactionID, false);
 						System.err.println("Unknown Error");
@@ -90,39 +96,39 @@ public class RenameFunctionFromSimilarFunctionsPanel extends JPanel {
 		});
 		actionButtonPanel.setLayout(new BoxLayout(actionButtonPanel, BoxLayout.Y_AXIS));
 		actionButtonPanel.add(btnRename);
-		
+
 		JSeparator separator = new JSeparator();
 		actionButtonPanel.add(separator);
-		
+
 		parametersPanel = new JPanel();
 		actionButtonPanel.add(parametersPanel);
 		parametersPanel.setLayout(new BoxLayout(parametersPanel, BoxLayout.Y_AXIS));
-		
+
 		lblParamsPanelTitle = new JLabel("Symbol Options");
 		lblParamsPanelTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
 		parametersPanel.add(lblParamsPanelTitle);
-		
+
 		debugSymbolsCheckPanel = new JPanel();
 		parametersPanel.add(debugSymbolsCheckPanel);
 		debugSymbolsCheckPanel.setLayout(new BoxLayout(debugSymbolsCheckPanel, BoxLayout.Y_AXIS));
-		
+
 		chckbxNewCheckBox = new JCheckBox("Use Debug Symbols");
 		chckbxNewCheckBox.setAlignmentX(Component.CENTER_ALIGNMENT);
 		debugSymbolsCheckPanel.add(chckbxNewCheckBox);
-		
+
 		numResultsPanel = new JPanel();
 		parametersPanel.add(numResultsPanel);
 		numResultsPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 5, 5));
-		
+
 		lblNumResults = new JLabel("Results");
 		numResultsPanel.add(lblNumResults);
-		
+
 		numResultsTf = new JTextField();
 		numResultsTf.setText("5");
 		lblNumResults.setLabelFor(numResultsTf);
 		numResultsPanel.add(numResultsTf);
 		numResultsTf.setColumns(3);
-		
+
 		JButton btnRefresh = new JButton("Refresh");
 		btnRefresh.setAlignmentX(Component.CENTER_ALIGNMENT);
 		btnRefresh.addMouseListener(new MouseAdapter() {
@@ -131,68 +137,75 @@ public class RenameFunctionFromSimilarFunctionsPanel extends JPanel {
 				populateTableResults();
 			}
 		});
-		
+
 		separator_1 = new JSeparator();
 		actionButtonPanel.add(separator_1);
 		actionButtonPanel.add(btnRefresh);
-		
+
 		canidateFunctionsScrollPanel = new JScrollPane();
 		add(canidateFunctionsScrollPanel, BorderLayout.CENTER);
-		
+
 		canidateFunctionsTable = new GTable(cfm);
 		canidateFunctionsScrollPanel.setViewportView(canidateFunctionsTable);
-		
+
 		SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
-		    @Override
-		    protected Void doInBackground() throws Exception {
-		        populateTableResults();
+			@Override
+			protected Void doInBackground() throws Exception {
+				populateTableResults();
 				return null;
-		    }
+			}
 		};
 
 		worker.execute();
 	}
-	
+
 	private void populateTableResults() {
 		cfm.clearData();
-		
+
 		ApiResponse res = apiService.embeddings(currentBinaryHash);
-		
+
 		if (res.getStatusCode() > 299) {
-			Msg.showError(actionButtonPanel, canidateFunctionsScrollPanel, ReaiPluginPackage.WINDOW_PREFIX+"Function Simularity", res.getJsonObject().get("error"));
+			Msg.showError(actionButtonPanel, canidateFunctionsScrollPanel,
+					ReaiPluginPackage.WINDOW_PREFIX + "Function Simularity", res.getJsonObject().get("error"));
 			return;
 		}
-		
+
 		Binary bin = new Binary(res.getJsonArray());
-		
+
 		FunctionEmbedding fe = bin.getFunctionEmbedding(functionUnderReview.getName());
-		
+
 		if (fe == null) {
-			Msg.showError(bin, canidateFunctionsScrollPanel, ReaiPluginPackage.WINDOW_PREFIX+"Find Similar Functions", "No similar functions found");
+			Msg.showError(bin, canidateFunctionsScrollPanel, ReaiPluginPackage.WINDOW_PREFIX + "Find Similar Functions",
+					"No similar functions found");
 			return;
 		}
-		
-		res = apiService.nearestSymbols(fe.getEmbedding(), currentBinaryHash, Integer.parseInt(numResultsTf.getText()), null);
-		
+
+		res = apiService.nearestSymbols(fe.getEmbedding(), currentBinaryHash, Integer.parseInt(numResultsTf.getText()),
+				null);
+
 		System.out.println(fe.getEmbedding());
-		
+
 		JSONArray jCanidateFunctions = res.getJsonArray();
-		
+
 		for (int i = 0; i < jCanidateFunctions.length(); i++) {
 			JSONObject jCanidateFunction = jCanidateFunctions.getJSONObject(i);
-			cfm.addRow(new String[] {jCanidateFunction.getString("name"), jCanidateFunction.get("distance").toString(), jCanidateFunction.getString("binary_name")});
+			cfm.addRow(new String[] { jCanidateFunction.getString("name"), jCanidateFunction.get("distance").toString(),
+					jCanidateFunction.getString("binary_name") });
 		}
 	}
 
 	protected JScrollPane getCanidateFunctionsScrollPanel() {
 		return canidateFunctionsScrollPanel;
 	}
+
 	protected JPanel getActionButtonPanel() {
 		return actionButtonPanel;
 	}
+
 	protected JCheckBox getChckbxNewCheckBox() {
 		return chckbxNewCheckBox;
 	}
+
 	protected JTextField getNumResultsTf() {
 		return numResultsTf;
 	}

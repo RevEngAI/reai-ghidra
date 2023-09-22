@@ -1,19 +1,20 @@
 package ai.reveng.toolkit.ghidra.binarysimularity.actions;
 
 import ai.reveng.toolkit.ghidra.binarysimularity.ui.functionsimularity.FunctionSimularityDockableDialog;
-import ai.reveng.toolkit.ghidra.core.services.api.ApiService;
 import docking.ActionContext;
 import docking.action.DockingAction;
 import ghidra.app.context.ListingActionContext;
-import ghidra.app.services.ProgramManager;
 import ghidra.framework.plugintool.PluginTool;
 import ghidra.program.model.address.Address;
 import ghidra.program.model.listing.Function;
 import ghidra.program.model.listing.FunctionManager;
-import ghidra.program.model.listing.Program;
 import ghidra.program.util.FunctionSignatureFieldLocation;
 import ghidra.program.util.ProgramLocation;
 
+/**
+ * Action for opening the FunctionRename GUI and allowing the user to select a
+ * new name for the given function
+ */
 public class RenameFromSimilarFunctionsAction extends DockingAction {
 	private PluginTool tool;
 
@@ -36,6 +37,10 @@ public class RenameFromSimilarFunctionsAction extends DockingAction {
 
 	@Override
 	public void actionPerformed(ActionContext context) {
+		/**
+		 * This action item will only appear when the user cursor has selected the
+		 * function name in the listing view
+		 */
 		if (context instanceof ListingActionContext) {
 
 			ListingActionContext lac = (ListingActionContext) context;
@@ -47,7 +52,8 @@ public class RenameFromSimilarFunctionsAction extends DockingAction {
 				Function function = functionManager.getFunctionContaining(addr);
 
 				if (function != null) {
-					FunctionSimularityDockableDialog renameDialogue = new FunctionSimularityDockableDialog(function, tool);
+					FunctionSimularityDockableDialog renameDialogue = new FunctionSimularityDockableDialog(function,
+							tool);
 					tool.showDialog(renameDialogue);
 				}
 			}

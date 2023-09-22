@@ -7,6 +7,9 @@ import ai.reveng.toolkit.ghidra.binarysimularity.ui.autoanalysis.panels.AutoAnal
 import docking.DialogComponentProvider;
 import ghidra.framework.plugintool.PluginTool;
 
+/**
+ * Provides a GUI for selecting the confidence threshold for auto renaming of functions
+ */
 public class AutoAnalysisDockableDialog extends DialogComponentProvider {
 	private AutoAnalysisPanel panel;
 
