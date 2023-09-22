@@ -110,7 +110,7 @@ public class ApiServiceImpl implements ApiService {
 		params.put("base_vaddr", Integer.toHexString(baseAddr));
 		params.put("model", modelName);
 		params.put("priority", Integer.toString(10));
-		params.put("function_boundaries", functionBoundaries.toString());
+//		params.put("symbols", functionBoundaries.toString());
 		params.putAll(opts.toMap());
 
 		try {

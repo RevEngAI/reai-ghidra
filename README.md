@@ -52,79 +52,77 @@ Once installed, you can enable the plugin via the `Configure` tool.
 1. Navigate to Ghidra's Configure tool
    - `File` -> `Configure`
 2. Click `Configure` under the `RevEng.AI` plugin group
-3. Select the checkbox next to the `RE_AIToolkitPlugin`
+3. Select the checkbox next to each of the plugins you want to enable
+
+![Plugin Config](screenshots/plugin-config.png)
+
+Each plugin is dependent on the `CorePlugin`, so by enabling the `BinarySimularityPlugin` you will automatically enable the `CorePlugin`.
 
 ## Usage
 
-In this section, we provide an example workflow for our plugin that uses test binaries from `src/test/resources/test-bins`.
+In this section, we provide an example workflow for our plugin that uses test binaries from `src/test/resources`.
 
-Once the plugin is loaded, there will be additional controls in the CodeBrowser window.
-You can access these under `Wndows->RevEng.AI Toolkit`.
-This opens the main Toolkit GUI.
+Once the plugin is loaded, there will be additional controls in the toolbar under `RevEngAI Toolkit`.
 
-![Main GUI](screenshots/main-gui-fresh.png)
-
-You can "_dock_" this window within the Ghidra Program Tool to suit your preference, we like docking the window as below.
-
-![Docked GUI](screenshots/main-gui-docked.png)
-
-The first thing we need to do is configure the tool with our API key and the desired "model"
+The first thing we need to do is configure the tool with our API key and the desired "model".
 - Each **model** defines a different set of features you want the AI to find in you binary.
 
-Click the `Edit Configuration` button to open the configuration window.
+When you load the plugin for the first time, or by selecting `RevEngAI -> Run Setup Wizard`, you will be guided through the configuration process.
 
-![Config Window](screenshots/config-gui-empty.png)
+![Config Window](screenshots/config-wizard.png)
 
-> When you open this window you will notice that the model name is disabled.
-> To enable it, you need to enter your API Key from the [RevEng.AI Portal](https://portal.reveng.ai/settings) into the API Key field.
-> Enter you API key and `press <ENTER>`.
+> Enter your API Key from the [RevEng.AI Portal](https://portal.reveng.ai/settings) into the API Key field which will enable the next button.
 > This will contact the API and display a list of models available to your account.
+> Select the model that you want to use and click finish
 
-![Config Window Complete](screenshots/config-gui-set.png)
-
-Clicking `Save Configuration` will create the `.reaiconf.toml` file in you systems home directory.
-
-Close the configuration window and click `Refresh` to update the main GUI.
-
-![Main GUI Updated](screenshots/main-gui-updated.png)
+![Config Window Complete](screenshots/plugin-config-models.png)
 
 You are now ready to upload a binary.
 
-Import `src/test/resources/test-bins/fdupes` into Ghidra and then click `Upload` in the toolkit GUI. This will update the analysis table with the hash, model, and status of you Binary in the RevEng.AI server. After you click upload, the plugin uploads your binary and returns the hash for the file. We store the hash as it is used as a parameter for all future requests concerning this file.
+Import `src/test/resources/fdupes` into Ghidra and then click `Upload`, either by going `RevEngAI Toolkit -> Upload Binary`, or by right-clicking in the listing view and selecting `Upload Binary`
+
+![Upload using toolbar menu](screenshots/upload-menu.png)
+
+![Upload from popup menu](screenshots/upload-popup.png)
 
 > We are using `fdupes` with symbols to allow the model to learn what these functions look like, and to provide meaningful labels that we can use later to rename similar binaries.
 
-![Main GUI After Upload](screenshots/main-gui-binary-upload.png)
-
-We can see in the analysis table that our binary is now `Queued` for processing. You can update this status by clicking `Refresh` to fetch the latest status of your request.
+You can check the status of your request by selecting `Check Analysis Status` from either of the menus like before.
 
 We now have uploaded fdupes to our dataset, meaning we can now use it for our binary similarity tasks. Lets see how this works on a stripped version of fdupes.
 
-Import `src/test/resources/test-bins/fdupes.stripped` using the same steps as before. You will now have two files in the analysis table.
+Import `src/test/resourcesfdupes.stripped` using the same steps as before. Once this has been completed, you can move on to the next step.
 
-![main-gui-two-uploads](screenshots/main-gui-two-uploads.png)
+With fdupes.stripped open in Ghidra, select a funtion in Ghidra's listing view, and `right-click -> Rename from Similar Functions`, or `CTRL-Shift +R`. This will open the function renaming window.
 
-Once the stripped binary is processed (`Status` will be `Complete`), select it in the analysis table and the `Download Results` button will be enabled. The plugin will then download your analysis results and store them in the `.reai` folder in you home directory. We can now use these results to query our dataset.
+> Note that you need to select the start of the function in order for this menu-item to appear in the right context.
 
-![Select Analysis Result](screenshots/main-gui-select-result.png)
-
-Select a funtion in Ghidra's listing view, and `right-click -> Rename from Similar Functions`, or `CTRL-Shift +R`. This will open the function renaming window.
-
-![Function Rename Action](screenshots/rename-selection.png)
+![Function Rename Action](screenshots/rename-action.png)
 ![Function Renaming Window](screenshots/rename-gui.png)
 
-Click on `Find similar functions` to queue RevEng.AI for functions in the dataset that appear similar. The list of functions is returned and displayed inside this panel for you.
-You can then click `rename` to update the function name.
+The list of functions is returned and displayed inside this panel for you.
 
-![Finding Similar Functions Results](screenshots/rename-find-gui.png)
+You can then click `Refresh` to update the returned functions based on updated parameters.
 
 You can also batch analyse the binary to rename functions using the `Auto Analyse` tool.
 
-![Auto Analyse Tool](screenshots/gui-auto-analysis.png)
+![Auto Analyse Tool](screenshots/auto-analysis-gui.png)
 
 Move the slider to determine the confidence level you want to use for batch renaming. Any function returned that is higher than this value will automatically be renamed in the listing view. For instance, the auto analysis will successful find and rename the `findarg` function without analyst intervention.
 
-![Auto Analyse Result](screenshots/auto-analysis-results.png)
+![Auto Analyse Result](screenshots/auto-analysis-result.png)
+
+You can also use the plugin to generate a function comment that can be useful for explaining what the function is doing.
+
+Select the function you are interested in, and from the `decompiler` view select `Explain This Function` from the right-click menu.
+
+> You will need to have the `FunctionExplanationPlugin` enabled
+
+![Explain Function Menu Item](screenshots/explain-function-option.png)
+
+If we call this on a function for which we cannot recover symbols, in this example `FUN_00102c9c`, we get the following:
+
+![Result of calling explain function](screenshots/explain-function-result.png)
 
 ## Contributing
 
@@ -171,6 +169,6 @@ Developing in Eclipse is the prefered method, but it does require some setup on 
 
 ### Reporting Bugs
 
-If you've found a bug in reait-ghidra, please open an issue via [GitHub](https://github.com/RevEngAi/reait-ghidra/issues/new/choose).
+If you've found a bug in reait-ghidra, please open an issue via [GitHub](https://github.com/RevEngAi/reait-ghidra/issues/new/choose), or create a post on our [Community Forms](https://community.reveng.ai/c/integrations/ghidra/6).
 
 ## Credits
