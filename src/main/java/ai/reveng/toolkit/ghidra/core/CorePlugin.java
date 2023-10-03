@@ -31,7 +31,7 @@ import docking.wizard.WizardState;
 import ghidra.app.plugin.PluginCategoryNames;
 import ghidra.app.plugin.ProgramPlugin;
 import ghidra.framework.plugintool.*;
-import ghidra.framework.plugintool.util.OptionsService;
+import docking.options.OptionsService;
 import ghidra.framework.plugintool.util.PluginStatus;
 import ghidra.program.model.listing.Program;
 
