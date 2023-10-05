@@ -25,6 +25,7 @@ The RevEng.AI Toolkit allows you to interact with our API from within Ghidra. Th
 - [Contributing](#contributing)
   - [Building from Source](#building-from-source)
   - [Reporting Bugs](#reporting-bugs)
+    - [Known Issues](#known-issues)
 - [Credits](#credits)
 
 ## Key Features
@@ -172,5 +173,11 @@ Developing in Eclipse is the prefered method, but it does require some setup on 
 ### Reporting Bugs
 
 If you've found a bug in reait-ghidra, please open an issue via [GitHub](https://github.com/RevEngAi/reait-ghidra/issues/new/choose), or create a post on our [Community Forms](https://community.reveng.ai/c/integrations/ghidra/6).
+
+#### Known Issues
+
+_Plugin configuration is not appearing after installation:_
+
+Check that the downloaded folder is called `reai-ghidra` and not `reai-ghidra-2` due to multiple downloads of the same folder.
 
 ## Credits
