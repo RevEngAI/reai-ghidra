@@ -49,7 +49,7 @@ public class AutoAnalyseBinary extends Task {
 
 		for (Function func : fm.getFunctions(true)) {
 			System.out.println("Searching for suitable name for '" + func.getName() + "'");
-			FunctionEmbedding fe = bin.getFunctionEmbedding(func.getName());
+			FunctionEmbedding fe = bin.getFunctionEmbedding(Long.parseLong(func.getEntryPoint().toString(), 16));
 			res = apiService.nearestSymbols(fe.getEmbedding(), currentBinaryHash, 1, null);
 		}
 	}
