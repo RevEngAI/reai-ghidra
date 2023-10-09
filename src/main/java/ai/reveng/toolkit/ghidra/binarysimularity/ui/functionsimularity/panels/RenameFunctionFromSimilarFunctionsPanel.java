@@ -172,7 +172,7 @@ public class RenameFunctionFromSimilarFunctionsPanel extends JPanel {
 
 		Binary bin = new Binary(res.getJsonArray());
 
-		FunctionEmbedding fe = bin.getFunctionEmbedding(functionUnderReview.getName());
+		FunctionEmbedding fe = bin.getFunctionEmbedding(Long.parseLong(functionUnderReview.getEntryPoint().toString(), 16));
 
 		if (fe == null) {
 			Msg.showError(bin, canidateFunctionsScrollPanel, ReaiPluginPackage.WINDOW_PREFIX + "Find Similar Functions",

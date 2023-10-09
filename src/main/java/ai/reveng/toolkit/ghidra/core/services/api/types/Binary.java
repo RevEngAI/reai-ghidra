@@ -8,17 +8,17 @@ import java.util.Map;
 import org.json.JSONArray;
 
 public class Binary {
-	private final Map<String, FunctionEmbedding> functionEmbeddings;
+	private final Map<Long, FunctionEmbedding> functionEmbeddings;
 
 	private final List<Double> binaryEmbedding;
 	
 	public Binary(JSONArray jBinaryEmbeddings) {
-		functionEmbeddings = new HashMap<String, FunctionEmbedding>();
+		functionEmbeddings = new HashMap<Long, FunctionEmbedding>();
 		binaryEmbedding = new ArrayList<>();
 		
 		for (int i = 0; i < jBinaryEmbeddings.length(); i++) {
 			FunctionEmbedding tmp = new FunctionEmbedding(jBinaryEmbeddings.getJSONObject(i));
-			functionEmbeddings.put(tmp.getName(), tmp);
+			functionEmbeddings.put(tmp.getVaddr(), tmp);
 		}
 	}
 	
@@ -31,11 +31,11 @@ public class Binary {
 		return embedding;
 	}
 	
-	public Map<String, FunctionEmbedding> getFunctionEmbeddings() {
+	public Map<Long, FunctionEmbedding> getFunctionEmbeddings() {
 		return functionEmbeddings;
 	}
 	
-	public FunctionEmbedding getFunctionEmbedding(String fName) {
-		return functionEmbeddings.containsKey(fName) ? functionEmbeddings.get(fName) : null;
+	public FunctionEmbedding getFunctionEmbedding(long fAddr) {
+		return functionEmbeddings.containsKey(fAddr) ? functionEmbeddings.get(fAddr) : null;
 	}
 }

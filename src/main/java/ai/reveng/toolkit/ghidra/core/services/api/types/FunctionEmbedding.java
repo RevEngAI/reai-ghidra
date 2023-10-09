@@ -8,13 +8,13 @@ import org.json.JSONObject;
 
 public class FunctionEmbedding {
 	private final String name;
-	private final int vaddr;
+	private final long vaddr;
 	private final int size;
 	private final List<Double> embedding;
 	
 	public FunctionEmbedding(JSONObject jFunctionEmbedding) {
 		name = jFunctionEmbedding.getString("name");
-		vaddr = jFunctionEmbedding.getInt("vaddr");
+		vaddr = jFunctionEmbedding.getLong("vaddr");
 		size = jFunctionEmbedding.getInt("size");
 		embedding = new ArrayList<>();
 		
@@ -28,7 +28,7 @@ public class FunctionEmbedding {
 		return name;
 	}
 
-	public int getVaddr() {
+	public long getVaddr() {
 		return vaddr;
 	}
 
