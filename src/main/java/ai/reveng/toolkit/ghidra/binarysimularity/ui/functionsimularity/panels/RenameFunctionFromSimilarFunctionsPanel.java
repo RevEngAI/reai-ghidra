@@ -35,6 +35,9 @@ import java.awt.Component;
 import javax.swing.JCheckBox;
 import java.awt.FlowLayout;
 
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 /**
  * GUI for displaying results from a FunctionSimularity request
  */
@@ -55,6 +58,7 @@ public class RenameFunctionFromSimilarFunctionsPanel extends JPanel {
 	private JPanel debugSymbolsCheckPanel;
 	private JCheckBox chckbxNewCheckBox;
 	private JLabel lblParamsPanelTitle;
+	private Lock lock = new ReentrantLock();
 
 	public RenameFunctionFromSimilarFunctionsPanel(Function functionUnderReview, PluginTool tool) {
 		this.functionUnderReview = functionUnderReview;
@@ -160,37 +164,42 @@ public class RenameFunctionFromSimilarFunctionsPanel extends JPanel {
 	}
 
 	private void populateTableResults() {
-		cfm.clearData();
-
-		ApiResponse res = apiService.embeddings(currentBinaryHash);
-
-		if (res.getStatusCode() > 299) {
-			Msg.showError(actionButtonPanel, canidateFunctionsScrollPanel,
-					ReaiPluginPackage.WINDOW_PREFIX + "Function Simularity", res.getJsonObject().get("error"));
-			return;
-		}
-
-		Binary bin = new Binary(res.getJsonArray());
-
-		FunctionEmbedding fe = bin.getFunctionEmbedding(Long.parseLong(functionUnderReview.getEntryPoint().toString(), 16));
-
-		if (fe == null) {
-			Msg.showError(bin, canidateFunctionsScrollPanel, ReaiPluginPackage.WINDOW_PREFIX + "Find Similar Functions",
-					"No similar functions found");
-			return;
-		}
-
-		res = apiService.nearestSymbols(fe.getEmbedding(), currentBinaryHash, Integer.parseInt(numResultsTf.getText()),
-				null);
-
-		System.out.println(fe.getEmbedding());
-
-		JSONArray jCanidateFunctions = res.getJsonArray();
-
-		for (int i = 0; i < jCanidateFunctions.length(); i++) {
-			JSONObject jCanidateFunction = jCanidateFunctions.getJSONObject(i);
-			cfm.addRow(new String[] { jCanidateFunction.getString("name"), jCanidateFunction.get("distance").toString(),
-					jCanidateFunction.getString("binary_name") });
+		lock.lock();
+		try {
+			cfm.clearData();
+	
+			ApiResponse res = apiService.embeddings(currentBinaryHash);
+	
+			if (res.getStatusCode() > 299) {
+				Msg.showError(actionButtonPanel, canidateFunctionsScrollPanel,
+						ReaiPluginPackage.WINDOW_PREFIX + "Function Simularity", res.getJsonObject().get("error"));
+				return;
+			}
+	
+			Binary bin = new Binary(res.getJsonArray());
+	
+			FunctionEmbedding fe = bin.getFunctionEmbedding(Long.parseLong(functionUnderReview.getEntryPoint().toString(), 16));
+	
+			if (fe == null) {
+				Msg.showError(bin, canidateFunctionsScrollPanel, ReaiPluginPackage.WINDOW_PREFIX + "Find Similar Functions",
+						"No similar functions found");
+				return;
+			}
+	
+			res = apiService.nearestSymbols(fe.getEmbedding(), currentBinaryHash, Integer.parseInt(numResultsTf.getText()),
+					null);
+	
+			System.out.println(fe.getEmbedding());
+	
+			JSONArray jCanidateFunctions = res.getJsonArray();
+	
+			for (int i = 0; i < jCanidateFunctions.length(); i++) {
+				JSONObject jCanidateFunction = jCanidateFunctions.getJSONObject(i);
+				cfm.addRow(new String[] { jCanidateFunction.getString("name"), jCanidateFunction.get("distance").toString(),
+						jCanidateFunction.getString("binary_name") });
+			}
+		} finally {
+			lock.unlock();
 		}
 	}
 
