@@ -34,11 +34,15 @@ import javax.swing.JLabel;
 import java.awt.Component;
 import javax.swing.JCheckBox;
 import java.awt.FlowLayout;
-
+import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import javax.swing.JProgressBar;
 import javax.swing.SwingConstants;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 
 /**
  * GUI for displaying results from a FunctionSimularity request
@@ -181,8 +185,26 @@ public class RenameFunctionFromSimilarFunctionsPanel extends JPanel {
 		add(canidateFunctionsScrollPanel, BorderLayout.CENTER);
 
 		canidateFunctionsTable = new GTable(cfm);
+		canidateFunctionsTable.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyTyped(KeyEvent e) {
+				System.out.println("pressed a key");
+				char keyChar = e.getKeyChar();
+				int modifiers = e.getModifiersEx();
+				// Ctrl+C (or Cmd+C on macOS) was pressed
+				if ((modifiers & KeyEvent.CTRL_DOWN_MASK) != 0 && keyChar == 'c') {
+					int tableRowCursor = canidateFunctionsTable.getSelectedRow();
+					int tableColCursor = canidateFunctionsTable.getSelectedColumn();
+					String value = (String) canidateFunctionsTable.getValueAt(tableRowCursor, tableColCursor);
+					Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+					System.out.println("Copied: "+value);
+					StringSelection selection = new StringSelection(value);
+					clipboard.setContents(selection, null);
+				}
+			}
+		});
 		canidateFunctionsScrollPanel.setViewportView(canidateFunctionsTable);
-		
+
 		SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
 			@Override
 			protected Void doInBackground() throws Exception {
@@ -268,6 +290,7 @@ public class RenameFunctionFromSimilarFunctionsPanel extends JPanel {
 	protected JLabel getLblProgressStatusText() {
 		return lblProgressStatusText;
 	}
+
 	protected JButton getBtnRefresh() {
 		return btnRefresh;
 	}

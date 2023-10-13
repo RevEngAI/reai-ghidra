@@ -28,9 +28,8 @@ public class RenameFromSimilarFunctionsAction extends DockingAction {
 		if (context instanceof ListingActionContext) {
 			ListingActionContext lac = (ListingActionContext) context;
 			ProgramLocation location = lac.getLocation();
-			if (location instanceof FunctionSignatureFieldLocation) {
-				return true;
-			}
+			
+			return true;
 		}
 		return false;
 	}
