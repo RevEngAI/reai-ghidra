@@ -37,12 +37,17 @@ import java.awt.FlowLayout;
 
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import javax.swing.JProgressBar;
+import javax.swing.SwingConstants;
 
 /**
  * GUI for displaying results from a FunctionSimularity request
  */
 public class RenameFunctionFromSimilarFunctionsPanel extends JPanel {
 	private static final long serialVersionUID = -7365592104915627273L;
+	private static final String PROGRESS_DEFAULT_MSG = "Waiting to Fetch";
+	private static final String PROGRESS_FETCHING_MSG = "Fetching Results";
+	private static final String PROGRESS_GOT_RESULTS_MSG = "Done";
 	private GTable canidateFunctionsTable;
 	private CanidateFunctionModel cfm = new CanidateFunctionModel();
 	private Function functionUnderReview;
@@ -51,7 +56,7 @@ public class RenameFunctionFromSimilarFunctionsPanel extends JPanel {
 	private JScrollPane canidateFunctionsScrollPanel;
 	private JPanel actionButtonPanel;
 	private JPanel parametersPanel;
-	private JSeparator separator_1;
+	private JSeparator separator;
 	private JPanel numResultsPanel;
 	private JTextField numResultsTf;
 	private JLabel lblNumResults;
@@ -59,6 +64,10 @@ public class RenameFunctionFromSimilarFunctionsPanel extends JPanel {
 	private JCheckBox chckbxNewCheckBox;
 	private JLabel lblParamsPanelTitle;
 	private Lock lock = new ReentrantLock();
+	private JProgressBar progressBar;
+	private JPanel progressPanel;
+	private JLabel lblProgressStatusText;
+	private JButton btnRefresh;
 
 	public RenameFunctionFromSimilarFunctionsPanel(Function functionUnderReview, PluginTool tool) {
 		this.functionUnderReview = functionUnderReview;
@@ -71,38 +80,7 @@ public class RenameFunctionFromSimilarFunctionsPanel extends JPanel {
 
 		actionButtonPanel = new JPanel();
 		add(actionButtonPanel, BorderLayout.WEST);
-
-		JButton btnRename = new JButton("Rename");
-		btnRename.setAlignmentX(Component.CENTER_ALIGNMENT);
-		btnRename.addMouseListener(new MouseAdapter() {
-			@Override
-			public void mouseClicked(MouseEvent e) {
-
-				int tableCursor = canidateFunctionsTable.getSelectedRow();
-
-				if (tableCursor != -1) {
-					int transactionID = currentProgram.startTransaction("Rename function from similar functions");
-					try {
-						functionUnderReview.setName((String) canidateFunctionsTable.getValueAt(tableCursor, 0),
-								SourceType.USER_DEFINED);
-						currentProgram.endTransaction(transactionID, true);
-					} catch (DuplicateNameException exc) {
-						System.err.println("Symbol already exists");
-						currentProgram.endTransaction(transactionID, false);
-						Msg.showError(actionButtonPanel, btnRename,
-								ReaiPluginPackage.WINDOW_PREFIX + "Rename Function Error", exc.getMessage());
-					} catch (Exception exc) {
-						currentProgram.endTransaction(transactionID, false);
-						System.err.println("Unknown Error");
-					}
-				}
-			}
-		});
 		actionButtonPanel.setLayout(new BoxLayout(actionButtonPanel, BoxLayout.Y_AXIS));
-		actionButtonPanel.add(btnRename);
-
-		JSeparator separator = new JSeparator();
-		actionButtonPanel.add(separator);
 
 		parametersPanel = new JPanel();
 		actionButtonPanel.add(parametersPanel);
@@ -133,17 +111,70 @@ public class RenameFunctionFromSimilarFunctionsPanel extends JPanel {
 		numResultsPanel.add(numResultsTf);
 		numResultsTf.setColumns(3);
 
-		JButton btnRefresh = new JButton("Refresh");
+		btnRefresh = new JButton("Fetch Results");
+		btnRefresh.setEnabled(false);
 		btnRefresh.setAlignmentX(Component.CENTER_ALIGNMENT);
 		btnRefresh.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
-				populateTableResults();
+				if (!btnRefresh.isEnabled()) {
+					return;
+				}
+				SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
+					@Override
+					protected Void doInBackground() throws Exception {
+						populateTableResults();
+						return null;
+					}
+				};
+				worker.execute();
 			}
 		});
 
-		separator_1 = new JSeparator();
+		separator = new JSeparator();
+		actionButtonPanel.add(separator);
+
+		JButton btnRename = new JButton("Rename");
+		btnRename.setAlignmentX(Component.CENTER_ALIGNMENT);
+		btnRename.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				int tableCursor = canidateFunctionsTable.getSelectedRow();
+
+				if (tableCursor != -1) {
+					int transactionID = currentProgram.startTransaction("Rename function from similar functions");
+					try {
+						functionUnderReview.setName((String) canidateFunctionsTable.getValueAt(tableCursor, 0),
+								SourceType.USER_DEFINED);
+						currentProgram.endTransaction(transactionID, true);
+					} catch (DuplicateNameException exc) {
+						System.err.println("Symbol already exists");
+						currentProgram.endTransaction(transactionID, false);
+						Msg.showError(actionButtonPanel, btnRename,
+								ReaiPluginPackage.WINDOW_PREFIX + "Rename Function Error", exc.getMessage());
+					} catch (Exception exc) {
+						currentProgram.endTransaction(transactionID, false);
+						System.err.println("Unknown Error");
+					}
+				}
+			}
+		});
+
+		progressPanel = new JPanel();
+		actionButtonPanel.add(progressPanel);
+		progressPanel.setLayout(new BoxLayout(progressPanel, BoxLayout.Y_AXIS));
+
+		progressBar = new JProgressBar();
+		progressPanel.add(progressBar);
+
+		lblProgressStatusText = new JLabel("Waiting to Fetch");
+		lblProgressStatusText.setAlignmentX(Component.CENTER_ALIGNMENT);
+		lblProgressStatusText.setHorizontalAlignment(SwingConstants.CENTER);
+		progressPanel.add(lblProgressStatusText);
+
+		JSeparator separator_1 = new JSeparator();
 		actionButtonPanel.add(separator_1);
+		actionButtonPanel.add(btnRename);
 		actionButtonPanel.add(btnRefresh);
 
 		canidateFunctionsScrollPanel = new JScrollPane();
@@ -151,7 +182,7 @@ public class RenameFunctionFromSimilarFunctionsPanel extends JPanel {
 
 		canidateFunctionsTable = new GTable(cfm);
 		canidateFunctionsScrollPanel.setViewportView(canidateFunctionsTable);
-
+		
 		SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
 			@Override
 			protected Void doInBackground() throws Exception {
@@ -159,46 +190,57 @@ public class RenameFunctionFromSimilarFunctionsPanel extends JPanel {
 				return null;
 			}
 		};
-
 		worker.execute();
 	}
 
 	private void populateTableResults() {
 		lock.lock();
+		btnRefresh.setEnabled(false);
 		try {
+			System.out.println("Starting fetch");
+			lblProgressStatusText.setText(PROGRESS_FETCHING_MSG);
+			progressBar.setValue(25);
 			cfm.clearData();
-	
+
 			ApiResponse res = apiService.embeddings(currentBinaryHash);
-	
+
 			if (res.getStatusCode() > 299) {
 				Msg.showError(actionButtonPanel, canidateFunctionsScrollPanel,
 						ReaiPluginPackage.WINDOW_PREFIX + "Function Simularity", res.getJsonObject().get("error"));
 				return;
 			}
-	
+
+			progressBar.setValue(50);
+
 			Binary bin = new Binary(res.getJsonArray());
-	
-			FunctionEmbedding fe = bin.getFunctionEmbedding(Long.parseLong(functionUnderReview.getEntryPoint().toString(), 16));
-	
+
+			FunctionEmbedding fe = bin
+					.getFunctionEmbedding(Long.parseLong(functionUnderReview.getEntryPoint().toString(), 16));
+
 			if (fe == null) {
-				Msg.showError(bin, canidateFunctionsScrollPanel, ReaiPluginPackage.WINDOW_PREFIX + "Find Similar Functions",
-						"No similar functions found");
+				Msg.showError(bin, canidateFunctionsScrollPanel,
+						ReaiPluginPackage.WINDOW_PREFIX + "Find Similar Functions", "No similar functions found");
 				return;
 			}
-	
-			res = apiService.nearestSymbols(fe.getEmbedding(), currentBinaryHash, Integer.parseInt(numResultsTf.getText()),
-					null);
-	
+
+			res = apiService.nearestSymbols(fe.getEmbedding(), currentBinaryHash,
+					Integer.parseInt(numResultsTf.getText()), null);
+
 			System.out.println(fe.getEmbedding());
-	
+
 			JSONArray jCanidateFunctions = res.getJsonArray();
-	
+
+			progressBar.setValue(75);
+
 			for (int i = 0; i < jCanidateFunctions.length(); i++) {
 				JSONObject jCanidateFunction = jCanidateFunctions.getJSONObject(i);
-				cfm.addRow(new String[] { jCanidateFunction.getString("name"), jCanidateFunction.get("distance").toString(),
-						jCanidateFunction.getString("binary_name") });
+				cfm.addRow(new String[] { jCanidateFunction.getString("name"),
+						jCanidateFunction.get("distance").toString(), jCanidateFunction.getString("binary_name") });
 			}
 		} finally {
+			progressBar.setValue(100);
+			lblProgressStatusText.setText(PROGRESS_GOT_RESULTS_MSG);
+			btnRefresh.setEnabled(true);
 			lock.unlock();
 		}
 	}
@@ -217,5 +259,16 @@ public class RenameFunctionFromSimilarFunctionsPanel extends JPanel {
 
 	protected JTextField getNumResultsTf() {
 		return numResultsTf;
+	}
+
+	protected JProgressBar getProgressBar() {
+		return progressBar;
+	}
+
+	protected JLabel getLblProgressStatusText() {
+		return lblProgressStatusText;
+	}
+	protected JButton getBtnRefresh() {
+		return btnRefresh;
 	}
 }
