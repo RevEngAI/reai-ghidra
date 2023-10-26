@@ -32,11 +32,11 @@ public interface ApiService {
 	public ApiResponse cves(String binHash, String modelName);
 	public ApiResponse cves(String binHash);
 	
-	public ApiResponse nearestSymbols(List<Double> embedding, String ignoreHash, String modelName, int nns, String[] collections);
-	public ApiResponse nearestSymbols(List<Double> embedding, String ignoreHash, int nns, String[] collections);
+	public ApiResponse nearestSymbols(List<Double> embedding, String ignoreHash, String modelName, int nns, String collections);
+	public ApiResponse nearestSymbols(List<Double> embedding, String ignoreHash, int nns, String collections);
 	
-	public ApiResponse nearestBinaries(List<Double> embedding, int nns, String[] collections);
-	public ApiResponse nearestBinaries(List<Double> embedding, String modelName, int nns, String[] collections);
+	public ApiResponse nearestBinaries(List<Double> embedding, int nns, String collections);
+	public ApiResponse nearestBinaries(List<Double> embedding, String modelName, int nns, String collections);
 	
 	public ApiResponse sbom(String binHash, String modelName);
 	public ApiResponse sbom(String binHash);

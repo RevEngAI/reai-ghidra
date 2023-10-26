@@ -1,5 +1,8 @@
 package ai.reveng.toolkit.ghidra.binarysimularity.ui.autoanalysis;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -72,6 +75,15 @@ public class CollectionTableModel extends ThreadedTableModelStub<CollectionRowOb
 		default:
 			break;
 		}
+	}
+	
+	public List<String> getSelectedCollections() {
+		List<String> collections = new ArrayList<String>();
+		for (CollectionRowObject collection : getAllData()) {
+			if (collection.isInclude())
+				collections.add(collection.getCollectionName());
+		}
+		return collections;
 	}
 	
 	private class CollectionNameTableColumn extends AbstractDynamicTableColumn<CollectionRowObject, String, Object> {

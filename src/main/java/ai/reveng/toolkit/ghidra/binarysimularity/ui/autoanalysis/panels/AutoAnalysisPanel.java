@@ -15,6 +15,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
+import ai.reveng.toolkit.ghidra.binarysimularity.ui.autoanalysis.AutoAnalysisSummary;
 import ai.reveng.toolkit.ghidra.binarysimularity.ui.autoanalysis.CollectionRowObject;
 import ai.reveng.toolkit.ghidra.binarysimularity.ui.autoanalysis.CollectionTableModel;
 import ai.reveng.toolkit.ghidra.core.services.api.ApiResponse;
@@ -32,6 +33,7 @@ import ghidra.util.Msg;
 import ghidra.util.exception.DuplicateNameException;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.List;
 import java.util.stream.StreamSupport;
 
 import javax.swing.JProgressBar;
@@ -41,6 +43,11 @@ import javax.swing.JList;
 import javax.swing.AbstractListModel;
 import javax.swing.JScrollPane;
 import javax.swing.JCheckBox;
+import java.awt.GridLayout;
+import javax.swing.BoxLayout;
+import javax.swing.SwingConstants;
+import java.awt.FlowLayout;
+import java.awt.Component;
 
 /**
  * Panel for configuring auto analysis options
@@ -58,6 +65,12 @@ public class AutoAnalysisPanel extends JPanel {
 	
 	private GFilterTable<CollectionRowObject> collectionsTable;
 	private CollectionTableModel collectionsModel;
+	private JTabbedPane tabbedPanel;
+	private JLabel lblUnsuccessfulAnalysesValue;
+	private JLabel lblSuccessfulAnalysesValue;
+	private JLabel lblTotalAnalysesValue;
+	
+	private AutoAnalysisSummary analysisSummary;
 
 	/**
 	 * Create the panel.
@@ -71,15 +84,54 @@ public class AutoAnalysisPanel extends JPanel {
 		add(optionsPanel);
 		optionsPanel.setLayout(new BorderLayout(0, 0));
 		
-		JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
-		optionsPanel.add(tabbedPane, BorderLayout.NORTH);
+		tabbedPanel = new JTabbedPane(JTabbedPane.TOP);
+		optionsPanel.add(tabbedPanel, BorderLayout.NORTH);
 		
 		JPanel collectionsPanel = new JPanel();
-		tabbedPane.addTab("Collections", null, collectionsPanel, null);
+		tabbedPanel.addTab("Collections", null, collectionsPanel, null);
 		collectionsModel = new CollectionTableModel(tool);
 		collectionsPanel.setLayout(new BorderLayout(0, 0));
 		collectionsTable = new GFilterTable<CollectionRowObject>(collectionsModel);
 		collectionsPanel.add(collectionsTable);
+		
+		JPanel resultsPanel = new JPanel();
+		tabbedPanel.addTab("Results", null, resultsPanel, null);
+		resultsPanel.setLayout(new BorderLayout(0, 0));
+		
+		JPanel summaryPanel = new JPanel();
+		resultsPanel.add(summaryPanel, BorderLayout.SOUTH);
+		summaryPanel.setLayout(new BoxLayout(summaryPanel, BoxLayout.Y_AXIS));
+		
+		JLabel lblSummaryTitle = new JLabel("Analysis Summary:");
+		lblSummaryTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
+		lblSummaryTitle.setHorizontalAlignment(SwingConstants.CENTER);
+		summaryPanel.add(lblSummaryTitle);
+		
+		JPanel statsPanel = new JPanel();
+		summaryPanel.add(statsPanel);
+		statsPanel.setLayout(new GridLayout(3, 2, 3, 0));
+		
+		JLabel lblAnalysisedFunctions = new JLabel("Total Functions Analysed:");
+		lblAnalysisedFunctions.setHorizontalAlignment(SwingConstants.RIGHT);
+		statsPanel.add(lblAnalysisedFunctions);
+		
+		lblTotalAnalysesValue = new JLabel("0");
+		statsPanel.add(lblTotalAnalysesValue);
+		
+		JLabel lblSuccessfulAnalyses = new JLabel("Successful Analyses:");
+		lblSuccessfulAnalyses.setHorizontalAlignment(SwingConstants.RIGHT);
+		statsPanel.add(lblSuccessfulAnalyses);
+		
+		lblSuccessfulAnalysesValue = new JLabel("0");
+		statsPanel.add(lblSuccessfulAnalysesValue);
+		
+		JLabel lblUnsuccessfulAnalyses = new JLabel("Unsuccessful Analyses:");
+		lblUnsuccessfulAnalyses.setHorizontalAlignment(SwingConstants.RIGHT);
+		statsPanel.add(lblUnsuccessfulAnalyses);
+		
+		lblUnsuccessfulAnalysesValue = new JLabel("0");
+		statsPanel.add(lblUnsuccessfulAnalysesValue);
+		tabbedPanel.setEnabledAt(1, false);
 
 		JPanel confidencePanel = new JPanel();
 		optionsPanel.add(confidencePanel, BorderLayout.SOUTH);
@@ -137,20 +189,29 @@ public class AutoAnalysisPanel extends JPanel {
 		actionPanel.add(btnStartAnalysis, BorderLayout.SOUTH);
 	}
 	
-	private String generateRegex(String[] libList) {
-		if (libList.length == 0) {
+	private String generateRegex(List<String> collections) {
+		if (collections.size() == 0) {
 			return null;
 		}
 		StringBuilder sb = new StringBuilder();
 		
-		for (String s: libList) {
+//		sb.append("\\b(?:");
+		
+		boolean firstItem = true;
+		for (String s: collections) {
+			if (!firstItem)
+				sb.append("|");
 			sb.append(s);
+			firstItem = false;
 		}
+//		sb.append(")\\w*\\b");
 		return sb.toString();
 	}
 	
 	private void performAutoAnalysis() {
+		analysisSummary = new AutoAnalysisSummary();
 		btnStartAnalysis.setEnabled(false);
+		getTabbedPanel().setEnabledAt(1, false);
 		ApiService apiService = tool.getService(ApiService.class);
 		ProgramManager programManager = tool.getService(ProgramManager.class);
 		Program currentProgram = programManager.getCurrentProgram();
@@ -179,9 +240,11 @@ public class AutoAnalysisPanel extends JPanel {
 		for (Function func : fm.getFunctions(true)) {
 			progressBar.setString("Searching for " + func.getName() + " [" + (cursor+1) + "/" + numFuncs + "]");
 			System.out.println("Searching for " + func.getName() + " [" + (cursor+1) + "/" + numFuncs + "]");
+			analysisSummary.incrementStat("total_analyses");
 			
 			FunctionEmbedding fe = bin.getFunctionEmbedding(Long.parseLong(func.getEntryPoint().toString(), 16));
 			if (fe == null) {
+				analysisSummary.incrementStat("unsuccessful_analyses");
 				cursor++;
 				int progress = (int) (((double) cursor / numFuncs) * 100);
 				System.out.println("Progress: " + progress);
@@ -189,15 +252,18 @@ public class AutoAnalysisPanel extends JPanel {
 				continue;
 			}
 			 
-//			String[] regex;
-//			if (chckbxLibC.isSelected()) {
-//				regex = new String[]{"libc"};
-//				System.out.println("Autodiscover libc");
-//			} else {
-//				regex = null;
-//			}
+			String regex = generateRegex(collectionsModel.getSelectedCollections());
 			
-			res = apiService.nearestSymbols(fe.getEmbedding(), currentBinaryHash, 1, null);
+			res = apiService.nearestSymbols(fe.getEmbedding(), currentBinaryHash, 1, regex);
+			
+			if (res.getStatusCode() != 200) {
+				analysisSummary.incrementStat("unsuccessful_analyses");
+				cursor++;
+				int progress = (int) (((double) cursor / numFuncs) * 100);
+				System.out.println("Progress: " + progress);
+				progressBar.setValue(progress);
+				continue;
+			}
 
 			JSONObject jFunc = res.getJsonArray().getJSONObject(0);
 			Double distance = jFunc.getDouble("distance");
@@ -218,6 +284,7 @@ public class AutoAnalysisPanel extends JPanel {
 					System.err.println("Unknown Error");
 				}
 			}
+			analysisSummary.incrementStat("successful_analyses");
 			cursor++;
 			int progress = (int) (((double) cursor / numFuncs) * 100);
 			System.out.println("Progress: " + progress);
@@ -225,6 +292,11 @@ public class AutoAnalysisPanel extends JPanel {
 		}
 		progressBar.setString("Finished");
 		btnStartAnalysis.setEnabled(true);
+		lblTotalAnalysesValue.setText(Integer.toString(analysisSummary.getStat("total_analyses")));
+		lblSuccessfulAnalysesValue.setText(Integer.toString(analysisSummary.getStat("successful_analyses")));
+		lblUnsuccessfulAnalysesValue.setText(Integer.toString(analysisSummary.getStat("unsuccessful_analyses")));
+		getTabbedPanel().setEnabledAt(1, true);
+		
 	}
 
 	protected JSlider getConfidenceSlider() {
@@ -235,5 +307,17 @@ public class AutoAnalysisPanel extends JPanel {
 	}
 	protected JButton getBtnStartAnalysis() {
 		return btnStartAnalysis;
+	}
+	protected JTabbedPane getTabbedPanel() {
+		return tabbedPanel;
+	}
+	protected JLabel getLblUnsuccessfulAnalysesValue() {
+		return lblUnsuccessfulAnalysesValue;
+	}
+	protected JLabel getLblSuccessfulAnalysesValue() {
+		return lblSuccessfulAnalysesValue;
+	}
+	protected JLabel getLblTotalAnalysesValue() {
+		return lblTotalAnalysesValue;
 	}
 }
