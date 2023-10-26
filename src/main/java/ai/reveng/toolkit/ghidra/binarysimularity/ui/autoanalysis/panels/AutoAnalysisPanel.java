@@ -15,6 +15,8 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
+import ai.reveng.toolkit.ghidra.binarysimularity.ui.autoanalysis.AutoAnalysisResultsRowObject;
+import ai.reveng.toolkit.ghidra.binarysimularity.ui.autoanalysis.AutoAnalysisResultsTableModel;
 import ai.reveng.toolkit.ghidra.binarysimularity.ui.autoanalysis.AutoAnalysisSummary;
 import ai.reveng.toolkit.ghidra.binarysimularity.ui.autoanalysis.CollectionRowObject;
 import ai.reveng.toolkit.ghidra.binarysimularity.ui.autoanalysis.CollectionTableModel;
@@ -33,6 +35,7 @@ import ghidra.util.Msg;
 import ghidra.util.exception.DuplicateNameException;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.StreamSupport;
 
@@ -65,12 +68,17 @@ public class AutoAnalysisPanel extends JPanel {
 	
 	private GFilterTable<CollectionRowObject> collectionsTable;
 	private CollectionTableModel collectionsModel;
+	
+	private GFilterTable<AutoAnalysisResultsRowObject> analysisResultsTable;
+	private AutoAnalysisResultsTableModel autoanalysisResultsModel;
+	
 	private JTabbedPane tabbedPanel;
 	private JLabel lblUnsuccessfulAnalysesValue;
 	private JLabel lblSuccessfulAnalysesValue;
 	private JLabel lblTotalAnalysesValue;
 	
 	private AutoAnalysisSummary analysisSummary;
+	private JPanel resultsPanel;
 
 	/**
 	 * Create the panel.
@@ -78,7 +86,7 @@ public class AutoAnalysisPanel extends JPanel {
 	public AutoAnalysisPanel(PluginTool tool) {
 		this.tool = tool;
 		setLayout(new BorderLayout(0, 0));
-		setPreferredSize(new Dimension(710, 660));
+		setPreferredSize(new Dimension(1250, 660));
 
 		JPanel optionsPanel = new JPanel();
 		add(optionsPanel);
@@ -94,9 +102,13 @@ public class AutoAnalysisPanel extends JPanel {
 		collectionsTable = new GFilterTable<CollectionRowObject>(collectionsModel);
 		collectionsPanel.add(collectionsTable);
 		
-		JPanel resultsPanel = new JPanel();
+		resultsPanel = new JPanel();
 		tabbedPanel.addTab("Results", null, resultsPanel, null);
 		resultsPanel.setLayout(new BorderLayout(0, 0));
+		
+		autoanalysisResultsModel = new AutoAnalysisResultsTableModel(tool);
+		analysisResultsTable = new GFilterTable<AutoAnalysisResultsRowObject>(autoanalysisResultsModel);
+		resultsPanel.add(analysisResultsTable, BorderLayout.CENTER);
 		
 		JPanel summaryPanel = new JPanel();
 		resultsPanel.add(summaryPanel, BorderLayout.SOUTH);
@@ -208,7 +220,7 @@ public class AutoAnalysisPanel extends JPanel {
 		return sb.toString();
 	}
 	
-	private void performAutoAnalysis() {
+	private void performAutoAnalysis() {		
 		analysisSummary = new AutoAnalysisSummary();
 		btnStartAnalysis.setEnabled(false);
 		getTabbedPanel().setEnabledAt(1, false);
@@ -244,6 +256,7 @@ public class AutoAnalysisPanel extends JPanel {
 			
 			FunctionEmbedding fe = bin.getFunctionEmbedding(Long.parseLong(func.getEntryPoint().toString(), 16));
 			if (fe == null) {
+				autoanalysisResultsModel.addObject(new AutoAnalysisResultsRowObject(func.getName(), "N/A", false, "No Function Embedding Found"));
 				analysisSummary.incrementStat("unsuccessful_analyses");
 				cursor++;
 				int progress = (int) (((double) cursor / numFuncs) * 100);
@@ -258,13 +271,15 @@ public class AutoAnalysisPanel extends JPanel {
 			
 			if (res.getStatusCode() != 200) {
 				analysisSummary.incrementStat("unsuccessful_analyses");
+				autoanalysisResultsModel.addObject(new AutoAnalysisResultsRowObject(func.getName(), "N/A", false, res.getResponseBody()));
 				cursor++;
 				int progress = (int) (((double) cursor / numFuncs) * 100);
 				System.out.println("Progress: " + progress);
 				progressBar.setValue(progress);
 				continue;
 			}
-
+			
+			String srcSymbol = func.getName();
 			JSONObject jFunc = res.getJsonArray().getJSONObject(0);
 			Double distance = jFunc.getDouble("distance");
 			if (distance >= getConfidenceSlider().getValue() / 100) {
@@ -274,6 +289,7 @@ public class AutoAnalysisPanel extends JPanel {
 				try {
 					func.setName(jFunc.getString("name"), SourceType.USER_DEFINED);
 					currentProgram.endTransaction(transactionID, true);
+					autoanalysisResultsModel.addObject(new AutoAnalysisResultsRowObject(srcSymbol,jFunc.getString("name") + " ("+ jFunc.getString("binary_name") + ")", true, "Renamed with confidence of '" + distance));
 				} catch (DuplicateNameException exc) {
 					System.err.println("Symbol already exists");
 					currentProgram.endTransaction(transactionID, false);
