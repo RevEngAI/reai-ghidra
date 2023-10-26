@@ -11,13 +11,17 @@ import javax.swing.SwingWorker;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
+import ai.reveng.toolkit.ghidra.binarysimularity.ui.autoanalysis.CollectionRowObject;
+import ai.reveng.toolkit.ghidra.binarysimularity.ui.autoanalysis.CollectionTableModel;
 import ai.reveng.toolkit.ghidra.core.services.api.ApiResponse;
 import ai.reveng.toolkit.ghidra.core.services.api.ApiService;
 import ai.reveng.toolkit.ghidra.core.services.api.types.Binary;
 import ai.reveng.toolkit.ghidra.core.services.api.types.FunctionEmbedding;
+import docking.widgets.table.GFilterTable;
 import ghidra.app.services.ProgramManager;
 import ghidra.framework.plugintool.PluginTool;
 import ghidra.program.model.listing.Function;
@@ -28,7 +32,15 @@ import ghidra.util.Msg;
 import ghidra.util.exception.DuplicateNameException;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.stream.StreamSupport;
+
 import javax.swing.JProgressBar;
+import javax.swing.JTabbedPane;
+import javax.swing.JSplitPane;
+import javax.swing.JList;
+import javax.swing.AbstractListModel;
+import javax.swing.JScrollPane;
+import javax.swing.JCheckBox;
 
 /**
  * Panel for configuring auto analysis options
@@ -43,6 +55,9 @@ public class AutoAnalysisPanel extends JPanel {
 	
 	private PluginTool tool;
 	private JButton btnStartAnalysis;
+	
+	private GFilterTable<CollectionRowObject> collectionsTable;
+	private CollectionTableModel collectionsModel;
 
 	/**
 	 * Create the panel.
@@ -50,17 +65,21 @@ public class AutoAnalysisPanel extends JPanel {
 	public AutoAnalysisPanel(PluginTool tool) {
 		this.tool = tool;
 		setLayout(new BorderLayout(0, 0));
-		setPreferredSize(new Dimension(455, 280));
-
-		JPanel titlePanel = new JPanel();
-		add(titlePanel, BorderLayout.NORTH);
-
-		JLabel lblTitle = new JLabel("Auto Analyse");
-		titlePanel.add(lblTitle);
+		setPreferredSize(new Dimension(710, 660));
 
 		JPanel optionsPanel = new JPanel();
 		add(optionsPanel);
 		optionsPanel.setLayout(new BorderLayout(0, 0));
+		
+		JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
+		optionsPanel.add(tabbedPane, BorderLayout.NORTH);
+		
+		JPanel collectionsPanel = new JPanel();
+		tabbedPane.addTab("Collections", null, collectionsPanel, null);
+		collectionsModel = new CollectionTableModel(tool);
+		collectionsPanel.setLayout(new BorderLayout(0, 0));
+		collectionsTable = new GFilterTable<CollectionRowObject>(collectionsModel);
+		collectionsPanel.add(collectionsTable);
 
 		JPanel confidencePanel = new JPanel();
 		optionsPanel.add(confidencePanel, BorderLayout.SOUTH);
@@ -118,6 +137,18 @@ public class AutoAnalysisPanel extends JPanel {
 		actionPanel.add(btnStartAnalysis, BorderLayout.SOUTH);
 	}
 	
+	private String generateRegex(String[] libList) {
+		if (libList.length == 0) {
+			return null;
+		}
+		StringBuilder sb = new StringBuilder();
+		
+		for (String s: libList) {
+			sb.append(s);
+		}
+		return sb.toString();
+	}
+	
 	private void performAutoAnalysis() {
 		btnStartAnalysis.setEnabled(false);
 		ApiService apiService = tool.getService(ApiService.class);
@@ -135,7 +166,11 @@ public class AutoAnalysisPanel extends JPanel {
 			return;
 		}
 		
-		int numFuncs = fm.getFunctionCount();
+		/*
+		 * using getFunctionCount() also returns external functions so our count is wrong for the progress.
+		 * Instead we just count the number of entries that are contained in the iterator
+		 */
+		long numFuncs = StreamSupport.stream(fm.getFunctions(true).spliterator(), false).count();
 		int cursor = 0;
 		progressBar.setValue(0);
 
@@ -143,13 +178,29 @@ public class AutoAnalysisPanel extends JPanel {
 
 		for (Function func : fm.getFunctions(true)) {
 			progressBar.setString("Searching for " + func.getName() + " [" + (cursor+1) + "/" + numFuncs + "]");
+			System.out.println("Searching for " + func.getName() + " [" + (cursor+1) + "/" + numFuncs + "]");
+			
 			FunctionEmbedding fe = bin.getFunctionEmbedding(Long.parseLong(func.getEntryPoint().toString(), 16));
-			if (fe == null)
+			if (fe == null) {
+				cursor++;
+				int progress = (int) (((double) cursor / numFuncs) * 100);
+				System.out.println("Progress: " + progress);
+				progressBar.setValue(progress);
 				continue;
+			}
+			 
+//			String[] regex;
+//			if (chckbxLibC.isSelected()) {
+//				regex = new String[]{"libc"};
+//				System.out.println("Autodiscover libc");
+//			} else {
+//				regex = null;
+//			}
+			
 			res = apiService.nearestSymbols(fe.getEmbedding(), currentBinaryHash, 1, null);
 
 			JSONObject jFunc = res.getJsonArray().getJSONObject(0);
-			Double distance = 1 - jFunc.getDouble("distance");
+			Double distance = jFunc.getDouble("distance");
 			if (distance >= getConfidenceSlider().getValue() / 100) {
 				System.out.println(
 						"Found symbol '" + jFunc.getString("name") + "' with a confidence of " + distance);
@@ -172,6 +223,7 @@ public class AutoAnalysisPanel extends JPanel {
 			System.out.println("Progress: " + progress);
 			progressBar.setValue(progress);
 		}
+		progressBar.setString("Finished");
 		btnStartAnalysis.setEnabled(true);
 	}
 

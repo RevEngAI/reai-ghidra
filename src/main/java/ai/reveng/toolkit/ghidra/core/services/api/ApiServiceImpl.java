@@ -304,6 +304,9 @@ public class ApiServiceImpl implements ApiService {
 		params.put("model_name", modelName);
 		params.put("nns", Integer.toString(nns));
 		params.put("ignore_hashes", ignoreHash);
+		if (collections != null) {
+			params.put("collection", collections[0].toString());
+		}
 
 		try {
 			return send(ApiEndpoint.ANN_SYMBOL, null, params, embedding, ApiBodyType.EMBEDDING, headers);
@@ -357,6 +360,18 @@ public class ApiServiceImpl implements ApiService {
 
 		try {
 			return send(ApiEndpoint.MODELS, pathParams, params, null, null, headers);
+		} catch (IOException | InterruptedException e) {
+			return new ApiResponse(-1, e.getMessage());
+		}
+	}
+	
+	public ApiResponse collections() {
+		Map<String, String> pathParams = new HashMap<>();
+
+		Map<String, String> params = new HashMap<>();
+
+		try {
+			return send(ApiEndpoint.COLLECTIONS, pathParams, params, null, null, headers);
 		} catch (IOException | InterruptedException e) {
 			return new ApiResponse(-1, e.getMessage());
 		}

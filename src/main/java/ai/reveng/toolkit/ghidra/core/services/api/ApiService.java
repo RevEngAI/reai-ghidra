@@ -43,5 +43,7 @@ public interface ApiService {
 	
 	public ApiResponse models();
 	
+	public ApiResponse collections();
+	
 	public ApiResponse explain(String decompiledFunction);
 }
