@@ -79,6 +79,7 @@ public class AutoAnalysisPanel extends JPanel {
 	
 	private AutoAnalysisSummary analysisSummary;
 	private JPanel resultsPanel;
+	private JLabel lblSkippedAnalysisValue;
 
 	/**
 	 * Create the panel.
@@ -86,7 +87,7 @@ public class AutoAnalysisPanel extends JPanel {
 	public AutoAnalysisPanel(PluginTool tool) {
 		this.tool = tool;
 		setLayout(new BorderLayout(0, 0));
-		setPreferredSize(new Dimension(1250, 660));
+		setPreferredSize(new Dimension(1250, 730));
 
 		JPanel optionsPanel = new JPanel();
 		add(optionsPanel);
@@ -121,7 +122,7 @@ public class AutoAnalysisPanel extends JPanel {
 		
 		JPanel statsPanel = new JPanel();
 		summaryPanel.add(statsPanel);
-		statsPanel.setLayout(new GridLayout(3, 2, 3, 0));
+		statsPanel.setLayout(new GridLayout(4, 2, 3, 0));
 		
 		JLabel lblAnalysisedFunctions = new JLabel("Total Functions Analysed:");
 		lblAnalysisedFunctions.setHorizontalAlignment(SwingConstants.RIGHT);
@@ -137,7 +138,14 @@ public class AutoAnalysisPanel extends JPanel {
 		lblSuccessfulAnalysesValue = new JLabel("0");
 		statsPanel.add(lblSuccessfulAnalysesValue);
 		
-		JLabel lblUnsuccessfulAnalyses = new JLabel("Unsuccessful Analyses:");
+		JLabel lblSkippedAnalysis = new JLabel("Skipped Analyses:");
+		lblSkippedAnalysis.setHorizontalAlignment(SwingConstants.RIGHT);
+		statsPanel.add(lblSkippedAnalysis);
+		
+		lblSkippedAnalysisValue = new JLabel("0");
+		statsPanel.add(lblSkippedAnalysisValue);
+		
+		JLabel lblUnsuccessfulAnalyses = new JLabel("Errored Analyses:");
 		lblUnsuccessfulAnalyses.setHorizontalAlignment(SwingConstants.RIGHT);
 		statsPanel.add(lblUnsuccessfulAnalyses);
 		
@@ -167,9 +175,9 @@ public class AutoAnalysisPanel extends JPanel {
 			}
 		});
 		confidenceSlider.setPaintLabels(true);
-		confidenceSlider.setValue(80);
+		confidenceSlider.setValue(99);
 		confidenceSlider.setSnapToTicks(true);
-		confidenceSlider.setMinorTickSpacing(5);
+		confidenceSlider.setMinorTickSpacing(1);
 		confidenceSlider.setPaintTicks(true);
 		confidencePanel.add(confidenceSlider);
 
@@ -222,6 +230,7 @@ public class AutoAnalysisPanel extends JPanel {
 	
 	private void performAutoAnalysis() {		
 		analysisSummary = new AutoAnalysisSummary();
+		List<AutoAnalysisResultsRowObject> tableEntries = new ArrayList<AutoAnalysisResultsRowObject>();
 		btnStartAnalysis.setEnabled(false);
 		getTabbedPanel().setEnabledAt(1, false);
 		ApiService apiService = tool.getService(ApiService.class);
@@ -248,7 +257,8 @@ public class AutoAnalysisPanel extends JPanel {
 		progressBar.setValue(0);
 
 		Binary bin = new Binary(res.getJsonArray());
-
+		
+		boolean log_unsuc = numFuncs > 1000 ? false : true;
 		for (Function func : fm.getFunctions(true)) {
 			progressBar.setString("Searching for " + func.getName() + " [" + (cursor+1) + "/" + numFuncs + "]");
 			System.out.println("Searching for " + func.getName() + " [" + (cursor+1) + "/" + numFuncs + "]");
@@ -256,12 +266,14 @@ public class AutoAnalysisPanel extends JPanel {
 			
 			FunctionEmbedding fe = bin.getFunctionEmbedding(Long.parseLong(func.getEntryPoint().toString(), 16));
 			if (fe == null) {
-				autoanalysisResultsModel.addObject(new AutoAnalysisResultsRowObject(func.getName(), "N/A", false, "No Function Embedding Found"));
-				analysisSummary.incrementStat("unsuccessful_analyses");
 				cursor++;
 				int progress = (int) (((double) cursor / numFuncs) * 100);
 				System.out.println("Progress: " + progress);
 				progressBar.setValue(progress);
+				analysisSummary.incrementStat("skipped_analyses");
+				if (log_unsuc) {
+					tableEntries.add(new AutoAnalysisResultsRowObject(func.getName(), "N/A", false, "No Function Embedding Found"));
+				}
 				continue;
 			}
 			 
@@ -270,12 +282,14 @@ public class AutoAnalysisPanel extends JPanel {
 			res = apiService.nearestSymbols(fe.getEmbedding(), currentBinaryHash, 1, regex);
 			
 			if (res.getStatusCode() != 200) {
-				analysisSummary.incrementStat("unsuccessful_analyses");
-				autoanalysisResultsModel.addObject(new AutoAnalysisResultsRowObject(func.getName(), "N/A", false, res.getResponseBody()));
 				cursor++;
 				int progress = (int) (((double) cursor / numFuncs) * 100);
 				System.out.println("Progress: " + progress);
 				progressBar.setValue(progress);
+				analysisSummary.incrementStat("unsuccessful_analyses");
+				if (log_unsuc) {
+					tableEntries.add(new AutoAnalysisResultsRowObject(func.getName(), "N/A", false, res.getResponseBody()));
+				}
 				continue;
 			}
 			
@@ -289,7 +303,7 @@ public class AutoAnalysisPanel extends JPanel {
 				try {
 					func.setName(jFunc.getString("name"), SourceType.USER_DEFINED);
 					currentProgram.endTransaction(transactionID, true);
-					autoanalysisResultsModel.addObject(new AutoAnalysisResultsRowObject(srcSymbol,jFunc.getString("name") + " ("+ jFunc.getString("binary_name") + ")", true, "Renamed with confidence of '" + distance));
+					tableEntries.add(new AutoAnalysisResultsRowObject(srcSymbol,jFunc.getString("name") + " ("+ jFunc.getString("binary_name") + ")", true, "Renamed with confidence of '" + distance));
 				} catch (DuplicateNameException exc) {
 					System.err.println("Symbol already exists");
 					currentProgram.endTransaction(transactionID, false);
@@ -308,8 +322,10 @@ public class AutoAnalysisPanel extends JPanel {
 		}
 		progressBar.setString("Finished");
 		btnStartAnalysis.setEnabled(true);
+		autoanalysisResultsModel.batch(tableEntries);
 		lblTotalAnalysesValue.setText(Integer.toString(analysisSummary.getStat("total_analyses")));
 		lblSuccessfulAnalysesValue.setText(Integer.toString(analysisSummary.getStat("successful_analyses")));
+		lblSkippedAnalysisValue.setText(Integer.toString(analysisSummary.getStat("skipped_analyses")));
 		lblUnsuccessfulAnalysesValue.setText(Integer.toString(analysisSummary.getStat("unsuccessful_analyses")));
 		getTabbedPanel().setEnabledAt(1, true);
 		
@@ -335,5 +351,8 @@ public class AutoAnalysisPanel extends JPanel {
 	}
 	protected JLabel getLblTotalAnalysesValue() {
 		return lblTotalAnalysesValue;
+	}
+	protected JLabel getLblSkippedAnalysisValue() {
+		return lblSkippedAnalysisValue;
 	}
 }

@@ -10,6 +10,7 @@ public class AutoAnalysisSummary {
 		summaryStats = new HashMap<String, Integer>();
 		summaryStats.put("total_analyses", 0);
 		summaryStats.put("successful_analyses", 0);
+		summaryStats.put("skipped_analyses", 0);
 		summaryStats.put("unsuccessful_analyses", 0);
 	}
 	

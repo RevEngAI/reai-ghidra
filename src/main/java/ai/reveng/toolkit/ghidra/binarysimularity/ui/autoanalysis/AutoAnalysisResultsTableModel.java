@@ -39,6 +39,12 @@ public class AutoAnalysisResultsTableModel extends ThreadedTableModelStub<AutoAn
 		return descriptor;
 	}
 	
+	public void batch(List<AutoAnalysisResultsRowObject> results) {
+		for (AutoAnalysisResultsRowObject ro : results) {
+			this.addObject(ro);
+		}
+	}
+	
 	private class AutoanalysisResultSrcSymbolTableColumn extends AbstractDynamicTableColumn<AutoAnalysisResultsRowObject, String, Object> {
 
 		@Override
