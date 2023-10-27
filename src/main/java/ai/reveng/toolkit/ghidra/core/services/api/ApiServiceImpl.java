@@ -299,11 +299,14 @@ public class ApiServiceImpl implements ApiService {
 		return cves(binHash, modelName);
 	}
 
-	public ApiResponse nearestSymbols(List<Double> embedding, String ignoreHash, String modelName, int nns, String[] collections) {
+	public ApiResponse nearestSymbols(List<Double> embedding, String ignoreHash, String modelName, int nns, String collections) {
 		Map<String, String> params = new HashMap<>();
 		params.put("model_name", modelName);
 		params.put("nns", Integer.toString(nns));
 		params.put("ignore_hashes", ignoreHash);
+		if (collections != null) {
+			params.put("collection", collections);
+		}
 
 		try {
 			return send(ApiEndpoint.ANN_SYMBOL, null, params, embedding, ApiBodyType.EMBEDDING, headers);
@@ -312,15 +315,15 @@ public class ApiServiceImpl implements ApiService {
 		}
 	}
 
-	public ApiResponse nearestSymbols(List<Double> embedding, String ignoreHash, int nns, String[] collections) {
+	public ApiResponse nearestSymbols(List<Double> embedding, String ignoreHash, int nns, String collections) {
 		return nearestSymbols(embedding, ignoreHash, modelName, nns, collections);
 	}
 
-	public ApiResponse nearestBinaries(List<Double> embedding, int nns, String[] collections) {
+	public ApiResponse nearestBinaries(List<Double> embedding, int nns, String collections) {
 		return nearestBinaries(embedding, modelName, nns, collections);
 	}
 
-	public ApiResponse nearestBinaries(List<Double> embedding, String modelName, int nns, String[] collections) {
+	public ApiResponse nearestBinaries(List<Double> embedding, String modelName, int nns, String collections) {
 		Map<String, String> params = new HashMap<>();
 		params.put("model_name", modelName);
 		params.put("nns", Integer.toString(nns));
@@ -357,6 +360,18 @@ public class ApiServiceImpl implements ApiService {
 
 		try {
 			return send(ApiEndpoint.MODELS, pathParams, params, null, null, headers);
+		} catch (IOException | InterruptedException e) {
+			return new ApiResponse(-1, e.getMessage());
+		}
+	}
+	
+	public ApiResponse collections() {
+		Map<String, String> pathParams = new HashMap<>();
+
+		Map<String, String> params = new HashMap<>();
+
+		try {
+			return send(ApiEndpoint.COLLECTIONS, pathParams, params, null, null, headers);
 		} catch (IOException | InterruptedException e) {
 			return new ApiResponse(-1, e.getMessage());
 		}

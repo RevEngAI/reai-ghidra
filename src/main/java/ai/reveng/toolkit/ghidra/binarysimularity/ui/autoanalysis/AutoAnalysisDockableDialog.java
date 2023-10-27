@@ -14,7 +14,7 @@ public class AutoAnalysisDockableDialog extends DialogComponentProvider {
 	private AutoAnalysisPanel panel;
 
 	public AutoAnalysisDockableDialog(PluginTool tool) {
-		super(ReaiPluginPackage.WINDOW_PREFIX+"Function Rename", true);
+		super(ReaiPluginPackage.WINDOW_PREFIX+"Auto Analysis", true);
 		buildPanel(tool);
 	}
 
