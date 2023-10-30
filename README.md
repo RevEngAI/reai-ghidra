@@ -115,14 +115,18 @@ You can also batch analyse the binary to rename functions using the `Auto Analys
 
 ![Auto Analyse Tool](screenshots/auto-analysis-gui.png)
 
+This tool pull the list of collections you have access to on your account, and allows you to specify which collections you want to be included in your auto analysis by clicking on the checkbox. Selecting no collections will enable all of the available collections in your search.
+
 Move the slider to determine the confidence level you want to use for batch renaming. Any function returned that is higher than this value will automatically be renamed in the listing view. Clicking the `start` button will kick-off the analysis, which you can track in the blue progress bar
 
 ![Auto Analysis Progress](screenshots/auto-analysis-gui-run.png)
 
-For instance, the auto analysis will successful find and rename the `findarg` function without analyst intervention.
+Once the analysis is complete, the results panel is enabled.
+This provides information on what symbols have been renamed, and to what, along with a message explaining why the change occured.
+
+> Skipped analyses refer to external functions that are not defined in the current binary, and therefore we cannot access the function representation from within the current binary.
 
 ![Auto Analyse Result](screenshots/auto-analysis-results.png)
-
 
 ### Function Explaination
 
