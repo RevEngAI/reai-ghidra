@@ -1,6 +1,6 @@
 # RevEng.AI Ghidra Plugin
 
-[Video Overview](https://vimeo.com/867118159)
+[Community Forms](https://community.reveng.ai/c/integrations/ghidra/6) | [Video Overview](https://vimeo.com/879484503) 
 
 ### AI Assisted Binary Analysis
 
