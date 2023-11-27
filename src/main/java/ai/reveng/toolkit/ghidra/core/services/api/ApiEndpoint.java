@@ -15,7 +15,7 @@ public enum ApiEndpoint {
 	EMBEDDING("/embedding/{sha_256_hash}/{start_vaddr}", "GET"), LOGS("/logs/{sha_256_hash}", "GET"),
 	CVES("/cves/{sha_256_hash}", "GET"), ANN_SYMBOL("/ann/symbol", "POST"), ANN_BINARY("/ann/binary", "POST"),
 	SBOM("/sboms/{sha_256_hash}", "GET"), MODELS("/models", "GET"), EXPLAIN("/explain", "POST"),
-	COLLECTIONS("/collections", "GET");
+	COLLECTIONS("/collections", "GET"), UPLOAD("/upload", "POST");
 
 	private final String pathPattern;
 	private final String httpMethod;

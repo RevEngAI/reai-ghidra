@@ -89,6 +89,21 @@ public class ApiServiceImpl implements ApiService {
 			return new ApiResponse(-1, e.getMessage());
 		}
 	}
+	
+	public ApiResponse upload(Path binPath) {
+		File bin = binPath.toFile();
+		
+		if (!bin.exists())
+			throw new RuntimeException("Binary to upload does not exist");
+
+		Map<String, String> params = new HashMap<>();
+		
+		try {
+			return send(ApiEndpoint.UPLOAD, null, params, binPath, ApiBodyType.FILE, headers);
+		} catch (IOException | InterruptedException e) {
+			return new ApiResponse(-1, e.getMessage());
+		}
+	}
 
 	/**
 	 * Call the analysis endpoint

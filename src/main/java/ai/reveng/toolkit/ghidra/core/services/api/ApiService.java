@@ -12,6 +12,8 @@ import ghidra.framework.plugintool.ServiceInfo;
 public interface ApiService {
 	public ApiResponse echo();
 	
+	public ApiResponse upload(Path binPath);
+	
 	public ApiResponse analyse(Path binPath, JSONObject functionBoundaries, String modelName, int baseAddr, AnalysisOptions opts);
 	public ApiResponse analyse(Path binPath, JSONObject functionBoundaries, int baseAddr, AnalysisOptions opts);
 	
@@ -20,6 +22,7 @@ public interface ApiService {
 	public ApiResponse delete(String binHash, String modelName);
 	public ApiResponse delete(String binHash);
 	
+	// leave alone
 	public ApiResponse embeddings(String binHash, String modelName);
 	public ApiResponse embeddings(String binHash);
 	

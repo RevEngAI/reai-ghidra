@@ -101,9 +101,7 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 
 				System.out.println(funcBoundaries);
 
-				apiService.analyse(binFile.toPath(), funcBoundaries,
-						Integer.valueOf(currentProgram.getImageBase().toString()),
-						new AnalysisOptions.Builder().build());
+				apiService.upload(binFile.toPath());
 			}
 
 		};

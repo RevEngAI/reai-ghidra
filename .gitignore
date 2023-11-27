@@ -24,6 +24,9 @@ gradle.properties
 *.hprof
 *.idea/
 
+# Python related
+.pydevproject
+
 # Eclipse related
 *.metadata
 *.recommenders
