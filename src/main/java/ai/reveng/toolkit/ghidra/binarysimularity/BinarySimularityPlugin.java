@@ -96,12 +96,24 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 							"No Binary Selected", null);
 					return;
 				}
+				
+				String baseAddr = currentProgram.getImageBase().toString();
+				
+				JSONObject symbols = new JSONObject();
+				symbols.put("base_addr", baseAddr);
+				symbols.put("functions", exportFunctionBoundariesService.getFunctionsArray());
 
-				JSONObject funcBoundaries = exportFunctionBoundariesService.getFunctions();
-
-				System.out.println(funcBoundaries);
-
-				apiService.upload(binFile.toPath());
+				String hash = apiService.upload(binFile.toPath()).getJsonObject().getString("sha_256_hash");
+				
+				AnalysisOptions ao = new AnalysisOptions
+						.Builder()
+						.fileName(binFile.toPath().toFile().getName())
+						.binHash(hash)
+						.symbols(symbols)
+						.build();
+				
+				ApiResponse res = apiService.analyse(ao);
+				System.out.println(res);
 			}
 
 		};

@@ -42,8 +42,8 @@ public class ExportFunctionBoundariesServiceImpl implements ExportFunctionBounda
 
 		JSONObject jFunctionBoundaries = new JSONObject();
 		jFunctionBoundaries.put("name", f.getName());
-		jFunctionBoundaries.put("start", f.getEntryPoint().toString());
-		jFunctionBoundaries.put("end", f.getBody().getMaxAddress().toString());
+		jFunctionBoundaries.put("start_addr", f.getEntryPoint().toString());
+		jFunctionBoundaries.put("end_addr", f.getBody().getMaxAddress().toString());
 
 		return jFunctionBoundaries;
 	}
@@ -60,8 +60,20 @@ public class ExportFunctionBoundariesServiceImpl implements ExportFunctionBounda
 			fArray.put(getFunctionAt(f.getEntryPoint()));
 		}
 
-		jFunctions.put("function_boundaries", fArray);
+		jFunctions.put("functions", fArray);
 		return jFunctions;
+	}
+	
+	@Override
+	public JSONArray getFunctionsArray() {
+		if (!isReady)
+			init();
+		
+		JSONArray fArray = new JSONArray();
+		for (Function f : fm.getFunctions(true)) {
+			fArray.put(getFunctionAt(f.getEntryPoint()));
+		}
+		return fArray;
 	}
 
 }

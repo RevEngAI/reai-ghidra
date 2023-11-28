@@ -65,7 +65,12 @@ public class ApiServiceImpl implements ApiService {
 		String fullUrl = baseUrl + dynamicPath;
 		System.out.println("Sending " + endpoint.getHttpMethod() + " request via proxy to: " + fullUrl);
 
-		System.out.println(queryParams);
+		if (bodyType == ApiBodyType.JSON) {
+			System.out.println( ((JSONObject) body).toString());
+		}
+		else {
+			System.out.println(queryParams);
+		}
 
 		ApiResponse response = apiRequester.send(endpoint, pathParams, queryParams, body, bodyType, headers);
 		System.out.println("Request completed.\n" + response.getResponseBody());
@@ -114,37 +119,14 @@ public class ApiServiceImpl implements ApiService {
 	 * @param opts
 	 * @return
 	 */
-	public ApiResponse analyse(Path binPath, JSONObject functionBoundaries, String modelName, int baseAddr, AnalysisOptions opts) {
-		File bin = binPath.toFile();
-
-		if (!bin.exists())
-			throw new RuntimeException("Binary to upload does not exist");
-
+	public ApiResponse analyse(AnalysisOptions opts) {
 		Map<String, String> params = new HashMap<>();
-		params.put("file_name", bin.getName());
-		params.put("base_vaddr", Integer.toHexString(baseAddr));
-		params.put("model", modelName);
-		params.put("priority", Integer.toString(10));
-//		params.put("symbols", functionBoundaries.toString());
-		params.putAll(opts.toMap());
 
 		try {
-			return send(ApiEndpoint.ANALYSE, null, params, binPath, ApiBodyType.FILE, headers);
+			return send(ApiEndpoint.ANALYSE, null, params, opts.toJSON(), ApiBodyType.JSON, headers);
 		} catch (IOException | InterruptedException e) {
 			return new ApiResponse(-1, e.getMessage());
 		}
-	}
-
-	/**
-	 * Analyse call when we want to use the provided model name
-	 * 
-	 * @param binPath
-	 * @param baseAddr
-	 * @param opts
-	 * @return
-	 */
-	public ApiResponse analyse(Path binPath, JSONObject functionBoundaries, int baseAddr, AnalysisOptions opts) {
-		return analyse(binPath, functionBoundaries, modelName, baseAddr, opts);
 	}
 
 	/**
