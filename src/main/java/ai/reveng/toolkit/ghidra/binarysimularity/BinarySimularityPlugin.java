@@ -97,7 +97,7 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 					return;
 				}
 				
-				String baseAddr = currentProgram.getImageBase().toString();
+				String baseAddr = currentProgram.getImageBase().toString("0x");
 				
 				JSONObject symbols = new JSONObject();
 				symbols.put("base_addr", baseAddr);
@@ -113,6 +113,12 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 						.build();
 				
 				ApiResponse res = apiService.analyse(ao);
+				
+				if (res.getStatusCode() == 200) {
+					int binID = res.getJsonObject().getInt("binary_id");
+					System.out.println("Got binary_id: " + binID);
+					tool.getOptions("Preferences").setLong(ReaiPluginPackage.OPTION_KEY_BINID, binID);
+				}
 				System.out.println(res);
 			}
 
@@ -126,7 +132,8 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 
 			@Override
 			public void actionPerformed(ActionContext context) {
-				ApiResponse res = apiService.status(currentProgram.getExecutableSHA256());
+				long bid = tool.getOptions("Preferences").getLong(ReaiPluginPackage.OPTION_KEY_BINID, 0xffff);
+				ApiResponse res = apiService.status(bid);
 				Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Check Analysis Status",
 						"Status: " + res.getJsonObject().get("status"));
 			}

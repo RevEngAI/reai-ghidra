@@ -16,23 +16,23 @@ public interface ApiService {
 	
 	public ApiResponse analyse(AnalysisOptions opts);
 	
-	public ApiResponse status(String binHash);
+	public ApiResponse status(long binID);
 	
-	public ApiResponse delete(String binHash, String modelName);
-	public ApiResponse delete(String binHash);
+	public ApiResponse delete(long binID, String modelName);
+	public ApiResponse delete(long binID);
 	
 	// leave alone
 	public ApiResponse embeddings(String binHash, String modelName);
 	public ApiResponse embeddings(String binHash);
 	
-	public ApiResponse signature(String binHash, String modelName);
-	public ApiResponse signature(String binHash);
+	public ApiResponse signature(long binID, String modelName);
+	public ApiResponse signature(long binID);
 	
-	public ApiResponse logs(String binHash, String modelName);
-	public ApiResponse logs(String binHash);
+	public ApiResponse logs(long binID, String modelName);
+	public ApiResponse logs(long binID);
 	
-	public ApiResponse cves(String binHash, String modelName);
-	public ApiResponse cves(String binHash);
+	public ApiResponse cves(long binID, String modelName);
+	public ApiResponse cves(long binID);
 	
 	// leave alone
 	public ApiResponse nearestSymbols(List<Double> embedding, String ignoreHash, String modelName, int nns, String collections);
@@ -42,8 +42,8 @@ public interface ApiService {
 	public ApiResponse nearestBinaries(List<Double> embedding, int nns, String collections);
 	public ApiResponse nearestBinaries(List<Double> embedding, String modelName, int nns, String collections);
 	
-	public ApiResponse sbom(String binHash, String modelName);
-	public ApiResponse sbom(String binHash);
+	public ApiResponse sbom(long binID, String modelName);
+	public ApiResponse sbom(long binID);
 	
 	public ApiResponse models();
 	

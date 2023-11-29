@@ -42,8 +42,8 @@ public class ExportFunctionBoundariesServiceImpl implements ExportFunctionBounda
 
 		JSONObject jFunctionBoundaries = new JSONObject();
 		jFunctionBoundaries.put("name", f.getName());
-		jFunctionBoundaries.put("start_addr", f.getEntryPoint().toString());
-		jFunctionBoundaries.put("end_addr", f.getBody().getMaxAddress().toString());
+		jFunctionBoundaries.put("start_addr", f.getEntryPoint().toString("0x"));
+		jFunctionBoundaries.put("end_addr", f.getBody().getMaxAddress().toString("0x"));
 
 		return jFunctionBoundaries;
 	}

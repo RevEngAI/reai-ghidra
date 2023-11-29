@@ -60,7 +60,7 @@ public class AnalysisOptions {
 		analysisConfig.put("model_name", modelName);
 		analysisConfig.put("platform_options", platformOptions);
 		analysisConfig.put("priority", priority);
-		analysisConfig.put("bin_hash", binHash);
+		analysisConfig.put("sha_256_hash", binHash);
 		analysisConfig.put("symbols", symbols);
 		
 		JSONArray jTags = new JSONArray();

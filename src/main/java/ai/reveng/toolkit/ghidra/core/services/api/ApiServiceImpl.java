@@ -135,9 +135,9 @@ public class ApiServiceImpl implements ApiService {
 	 * @param binHash SHA 256 hash of the binary you uploaded
 	 * @return ApiResponse
 	 */
-	public ApiResponse status(String binHash) {
+	public ApiResponse status(long binID) {
 		Map<String, String> pathParams = new HashMap<>();
-		pathParams.put("sha_256_hash", binHash);
+		pathParams.put("binary_id", Long.toString(binID));
 		try {
 			return send(ApiEndpoint.STATUS, pathParams, null, null, null, headers);
 		} catch (IOException | InterruptedException e) {
@@ -152,9 +152,9 @@ public class ApiServiceImpl implements ApiService {
 	 * @param modelName name of model used to perform the analysis
 	 * @return
 	 */
-	public ApiResponse delete(String binHash, String modelName) {
+	public ApiResponse delete(long binID, String modelName) {
 		Map<String, String> pathParams = new HashMap<>();
-		pathParams.put("sha_256_hash", binHash);
+		pathParams.put("binary_id", Long.toString(binID));
 
 		Map<String, String> params = new HashMap<>();
 		params.put("model_name", modelName);
@@ -172,8 +172,8 @@ public class ApiServiceImpl implements ApiService {
 	 * @param binHash sha256 hash of the binary you wish to delete
 	 * @return ApiResponse
 	 */
-	public ApiResponse delete(String binHash) {
-		return delete(binHash, modelName);
+	public ApiResponse delete(long binID) {
+		return delete(binID, modelName);
 	}
 
 	/**
@@ -207,9 +207,9 @@ public class ApiServiceImpl implements ApiService {
 		return embeddings(binHash, modelName);
 	}
 
-	public ApiResponse signature(String binHash, String modelName) {
+	public ApiResponse signature(long binID, String modelName) {
 		Map<String, String> pathParams = new HashMap<>();
-		pathParams.put("sha_256_hash", binHash);
+		pathParams.put("binary_id", Long.toString(binID));
 
 		Map<String, String> params = new HashMap<>();
 		params.put("model_name", modelName);
@@ -221,8 +221,8 @@ public class ApiServiceImpl implements ApiService {
 		}
 	}
 
-	public ApiResponse signature(String binHash) {
-		return signature(binHash, modelName);
+	public ApiResponse signature(long binID) {
+		return signature(binID, modelName);
 	}
 
 	/**
@@ -260,9 +260,9 @@ public class ApiServiceImpl implements ApiService {
 		return embedding(binHash, startVAddr, endVAddr, baseVAddr, modelName);
 	}
 
-	public ApiResponse logs(String binHash, String modelName) {
+	public ApiResponse logs(long binID, String modelName) {
 		Map<String, String> pathParams = new HashMap<>();
-		pathParams.put("sha_256_hash", binHash);
+		pathParams.put("binary_id", Long.toString(binID));
 
 		Map<String, String> params = new HashMap<>();
 		params.put("model_name", modelName);
@@ -274,13 +274,13 @@ public class ApiServiceImpl implements ApiService {
 		}
 	}
 
-	public ApiResponse logs(String binHash) {
-		return logs(binHash, modelName);
+	public ApiResponse logs(long binID) {
+		return logs(binID, modelName);
 	}
 
-	public ApiResponse cves(String binHash, String modelName) {
+	public ApiResponse cves(long binID, String modelName) {
 		Map<String, String> pathParams = new HashMap<>();
-		pathParams.put("sha_256_hash", binHash);
+		pathParams.put("binary_id", Long.toString(binID));
 
 		Map<String, String> params = new HashMap<>();
 		params.put("model_name", modelName);
@@ -292,8 +292,8 @@ public class ApiServiceImpl implements ApiService {
 		}
 	}
 
-	public ApiResponse cves(String binHash) {
-		return cves(binHash, modelName);
+	public ApiResponse cves(long binID) {
+		return cves(binID, modelName);
 	}
 
 	public ApiResponse nearestSymbols(List<Double> embedding, String ignoreHash, String modelName, int nns, String collections) {
@@ -332,9 +332,9 @@ public class ApiServiceImpl implements ApiService {
 		}
 	}
 
-	public ApiResponse sbom(String binHash, String modelName) {
+	public ApiResponse sbom(long binID, String modelName) {
 		Map<String, String> pathParams = new HashMap<>();
-		pathParams.put("sha_256_hash", binHash);
+		pathParams.put("binary_id", Long.toString(binID));
 
 		Map<String, String> params = new HashMap<>();
 		params.put("model_name", modelName);
@@ -346,8 +346,8 @@ public class ApiServiceImpl implements ApiService {
 		}
 	}
 
-	public ApiResponse sbom(String binHash) {
-		return cves(binHash, modelName);
+	public ApiResponse sbom(long binID) {
+		return cves(binID, modelName);
 	}
 
 	public ApiResponse models() {
