@@ -21,9 +21,8 @@ public interface ApiService {
 	public ApiResponse delete(long binID, String modelName);
 	public ApiResponse delete(long binID);
 	
-	// leave alone
-	public ApiResponse embeddings(String binHash, String modelName);
-	public ApiResponse embeddings(String binHash);
+	public ApiResponse embeddings(long binID, String modelName);
+	public ApiResponse embeddings(long binID);
 	
 	public ApiResponse signature(long binID, String modelName);
 	public ApiResponse signature(long binID);

@@ -183,9 +183,9 @@ public class ApiServiceImpl implements ApiService {
 	 * @param modelName model used to compute the embeddings
 	 * @return
 	 */
-	public ApiResponse embeddings(String binHash, String modelName) {
+	public ApiResponse embeddings(long binID, String modelName) {
 		Map<String, String> pathParams = new HashMap<>();
-		pathParams.put("sha_256_hash", binHash);
+		pathParams.put("binary_id", Long.toString(binID));
 
 		Map<String, String> params = new HashMap<>();
 		params.put("model_name", modelName);
@@ -200,11 +200,9 @@ public class ApiServiceImpl implements ApiService {
 	/**
 	 * Return the embeddings for the given binary
 	 * 
-	 * @param binHash sha256 hash of binary
-	 * @return
 	 */
-	public ApiResponse embeddings(String binHash) {
-		return embeddings(binHash, modelName);
+	public ApiResponse embeddings(long binID) {
+		return embeddings(binID, modelName);
 	}
 
 	public ApiResponse signature(long binID, String modelName) {
@@ -235,10 +233,10 @@ public class ApiServiceImpl implements ApiService {
 	 * @param modelName
 	 * @return
 	 */
-	private ApiResponse embedding(String binHash, int startVAddr, Integer endVAddr, Integer baseVAddr,
+	private ApiResponse embedding(long binID, int startVAddr, Integer endVAddr, Integer baseVAddr,
 			String modelName) {
 		Map<String, String> pathParams = new HashMap<>();
-		pathParams.put("sha_256_hash", binHash);
+		pathParams.put("binary_id", Long.toString(binID));
 		pathParams.put("start_vaddr", Integer.toHexString(startVAddr));
 
 		Map<String, String> params = new HashMap<>();
@@ -256,8 +254,8 @@ public class ApiServiceImpl implements ApiService {
 		}
 	}
 
-	private ApiResponse embedding(String binHash, int startVAddr, Integer endVAddr, Integer baseVAddr) {
-		return embedding(binHash, startVAddr, endVAddr, baseVAddr, modelName);
+	private ApiResponse embedding(long binID, int startVAddr, Integer endVAddr, Integer baseVAddr) {
+		return embedding(binID, startVAddr, endVAddr, baseVAddr, modelName);
 	}
 
 	public ApiResponse logs(long binID, String modelName) {

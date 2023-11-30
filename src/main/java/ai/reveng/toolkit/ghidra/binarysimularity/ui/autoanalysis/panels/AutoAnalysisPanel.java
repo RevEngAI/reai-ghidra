@@ -239,8 +239,9 @@ public class AutoAnalysisPanel extends JPanel {
 		FunctionManager fm = currentProgram.getFunctionManager();
 
 		String currentBinaryHash = currentProgram.getExecutableSHA256();
+		long binID = tool.getOptions("Preferences").getLong(ReaiPluginPackage.OPTION_KEY_BINID, 0xff);
 
-		ApiResponse res = apiService.embeddings(currentBinaryHash);
+		ApiResponse res = apiService.embeddings(binID);
 
 		if (res.getStatusCode() > 299) {
 			Msg.showError(fm, null, ReaiPluginPackage.WINDOW_PREFIX + "Auto Analysis",
@@ -256,7 +257,7 @@ public class AutoAnalysisPanel extends JPanel {
 		int cursor = 0;
 		progressBar.setValue(0);
 
-		Binary bin = new Binary(res.getJsonArray());
+		Binary bin = new Binary(res.getJsonArray(), currentProgram.getImageBase());
 		
 		boolean log_unsuc = numFuncs > 1000 ? false : true;
 		for (Function func : fm.getFunctions(true)) {
@@ -264,7 +265,7 @@ public class AutoAnalysisPanel extends JPanel {
 			System.out.println("Searching for " + func.getName() + " [" + (cursor+1) + "/" + numFuncs + "]");
 			analysisSummary.incrementStat("total_analyses");
 			
-			FunctionEmbedding fe = bin.getFunctionEmbedding(Long.parseLong(func.getEntryPoint().toString(), 16));
+			FunctionEmbedding fe = bin.getFunctionEmbedding(func.getEntryPoint().toString());
 			if (fe == null) {
 				cursor++;
 				int progress = (int) (((double) cursor / numFuncs) * 100);

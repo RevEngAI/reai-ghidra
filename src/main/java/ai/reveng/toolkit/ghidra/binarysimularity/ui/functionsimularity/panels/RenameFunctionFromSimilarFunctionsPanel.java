@@ -14,6 +14,7 @@ import java.awt.BorderLayout;
 import docking.widgets.table.GTable;
 import ghidra.app.services.ProgramManager;
 import ghidra.framework.plugintool.PluginTool;
+import ghidra.program.model.address.Address;
 import ghidra.program.model.listing.Function;
 import ghidra.program.model.listing.Program;
 import ghidra.program.model.symbol.SourceType;
@@ -72,11 +73,14 @@ public class RenameFunctionFromSimilarFunctionsPanel extends JPanel {
 	private JPanel progressPanel;
 	private JLabel lblProgressStatusText;
 	private JButton btnRefresh;
+	private PluginTool tool;
+	private Program currentProgram;
 
 	public RenameFunctionFromSimilarFunctionsPanel(Function functionUnderReview, PluginTool tool) {
 		this.functionUnderReview = functionUnderReview;
+		this.tool = tool;
 		ProgramManager programManager = tool.getService(ProgramManager.class);
-		Program currentProgram = programManager.getCurrentProgram();
+		this.currentProgram = programManager.getCurrentProgram();
 		apiService = tool.getService(ApiService.class);
 		currentBinaryHash = currentProgram.getExecutableSHA256();
 
@@ -223,21 +227,33 @@ public class RenameFunctionFromSimilarFunctionsPanel extends JPanel {
 			lblProgressStatusText.setText(PROGRESS_FETCHING_MSG);
 			progressBar.setValue(25);
 			cfm.clearData();
+			
+			long binID = tool.getOptions("Preferences").getLong(ReaiPluginPackage.OPTION_KEY_BINID, 0xff);
 
-			ApiResponse res = apiService.embeddings(currentBinaryHash);
-
+			ApiResponse res = apiService.embeddings(binID);
+			
 			if (res.getStatusCode() > 299) {
 				Msg.showError(actionButtonPanel, canidateFunctionsScrollPanel,
 						ReaiPluginPackage.WINDOW_PREFIX + "Function Simularity", res.getJsonObject().get("error"));
 				return;
 			}
+			
+			System.out.println("Searching for func @ " + Long.parseLong(functionUnderReview.getEntryPoint().toString(), 16));
 
 			progressBar.setValue(50);
+			
+			Address baseAddr = this.currentProgram.getImageBase();
+			
+			System.out.print("Using ghidra base address");
 
-			Binary bin = new Binary(res.getJsonArray());
+			Binary bin = new Binary(res.getJsonArray(), baseAddr);
+			
+			System.out.println("Cached binary");
 
 			FunctionEmbedding fe = bin
-					.getFunctionEmbedding(Long.parseLong(functionUnderReview.getEntryPoint().toString(), 16));
+					.getFunctionEmbedding(functionUnderReview.getEntryPoint().toString());
+			
+			System.out.println(bin);
 
 			if (fe == null) {
 				Msg.showError(bin, canidateFunctionsScrollPanel,

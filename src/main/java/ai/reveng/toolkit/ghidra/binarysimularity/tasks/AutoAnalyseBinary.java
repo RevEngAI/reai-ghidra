@@ -22,9 +22,11 @@ import ghidra.util.task.TaskMonitor;
 public class AutoAnalyseBinary extends Task {
 	private ApiService apiService;
 	private Program currentProgram;
+	private PluginTool tool;
 
 	public AutoAnalyseBinary(PluginTool tool) {
 		super(ReaiPluginPackage.WINDOW_PREFIX + "Auto Analysis", true, false, true);
+		this.tool = tool;
 		apiService = tool.getService(ApiService.class);
 		ProgramManager programManager = tool.getService(ProgramManager.class);
 		currentProgram = programManager.getCurrentProgram();
@@ -36,8 +38,9 @@ public class AutoAnalyseBinary extends Task {
 		FunctionManager fm = currentProgram.getFunctionManager();
 
 		String currentBinaryHash = currentProgram.getExecutableSHA256();
+		long binID = tool.getOptions("Preferences").getLong(ReaiPluginPackage.OPTION_KEY_BINID, 0xff);
 
-		ApiResponse res = apiService.embeddings(currentBinaryHash);
+		ApiResponse res = apiService.embeddings(binID);
 
 		if (res.getStatusCode() > 299) {
 			Msg.showError(fm, null, ReaiPluginPackage.WINDOW_PREFIX + "Auto Analysis",
@@ -45,11 +48,11 @@ public class AutoAnalyseBinary extends Task {
 			return;
 		}
 
-		Binary bin = new Binary(res.getJsonArray());
+		Binary bin = new Binary(res.getJsonArray(), currentProgram.getImageBase());
 
 		for (Function func : fm.getFunctions(true)) {
 			System.out.println("Searching for suitable name for '" + func.getName() + "'");
-			FunctionEmbedding fe = bin.getFunctionEmbedding(Long.parseLong(func.getEntryPoint().toString(), 16));
+			FunctionEmbedding fe = bin.getFunctionEmbedding(func.getEntryPoint().toString());
 			res = apiService.nearestSymbols(fe.getEmbedding(), currentBinaryHash, 1, null);
 		}
 	}
