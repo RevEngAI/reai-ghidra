@@ -15,12 +15,16 @@
  */
 package ai.reveng.toolkit.ghidra.core;
 
+import java.io.File;
+
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.core.services.api.ApiService;
 import ai.reveng.toolkit.ghidra.core.services.api.ApiServiceImpl;
 import ai.reveng.toolkit.ghidra.core.services.configuration.ConfigurationService;
 import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoundariesService;
 import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoundariesServiceImpl;
+import ai.reveng.toolkit.ghidra.core.services.importer.AnalysisImportService;
+import ai.reveng.toolkit.ghidra.core.services.importer.AnalysisImportServiceImpl;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardManager;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardStateKey;
 import docking.ActionContext;
@@ -32,8 +36,11 @@ import ghidra.app.plugin.PluginCategoryNames;
 import ghidra.app.plugin.ProgramPlugin;
 import ghidra.framework.plugintool.*;
 import docking.options.OptionsService;
+import docking.widgets.filechooser.GhidraFileChooser;
+import docking.widgets.filechooser.GhidraFileChooserMode;
 import ghidra.framework.plugintool.util.PluginStatus;
 import ghidra.program.model.listing.Program;
+import ghidra.util.Msg;
 
 /**
  * CorePlugin for accessing the RevEng.AI Platform
@@ -46,7 +53,7 @@ import ghidra.program.model.listing.Program;
 	shortDescription = "Toolkit for using RevEngAI API",
 	description = "Toolkit for using RevEng.AI API",
 	servicesRequired = { OptionsService.class },
-	servicesProvided = { ApiService.class, ExportFunctionBoundariesService.class }
+	servicesProvided = { ApiService.class, ExportFunctionBoundariesService.class, AnalysisImportService.class }
 )
 //@formatter:on
 public class CorePlugin extends ProgramPlugin {
@@ -54,6 +61,7 @@ public class CorePlugin extends ProgramPlugin {
 
 	private ApiService apiService;
 	private ExportFunctionBoundariesService exportFunctionBoundariesService;
+	private AnalysisImportService analysisImportService;
 
 	public CorePlugin(PluginTool tool) {
 		super(tool);
@@ -67,13 +75,15 @@ public class CorePlugin extends ProgramPlugin {
 		String apikey = tool.getOptions("Preferences").getString(ReaiPluginPackage.OPTION_KEY_APIKEY, "invalid");
 		String hostname = tool.getOptions("Preferences").getString(ReaiPluginPackage.OPTION_KEY_HOSTNAME, "unknown");
 		String modelname = tool.getOptions("Preferences").getString(ReaiPluginPackage.OPTION_KEY_MODEL, "unknown");
+		
 		apiService = new ApiServiceImpl(hostname, apikey, modelname);
-
 		registerServiceProvided(ApiService.class, apiService);
 
 		exportFunctionBoundariesService = new ExportFunctionBoundariesServiceImpl(tool);
-
 		registerServiceProvided(ExportFunctionBoundariesService.class, exportFunctionBoundariesService);
+		
+		analysisImportService = new AnalysisImportServiceImpl(tool);
+		registerServiceProvided(AnalysisImportService.class, analysisImportService);
 
 		setupActions();
 
@@ -92,6 +102,30 @@ public class CorePlugin extends ProgramPlugin {
 		runWizard.setMenuBarData(new MenuData(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Run Setup Wizard" },
 				ReaiPluginPackage.NAME));
 		tool.addAction(runWizard);
+		
+		DockingAction importAnalysis = new DockingAction("Import Analysis", getName()) {
+			
+			@Override
+			public void actionPerformed(ActionContext context) {
+				GhidraFileChooser fileChooser = new GhidraFileChooser(null);
+				fileChooser.setFileSelectionMode(GhidraFileChooserMode.FILES_ONLY);
+	
+				File jsonFile = fileChooser.getSelectedFile(true);
+				fileChooser.dispose();
+
+				if (jsonFile == null) {
+					System.err.println("No analysis selected for import");
+					Msg.showError(jsonFile, null, ReaiPluginPackage.WINDOW_PREFIX + "Upload Binary",
+							"No Binary Selected", null);
+					return;
+				}
+				
+				analysisImportService.importFromJSON(jsonFile);
+			}
+		};
+		importAnalysis.setMenuBarData(new MenuData(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Import Analysis" },
+				ReaiPluginPackage.NAME));
+		tool.addAction(importAnalysis);
 	}
 
 	@Override
