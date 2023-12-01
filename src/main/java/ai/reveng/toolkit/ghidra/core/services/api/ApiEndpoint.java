@@ -10,12 +10,12 @@ import java.util.Map;
  */
 public enum ApiEndpoint {
 	GET_MODELS("/models", "GET"), ECHO("/echo", "GET"), ANALYSE("/analyse", "POST"),
-	STATUS("/analyse/status/{sha_256_hash}", "GET"), DELETE("/analyse/{sha_256_hash}", "DELETE"),
-	EMBEDDINGS("/embeddings/{sha_256_hash}", "GET"), SIGNATURE("/signature/{sha_256_hash}", "GET"),
-	EMBEDDING("/embedding/{sha_256_hash}/{start_vaddr}", "GET"), LOGS("/logs/{sha_256_hash}", "GET"),
-	CVES("/cves/{sha_256_hash}", "GET"), ANN_SYMBOL("/ann/symbol", "POST"), ANN_BINARY("/ann/binary", "POST"),
-	SBOM("/sboms/{sha_256_hash}", "GET"), MODELS("/models", "GET"), EXPLAIN("/explain", "POST"),
-	COLLECTIONS("/collections", "GET");
+	STATUS("/analyse/status/{binary_id}", "GET"), DELETE("/analyse/{binary_id}", "DELETE"),
+	EMBEDDINGS("/embeddings/{binary_id}", "GET"), SIGNATURE("/signature/{binary_id}", "GET"),
+	EMBEDDING("/embedding/{binary_id}/{start_vaddr}", "GET"), LOGS("/logs/{binary_id}", "GET"),
+	CVES("/cves/{binary_id}", "GET"), ANN_SYMBOL("/ann/symbol", "POST"), ANN_BINARY("/ann/binary", "POST"),
+	SBOM("/sboms/{binary_id}", "GET"), MODELS("/models", "GET"), EXPLAIN("/explain", "POST"),
+	COLLECTIONS("/collections", "GET"), UPLOAD("/upload", "POST");
 
 	private final String pathPattern;
 	private final String httpMethod;

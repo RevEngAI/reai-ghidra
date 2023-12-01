@@ -7,18 +7,22 @@ import java.util.Map;
 
 import org.json.JSONArray;
 
+import ghidra.program.model.address.Address;
+
 public class Binary {
-	private final Map<Long, FunctionEmbedding> functionEmbeddings;
+	private final Map<String, FunctionEmbedding> functionEmbeddings;
 
 	private final List<Double> binaryEmbedding;
 	
-	public Binary(JSONArray jBinaryEmbeddings) {
-		functionEmbeddings = new HashMap<Long, FunctionEmbedding>();
+	public Binary(JSONArray jBinaryEmbeddings, Address baseAddr) {
+		functionEmbeddings = new HashMap<String, FunctionEmbedding>();
 		binaryEmbedding = new ArrayList<>();
 		
 		for (int i = 0; i < jBinaryEmbeddings.length(); i++) {
 			FunctionEmbedding tmp = new FunctionEmbedding(jBinaryEmbeddings.getJSONObject(i));
-			functionEmbeddings.put(tmp.getVaddr(), tmp);
+			Address tmpAddr = baseAddr.add(tmp.getVaddr());
+			System.out.println("Base Addr: " + baseAddr.toString() + " offset: " + tmp.getVaddr() + " = " + tmpAddr.toString());
+			functionEmbeddings.put(tmpAddr.toString(), tmp);
 		}
 	}
 	
@@ -31,11 +35,15 @@ public class Binary {
 		return embedding;
 	}
 	
-	public Map<Long, FunctionEmbedding> getFunctionEmbeddings() {
+	public Map<String, FunctionEmbedding> getFunctionEmbeddings() {
 		return functionEmbeddings;
 	}
 	
-	public FunctionEmbedding getFunctionEmbedding(long fAddr) {
+	public FunctionEmbedding getFunctionEmbedding(String fAddr) {
 		return functionEmbeddings.containsKey(fAddr) ? functionEmbeddings.get(fAddr) : null;
+	}
+	
+	public String toString() {
+		return functionEmbeddings.keySet().toString();
 	}
 }

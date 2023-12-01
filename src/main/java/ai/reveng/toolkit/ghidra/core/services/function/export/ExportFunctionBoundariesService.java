@@ -1,5 +1,6 @@
 package ai.reveng.toolkit.ghidra.core.services.function.export;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import ai.reveng.toolkit.ghidra.core.CorePlugin;
@@ -22,4 +23,10 @@ public interface ExportFunctionBoundariesService {
 	 * @return
 	 */
 	public JSONObject getFunctions();
+	
+	/**
+	 * Return an array of functions boundaries for insertion to a symbols object
+	 * @return
+	 */
+	public JSONArray getFunctionsArray();
 }

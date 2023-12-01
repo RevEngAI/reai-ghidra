@@ -53,7 +53,7 @@ public class ApiRequesterImpl implements IApiRequester {
 			if (body != null) {
 				switch (bodyType) {
 				case JSON:
-					String jsonPayload = new JSONObject((Map<?, ?>) body).toString();
+					String jsonPayload = ((JSONObject) body).toString();
 					requestBuilder.POST(HttpRequest.BodyPublishers.ofString(jsonPayload)).header("Content-Type",
 							"application/json");
 					break;

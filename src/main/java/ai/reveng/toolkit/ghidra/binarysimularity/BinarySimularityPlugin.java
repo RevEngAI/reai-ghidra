@@ -96,14 +96,30 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 							"No Binary Selected", null);
 					return;
 				}
+				
+				String baseAddr = currentProgram.getImageBase().toString("0x");
+				
+				JSONObject symbols = new JSONObject();
+				symbols.put("base_addr", baseAddr);
+				symbols.put("functions", exportFunctionBoundariesService.getFunctionsArray());
 
-				JSONObject funcBoundaries = exportFunctionBoundariesService.getFunctions();
-
-				System.out.println(funcBoundaries);
-
-				apiService.analyse(binFile.toPath(), funcBoundaries,
-						Integer.valueOf(currentProgram.getImageBase().toString()),
-						new AnalysisOptions.Builder().build());
+				String hash = apiService.upload(binFile.toPath()).getJsonObject().getString("sha_256_hash");
+				
+				AnalysisOptions ao = new AnalysisOptions
+						.Builder()
+						.fileName(binFile.toPath().toFile().getName())
+						.binHash(hash)
+						.symbols(symbols)
+						.build();
+				
+				ApiResponse res = apiService.analyse(ao);
+				
+				if (res.getStatusCode() == 200) {
+					int binID = res.getJsonObject().getInt("binary_id");
+					System.out.println("Got binary_id: " + binID);
+					tool.getOptions("Preferences").setLong(ReaiPluginPackage.OPTION_KEY_BINID, binID);
+				}
+				System.out.println(res);
 			}
 
 		};
@@ -116,7 +132,8 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 
 			@Override
 			public void actionPerformed(ActionContext context) {
-				ApiResponse res = apiService.status(currentProgram.getExecutableSHA256());
+				long bid = tool.getOptions("Preferences").getLong(ReaiPluginPackage.OPTION_KEY_BINID, 0xffff);
+				ApiResponse res = apiService.status(bid);
 				Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Check Analysis Status",
 						"Status: " + res.getJsonObject().get("status"));
 			}
