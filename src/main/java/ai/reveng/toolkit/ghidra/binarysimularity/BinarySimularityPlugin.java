@@ -134,8 +134,13 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 			public void actionPerformed(ActionContext context) {
 				long bid = tool.getOptions("Preferences").getLong(ReaiPluginPackage.OPTION_KEY_BINID, 0xffff);
 				ApiResponse res = apiService.status(bid);
-				Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Check Analysis Status",
-						"Status: " + res.getJsonObject().get("status"));
+				try {
+					Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Check Analysis Status",
+							"Status: " + res.getJsonObject().get("status"));
+				} catch(Exception e) {
+					Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Check Analysis Status",
+							"Error getting status\n\nCheck:\n- You have downloaded your binary id from the portal\n- You have uploaded the current binary to the portal");
+				}
 			}
 		};
 		checkStatusAction.setMenuBarData(new MenuData(
