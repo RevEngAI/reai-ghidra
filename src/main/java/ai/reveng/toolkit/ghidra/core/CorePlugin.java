@@ -115,12 +115,15 @@ public class CorePlugin extends ProgramPlugin {
 
 				if (jsonFile == null) {
 					System.err.println("No analysis selected for import");
-					Msg.showError(jsonFile, null, ReaiPluginPackage.WINDOW_PREFIX + "Upload Binary",
+					Msg.showError(jsonFile, null, ReaiPluginPackage.WINDOW_PREFIX + "Import Analysis",
 							"No Binary Selected", null);
 					return;
 				}
 				
 				analysisImportService.importFromJSON(jsonFile);
+				
+				Msg.showInfo(jsonFile, null, ReaiPluginPackage.WINDOW_PREFIX + "Import Analysis",
+						"Successfully imported analysis result");
 			}
 		};
 		importAnalysis.setMenuBarData(new MenuData(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Import Analysis" },
