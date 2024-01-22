@@ -18,12 +18,12 @@ jobs:
         # Repository name ("reait-ghidra")
         name: ["${{github.event.repository.name}}"]
         # Ghidra build version(s)
-        version: [11.0]
+        version: [10.4]
         include:
-          - version: 11.0
-            release_url: "https://github.com/NationalSecurityAgency/ghidra/releases/download/Ghidra_11.0_build"
-            filename: "ghidra_11.0_PUBLIC_20231222.zip"
-            directory: "ghidra_11.0_PUBLIC"
+          - version: 10.4
+            release_url: "https://github.com/NationalSecurityAgency/ghidra/releases/download/Ghidra_10.4_build"
+            filename: "ghidra_10.4_PUBLIC_20230928.zip"
+            directory: "ghidra_10.4_PUBLIC"
 
     steps:
       - uses: actions/checkout@v3
