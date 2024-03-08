@@ -5,6 +5,7 @@ import ai.reveng.toolkit.ghidra.core.services.api.ApiResponse;
 import ai.reveng.toolkit.ghidra.core.services.api.ApiService;
 import ai.reveng.toolkit.ghidra.core.services.api.types.Binary;
 import ai.reveng.toolkit.ghidra.core.services.api.types.FunctionEmbedding;
+import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
 import ghidra.app.services.ProgramManager;
 import ghidra.framework.plugintool.PluginTool;
 import ghidra.program.model.listing.Function;
@@ -23,6 +24,7 @@ public class AutoAnalyseBinary extends Task {
 	private ApiService apiService;
 	private Program currentProgram;
 	private PluginTool tool;
+	private ReaiLoggingService loggingService;
 
 	public AutoAnalyseBinary(PluginTool tool) {
 		super(ReaiPluginPackage.WINDOW_PREFIX + "Auto Analysis", true, false, true);
@@ -30,6 +32,11 @@ public class AutoAnalyseBinary extends Task {
 		apiService = tool.getService(ApiService.class);
 		ProgramManager programManager = tool.getService(ProgramManager.class);
 		currentProgram = programManager.getCurrentProgram();
+		loggingService = tool.getService(ReaiLoggingService.class);
+		if (loggingService == null) {
+			Msg.error(this, "Unable to access logging service");
+		}
+
 	}
 
 	@Override
@@ -43,6 +50,7 @@ public class AutoAnalyseBinary extends Task {
 		ApiResponse res = apiService.embeddings(binID);
 
 		if (res.getStatusCode() > 299) {
+			loggingService.error(res.getJsonObject().get("error").toString());
 			Msg.showError(fm, null, ReaiPluginPackage.WINDOW_PREFIX + "Auto Analysis",
 					res.getJsonObject().get("error"));
 			return;
@@ -51,7 +59,7 @@ public class AutoAnalyseBinary extends Task {
 		Binary bin = new Binary(res.getJsonArray(), currentProgram.getImageBase());
 
 		for (Function func : fm.getFunctions(true)) {
-			System.out.println("Searching for suitable name for '" + func.getName() + "'");
+			loggingService.info("Searching for suitable name for '" + func.getName() + "'");
 			FunctionEmbedding fe = bin.getFunctionEmbedding(func.getEntryPoint().toString());
 			res = apiService.nearestSymbols(fe.getEmbedding(), currentBinaryHash, 1, null);
 		}

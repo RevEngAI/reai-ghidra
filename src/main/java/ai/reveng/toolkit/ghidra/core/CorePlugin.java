@@ -25,6 +25,8 @@ import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoun
 import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoundariesServiceImpl;
 import ai.reveng.toolkit.ghidra.core.services.importer.AnalysisImportService;
 import ai.reveng.toolkit.ghidra.core.services.importer.AnalysisImportServiceImpl;
+import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
+import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingServiceImpl;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardManager;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardStateKey;
 import docking.ActionContext;
@@ -53,7 +55,7 @@ import ghidra.util.Msg;
 	shortDescription = "Toolkit for using RevEngAI API",
 	description = "Toolkit for using RevEng.AI API",
 	servicesRequired = { OptionsService.class },
-	servicesProvided = { ApiService.class, ExportFunctionBoundariesService.class, AnalysisImportService.class }
+	servicesProvided = { ApiService.class, ExportFunctionBoundariesService.class, AnalysisImportService.class, ReaiLoggingService.class }
 )
 //@formatter:on
 public class CorePlugin extends ProgramPlugin {
@@ -62,9 +64,13 @@ public class CorePlugin extends ProgramPlugin {
 	private ApiService apiService;
 	private ExportFunctionBoundariesService exportFunctionBoundariesService;
 	private AnalysisImportService analysisImportService;
+	private ReaiLoggingService loggingService;
 
 	public CorePlugin(PluginTool tool) {
 		super(tool);
+
+		loggingService = new ReaiLoggingServiceImpl();
+		registerServiceProvided(ReaiLoggingService.class, loggingService);
 
 		// check if we have already run the first time setup
 		if (!hasSetupWizardRun()) {
@@ -75,13 +81,13 @@ public class CorePlugin extends ProgramPlugin {
 		String apikey = tool.getOptions("Preferences").getString(ReaiPluginPackage.OPTION_KEY_APIKEY, "invalid");
 		String hostname = tool.getOptions("Preferences").getString(ReaiPluginPackage.OPTION_KEY_HOSTNAME, "unknown");
 		String modelname = tool.getOptions("Preferences").getString(ReaiPluginPackage.OPTION_KEY_MODEL, "unknown");
-		
+
 		apiService = new ApiServiceImpl(hostname, apikey, modelname);
 		registerServiceProvided(ApiService.class, apiService);
 
 		exportFunctionBoundariesService = new ExportFunctionBoundariesServiceImpl(tool);
 		registerServiceProvided(ExportFunctionBoundariesService.class, exportFunctionBoundariesService);
-		
+
 		analysisImportService = new AnalysisImportServiceImpl(tool);
 		registerServiceProvided(AnalysisImportService.class, analysisImportService);
 
@@ -102,33 +108,61 @@ public class CorePlugin extends ProgramPlugin {
 		runWizard.setMenuBarData(new MenuData(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Run Setup Wizard" },
 				ReaiPluginPackage.NAME));
 		tool.addAction(runWizard);
-		
+
 		DockingAction importAnalysis = new DockingAction("Import Analysis", getName()) {
-			
+
 			@Override
 			public void actionPerformed(ActionContext context) {
 				GhidraFileChooser fileChooser = new GhidraFileChooser(null);
 				fileChooser.setFileSelectionMode(GhidraFileChooserMode.FILES_ONLY);
-	
+
 				File jsonFile = fileChooser.getSelectedFile(true);
 				fileChooser.dispose();
 
 				if (jsonFile == null) {
-					System.err.println("No analysis selected for import");
+					loggingService.error("No analysis selected for import");
 					Msg.showError(jsonFile, null, ReaiPluginPackage.WINDOW_PREFIX + "Import Analysis",
 							"No Binary Selected", null);
 					return;
 				}
-				
+
 				analysisImportService.importFromJSON(jsonFile);
-				
+
+				loggingService.info("Successfully imported analysis result");
 				Msg.showInfo(jsonFile, null, ReaiPluginPackage.WINDOW_PREFIX + "Import Analysis",
 						"Successfully imported analysis result");
 			}
 		};
-		importAnalysis.setMenuBarData(new MenuData(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Import Analysis" },
-				ReaiPluginPackage.NAME));
+		importAnalysis.setMenuBarData(new MenuData(
+				new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Import Analysis" }, ReaiPluginPackage.NAME));
 		tool.addAction(importAnalysis);
+
+		DockingAction exportLogfile = new DockingAction("Export Plugin Logs", getName()) {
+
+			@Override
+			public void actionPerformed(ActionContext context) {
+				GhidraFileChooser fileChooser = new GhidraFileChooser(null);
+				fileChooser.setFileSelectionMode(GhidraFileChooserMode.DIRECTORIES_ONLY);
+
+				File outDir = fileChooser.getSelectedFile(true);
+				fileChooser.dispose();
+
+				if (outDir == null) {
+					loggingService.error("No dir selected for logfile export");
+					Msg.showError(outDir, null, ReaiPluginPackage.WINDOW_PREFIX + "Export logfile",
+							"No output directory provided to export logs to", null);
+					return;
+				}
+
+				loggingService.export(outDir.toString(), "reai_logs");
+
+				Msg.showInfo(outDir, null, ReaiPluginPackage.WINDOW_PREFIX + "Export Logs",
+						"Successfully exported logs to: " + outDir.toString());
+			}
+		};
+		exportLogfile.setMenuBarData(new MenuData(
+				new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Export Logs" }, ReaiPluginPackage.NAME));
+		tool.addAction(exportLogfile);
 	}
 
 	@Override
@@ -147,7 +181,7 @@ public class CorePlugin extends ProgramPlugin {
 	}
 
 	private void runSetupWizard() {
-		System.out.println("Running first time setup");
+		loggingService.info("First time running setup wizard");
 		SetupWizardManager setupManager = new SetupWizardManager(new WizardState<SetupWizardStateKey>(), getTool());
 		WizardManager wizardManager = new WizardManager("RevEng.ai Setup Wizard", true, setupManager);
 		wizardManager.showWizard(tool.getToolFrame());

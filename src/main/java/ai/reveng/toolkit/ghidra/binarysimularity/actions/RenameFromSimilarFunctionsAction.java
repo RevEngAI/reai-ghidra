@@ -1,6 +1,7 @@
 package ai.reveng.toolkit.ghidra.binarysimularity.actions;
 
 import ai.reveng.toolkit.ghidra.binarysimularity.ui.functionsimularity.FunctionSimularityDockableDialog;
+import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
 import docking.ActionContext;
 import docking.action.DockingAction;
 import ghidra.app.context.ListingActionContext;
@@ -17,6 +18,7 @@ import ghidra.program.util.ProgramLocation;
  */
 public class RenameFromSimilarFunctionsAction extends DockingAction {
 	private PluginTool tool;
+	private ReaiLoggingService loggingService;
 
 	public RenameFromSimilarFunctionsAction(String name, PluginTool plugin) {
 		super(name, plugin.getName());

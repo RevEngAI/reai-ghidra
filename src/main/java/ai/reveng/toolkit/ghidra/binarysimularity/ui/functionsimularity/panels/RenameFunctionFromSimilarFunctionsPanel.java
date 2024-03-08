@@ -8,6 +8,7 @@ import ai.reveng.toolkit.ghidra.core.services.api.ApiResponse;
 import ai.reveng.toolkit.ghidra.core.services.api.ApiService;
 import ai.reveng.toolkit.ghidra.core.services.api.types.Binary;
 import ai.reveng.toolkit.ghidra.core.services.api.types.FunctionEmbedding;
+import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
 
 import java.awt.BorderLayout;
 
@@ -75,10 +76,18 @@ public class RenameFunctionFromSimilarFunctionsPanel extends JPanel {
 	private JButton btnRefresh;
 	private PluginTool tool;
 	private Program currentProgram;
+	
+	private ReaiLoggingService loggingService;
 
 	public RenameFunctionFromSimilarFunctionsPanel(Function functionUnderReview, PluginTool tool) {
 		this.functionUnderReview = functionUnderReview;
 		this.tool = tool;
+		
+		loggingService = tool.getService(ReaiLoggingService.class);
+		if (loggingService == null) {
+			Msg.error(this, "Unable to access logging service");
+		}
+		
 		ProgramManager programManager = tool.getService(ProgramManager.class);
 		this.currentProgram = programManager.getCurrentProgram();
 		apiService = tool.getService(ApiService.class);
@@ -156,13 +165,13 @@ public class RenameFunctionFromSimilarFunctionsPanel extends JPanel {
 								SourceType.USER_DEFINED);
 						currentProgram.endTransaction(transactionID, true);
 					} catch (DuplicateNameException exc) {
-						System.err.println("Symbol already exists");
+						loggingService.error("Symbol already exists");
 						currentProgram.endTransaction(transactionID, false);
 						Msg.showError(actionButtonPanel, btnRename,
 								ReaiPluginPackage.WINDOW_PREFIX + "Rename Function Error", exc.getMessage());
 					} catch (Exception exc) {
 						currentProgram.endTransaction(transactionID, false);
-						System.err.println("Unknown Error");
+						loggingService.error("Unknown Error");
 					}
 				}
 			}
@@ -223,7 +232,7 @@ public class RenameFunctionFromSimilarFunctionsPanel extends JPanel {
 		lock.lock();
 		btnRefresh.setEnabled(false);
 		try {
-			System.out.println("Starting fetch");
+			loggingService.info("Starting fetch");
 			lblProgressStatusText.setText(PROGRESS_FETCHING_MSG);
 			progressBar.setValue(25);
 			cfm.clearData();
@@ -233,29 +242,31 @@ public class RenameFunctionFromSimilarFunctionsPanel extends JPanel {
 			ApiResponse res = apiService.embeddings(binID);
 			
 			if (res.getStatusCode() > 299) {
+				loggingService.error("Function Simularity: " + res.getJsonObject().get("error").toString());
 				Msg.showError(actionButtonPanel, canidateFunctionsScrollPanel,
 						ReaiPluginPackage.WINDOW_PREFIX + "Function Simularity", res.getJsonObject().get("error"));
 				return;
 			}
 			
-			System.out.println("Searching for func @ " + Long.parseLong(functionUnderReview.getEntryPoint().toString(), 16));
+			loggingService.info("Searching for func @ " + Long.parseLong(functionUnderReview.getEntryPoint().toString(), 16));
 
 			progressBar.setValue(50);
 			
 			Address baseAddr = this.currentProgram.getImageBase();
 			
-			System.out.print("Using ghidra base address");
+			loggingService.info("Using ghidra base address");
 
 			Binary bin = new Binary(res.getJsonArray(), baseAddr);
 			
-			System.out.println("Cached binary");
+			loggingService.info("Cached binary");
 
 			FunctionEmbedding fe = bin
 					.getFunctionEmbedding(functionUnderReview.getEntryPoint().toString());
 			
-			System.out.println(bin);
+			loggingService.info(bin.toString());
 
 			if (fe == null) {
+				loggingService.error("No similar functions found");
 				Msg.showError(bin, canidateFunctionsScrollPanel,
 						ReaiPluginPackage.WINDOW_PREFIX + "Find Similar Functions", "No similar functions found");
 				return;
@@ -264,7 +275,7 @@ public class RenameFunctionFromSimilarFunctionsPanel extends JPanel {
 			res = apiService.nearestSymbols(fe.getEmbedding(), currentBinaryHash,
 					Integer.parseInt(numResultsTf.getText()), null);
 
-			System.out.println(fe.getEmbedding());
+			loggingService.info(fe.getEmbedding().toString());
 
 			JSONArray jCanidateFunctions = res.getJsonArray();
 

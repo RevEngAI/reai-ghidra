@@ -9,6 +9,8 @@ import java.util.Map;
 
 import org.json.JSONObject;
 
+import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
+
 /**
  * Proxy that manages API actions.
  * 
