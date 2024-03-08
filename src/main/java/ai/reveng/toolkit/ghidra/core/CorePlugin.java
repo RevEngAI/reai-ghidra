@@ -75,21 +75,21 @@ public class CorePlugin extends ProgramPlugin {
 	private ExportFunctionBoundariesService exportFunctionBoundariesService;
 	private AnalysisImportService analysisImportService;
 	private ReaiLoggingService loggingService;
-	
+
 	private PluginTool tool;
 
 	public CorePlugin(PluginTool tool) {
 		super(tool);
-		
+
 		this.tool = tool;
 
 		loggingService = new ReaiLoggingServiceImpl();
 		registerServiceProvided(ReaiLoggingService.class, loggingService);
-		
+
 		String apikey = "invalid";
 		String hostname = "unknown";
 		String modelname = "unknown";
-		
+
 		String uHome = System.getProperty("user.home");
 		String cDir = ".reai";
 		String cFileName = "reai.json";
@@ -99,20 +99,20 @@ public class CorePlugin extends ProgramPlugin {
 		// check if we have already have a configfile to read
 		if (Files.exists(configFilePath)) {
 			// Read and parse the config file as JSON
-	        JSONParser parser = new JSONParser();
-	        try (FileReader reader = new FileReader(configFilePath.toString())) {
-	            JSONObject configObject = (JSONObject) parser.parse(reader);
-	            JSONObject credsObject = (JSONObject) configObject.get("PLUGIN_SETTINGS");
-	            apikey = (String) credsObject.get("API_KEY");
-	            hostname = (String) credsObject.get("HOSTNAME");
-	            modelname = (String) credsObject.get("MODEL");
-	            loggingService.info(configObject.toJSONString());
-	            
-	            // update project to use these
-	            tool.getOptions("Preferences").setString(ReaiPluginPackage.OPTION_KEY_APIKEY, apikey);
-	    		tool.getOptions("Preferences").setString(ReaiPluginPackage.OPTION_KEY_HOSTNAME, hostname);
-	    		tool.getOptions("Preferences").setString(ReaiPluginPackage.OPTION_KEY_MODEL, modelname);
-	        } catch (FileNotFoundException e) {
+			JSONParser parser = new JSONParser();
+			try (FileReader reader = new FileReader(configFilePath.toString())) {
+				JSONObject configObject = (JSONObject) parser.parse(reader);
+				JSONObject credsObject = (JSONObject) configObject.get("PLUGIN_SETTINGS");
+				apikey = (String) credsObject.get("API_KEY");
+				hostname = (String) credsObject.get("HOSTNAME");
+				modelname = (String) credsObject.get("MODEL");
+				loggingService.info(configObject.toJSONString());
+
+				// update project to use these
+				tool.getOptions("Preferences").setString(ReaiPluginPackage.OPTION_KEY_APIKEY, apikey);
+				tool.getOptions("Preferences").setString(ReaiPluginPackage.OPTION_KEY_HOSTNAME, hostname);
+				tool.getOptions("Preferences").setString(ReaiPluginPackage.OPTION_KEY_MODEL, modelname);
+			} catch (FileNotFoundException e) {
 				loggingService.error(e.getMessage());
 				Msg.showError(this, null, "Load Config", "Unable to find config file");
 			} catch (IOException e) {
@@ -121,11 +121,11 @@ public class CorePlugin extends ProgramPlugin {
 			} catch (ParseException e) {
 				loggingService.error(e.getMessage());
 				Msg.showError(this, null, "Load Config", "Unable to parse config file: " + e.getMessage());
-			} 
+			}
 		} else if (!hasSetupWizardRun()) {
 			runSetupWizard();
 			setWizardRun();
-			
+
 			apikey = tool.getOptions("Preferences").getString(ReaiPluginPackage.OPTION_KEY_APIKEY, "invalid");
 			hostname = tool.getOptions("Preferences").getString(ReaiPluginPackage.OPTION_KEY_HOSTNAME, "unknown");
 			modelname = tool.getOptions("Preferences").getString(ReaiPluginPackage.OPTION_KEY_MODEL, "unknown");
@@ -211,8 +211,8 @@ public class CorePlugin extends ProgramPlugin {
 						"Successfully exported logs to: " + outDir.toString());
 			}
 		};
-		exportLogfile.setMenuBarData(new MenuData(
-				new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Export Logs" }, ReaiPluginPackage.NAME));
+		exportLogfile.setMenuBarData(new MenuData(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Export Logs" },
+				ReaiPluginPackage.NAME));
 		tool.addAction(exportLogfile);
 	}
 
@@ -233,7 +233,8 @@ public class CorePlugin extends ProgramPlugin {
 
 	private void runSetupWizard() {
 		loggingService.info("First time running setup wizard");
-		SetupWizardManager setupManager = new SetupWizardManager(new WizardState<SetupWizardStateKey>(), getTool(), loggingService);
+		SetupWizardManager setupManager = new SetupWizardManager(new WizardState<SetupWizardStateKey>(), getTool(),
+				loggingService);
 		WizardManager wizardManager = new WizardManager("RevEng.ai Setup Wizard", true, setupManager);
 		wizardManager.showWizard(tool.getToolFrame());
 
