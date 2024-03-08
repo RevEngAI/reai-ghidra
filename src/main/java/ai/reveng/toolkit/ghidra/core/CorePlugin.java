@@ -120,7 +120,7 @@ public class CorePlugin extends ProgramPlugin {
 				fileChooser.dispose();
 
 				if (jsonFile == null) {
-					System.err.println("No analysis selected for import");
+					loggingService.error("No analysis selected for import");
 					Msg.showError(jsonFile, null, ReaiPluginPackage.WINDOW_PREFIX + "Import Analysis",
 							"No Binary Selected", null);
 					return;
@@ -128,6 +128,7 @@ public class CorePlugin extends ProgramPlugin {
 
 				analysisImportService.importFromJSON(jsonFile);
 
+				loggingService.info("Successfully imported analysis result");
 				Msg.showInfo(jsonFile, null, ReaiPluginPackage.WINDOW_PREFIX + "Import Analysis",
 						"Successfully imported analysis result");
 			}
@@ -147,7 +148,7 @@ public class CorePlugin extends ProgramPlugin {
 				fileChooser.dispose();
 
 				if (outDir == null) {
-					System.err.println("No dir selected for logfile export");
+					loggingService.error("No dir selected for logfile export");
 					Msg.showError(outDir, null, ReaiPluginPackage.WINDOW_PREFIX + "Export logfile",
 							"No output directory provided to export logs to", null);
 					return;

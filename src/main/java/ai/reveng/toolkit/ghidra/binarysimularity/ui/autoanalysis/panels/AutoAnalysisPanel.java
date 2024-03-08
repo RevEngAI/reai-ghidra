@@ -24,6 +24,7 @@ import ai.reveng.toolkit.ghidra.core.services.api.ApiResponse;
 import ai.reveng.toolkit.ghidra.core.services.api.ApiService;
 import ai.reveng.toolkit.ghidra.core.services.api.types.Binary;
 import ai.reveng.toolkit.ghidra.core.services.api.types.FunctionEmbedding;
+import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
 import docking.widgets.table.GFilterTable;
 import ghidra.app.services.ProgramManager;
 import ghidra.framework.plugintool.PluginTool;
@@ -80,6 +81,8 @@ public class AutoAnalysisPanel extends JPanel {
 	private AutoAnalysisSummary analysisSummary;
 	private JPanel resultsPanel;
 	private JLabel lblSkippedAnalysisValue;
+	
+	private ReaiLoggingService loggingService;
 
 	/**
 	 * Create the panel.
@@ -88,6 +91,11 @@ public class AutoAnalysisPanel extends JPanel {
 		this.tool = tool;
 		setLayout(new BorderLayout(0, 0));
 		setPreferredSize(new Dimension(1250, 730));
+		
+		loggingService = tool.getService(ReaiLoggingService.class);
+		if (loggingService == null) {
+			Msg.error(this, "Unable to access logging service");
+		}
 
 		JPanel optionsPanel = new JPanel();
 		add(optionsPanel);
@@ -244,6 +252,7 @@ public class AutoAnalysisPanel extends JPanel {
 		ApiResponse res = apiService.embeddings(binID);
 
 		if (res.getStatusCode() > 299) {
+			loggingService.error("Auto Analysis Error: " + res.getJsonObject().get("error").toString());
 			Msg.showError(fm, null, ReaiPluginPackage.WINDOW_PREFIX + "Auto Analysis",
 					res.getJsonObject().get("error"));
 			return;
@@ -262,14 +271,14 @@ public class AutoAnalysisPanel extends JPanel {
 		boolean log_unsuc = numFuncs > 1000 ? false : true;
 		for (Function func : fm.getFunctions(true)) {
 			progressBar.setString("Searching for " + func.getName() + " [" + (cursor+1) + "/" + numFuncs + "]");
-			System.out.println("Searching for " + func.getName() + " [" + (cursor+1) + "/" + numFuncs + "]");
+			loggingService.info("Searching for " + func.getName() + " [" + (cursor+1) + "/" + numFuncs + "]");
 			analysisSummary.incrementStat("total_analyses");
 			
 			FunctionEmbedding fe = bin.getFunctionEmbedding(func.getEntryPoint().toString());
 			if (fe == null) {
 				cursor++;
 				int progress = (int) (((double) cursor / numFuncs) * 100);
-				System.out.println("Progress: " + progress);
+				loggingService.info("Progress: " + progress);
 				progressBar.setValue(progress);
 				analysisSummary.incrementStat("skipped_analyses");
 				if (log_unsuc) {
@@ -285,7 +294,7 @@ public class AutoAnalysisPanel extends JPanel {
 			if (res.getStatusCode() != 200) {
 				cursor++;
 				int progress = (int) (((double) cursor / numFuncs) * 100);
-				System.out.println("Progress: " + progress);
+				loggingService.info("Progress: " + progress);
 				progressBar.setValue(progress);
 				analysisSummary.incrementStat("unsuccessful_analyses");
 				if (log_unsuc) {
@@ -298,7 +307,7 @@ public class AutoAnalysisPanel extends JPanel {
 			JSONObject jFunc = res.getJsonArray().getJSONObject(0);
 			Double distance = jFunc.getDouble("distance");
 			if (distance >= getConfidenceSlider().getValue() / 100) {
-				System.out.println(
+				loggingService.info(
 						"Found symbol '" + jFunc.getString("name") + "' with a confidence of " + distance);
 				int transactionID = currentProgram.startTransaction("Rename function from autoanalysis");
 				try {
@@ -306,19 +315,19 @@ public class AutoAnalysisPanel extends JPanel {
 					currentProgram.endTransaction(transactionID, true);
 					tableEntries.add(new AutoAnalysisResultsRowObject(srcSymbol,jFunc.getString("name") + " ("+ jFunc.getString("binary_name") + ")", true, "Renamed with confidence of '" + distance));
 				} catch (DuplicateNameException exc) {
-					System.err.println("Symbol already exists");
+					loggingService.error("Symbol already exists");
 					currentProgram.endTransaction(transactionID, false);
 					Msg.showError(bin, btnStartAnalysis,
 							ReaiPluginPackage.WINDOW_PREFIX + "Rename Function Error", exc.getMessage());
 				} catch (Exception exc) {
 					currentProgram.endTransaction(transactionID, false);
-					System.err.println("Unknown Error");
+					loggingService.error("Unknown Error");
 				}
 			}
 			analysisSummary.incrementStat("successful_analyses");
 			cursor++;
 			int progress = (int) (((double) cursor / numFuncs) * 100);
-			System.out.println("Progress: " + progress);
+			loggingService.info("Progress: " + progress);
 			progressBar.setValue(progress);
 		}
 		progressBar.setString("Finished");

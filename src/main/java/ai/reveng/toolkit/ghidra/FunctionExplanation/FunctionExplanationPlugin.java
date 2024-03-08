@@ -8,6 +8,7 @@ package ai.reveng.toolkit.ghidra.FunctionExplanation;
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.FunctionExplanation.actions.AskForFunctionExplanationAction;
 import ai.reveng.toolkit.ghidra.core.services.api.ApiService;
+import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
 import ghidra.app.plugin.PluginCategoryNames;
 import ghidra.app.plugin.ProgramPlugin;
 import ghidra.app.services.ProgramManager;
@@ -21,7 +22,7 @@ import ghidra.framework.plugintool.util.PluginStatus;
 	category = PluginCategoryNames.DECOMPILER,
 	shortDescription = "Provide Function Explanation using AI",
 	description = "Provides support for annotating functions in the decompiler view with human read comments on what the function does",
-	servicesRequired = { ApiService.class, ProgramManager.class }
+	servicesRequired = { ApiService.class, ProgramManager.class, ReaiLoggingService.class }
 )
 //@formatter:on
 public class FunctionExplanationPlugin extends ProgramPlugin {
