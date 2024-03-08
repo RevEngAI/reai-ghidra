@@ -25,6 +25,8 @@ import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoun
 import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoundariesServiceImpl;
 import ai.reveng.toolkit.ghidra.core.services.importer.AnalysisImportService;
 import ai.reveng.toolkit.ghidra.core.services.importer.AnalysisImportServiceImpl;
+import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
+import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingServiceImpl;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardManager;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardStateKey;
 import docking.ActionContext;
@@ -53,7 +55,7 @@ import ghidra.util.Msg;
 	shortDescription = "Toolkit for using RevEngAI API",
 	description = "Toolkit for using RevEng.AI API",
 	servicesRequired = { OptionsService.class },
-	servicesProvided = { ApiService.class, ExportFunctionBoundariesService.class, AnalysisImportService.class }
+	servicesProvided = { ApiService.class, ExportFunctionBoundariesService.class, AnalysisImportService.class, ReaiLoggingService.class }
 )
 //@formatter:on
 public class CorePlugin extends ProgramPlugin {
@@ -62,9 +64,13 @@ public class CorePlugin extends ProgramPlugin {
 	private ApiService apiService;
 	private ExportFunctionBoundariesService exportFunctionBoundariesService;
 	private AnalysisImportService analysisImportService;
+	private ReaiLoggingService loggingService;
 
 	public CorePlugin(PluginTool tool) {
 		super(tool);
+		
+		loggingService = new ReaiLoggingServiceImpl();
+		registerServiceProvided(ReaiLoggingService.class, loggingService);
 
 		// check if we have already run the first time setup
 		if (!hasSetupWizardRun()) {
@@ -147,7 +153,7 @@ public class CorePlugin extends ProgramPlugin {
 	}
 
 	private void runSetupWizard() {
-		System.out.println("Running first time setup");
+		loggingService.info("First time running setup wizard");
 		SetupWizardManager setupManager = new SetupWizardManager(new WizardState<SetupWizardStateKey>(), getTool());
 		WizardManager wizardManager = new WizardManager("RevEng.ai Setup Wizard", true, setupManager);
 		wizardManager.showWizard(tool.getToolFrame());
