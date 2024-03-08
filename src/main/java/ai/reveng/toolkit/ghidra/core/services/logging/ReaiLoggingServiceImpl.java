@@ -1,10 +1,13 @@
 package ai.reveng.toolkit.ghidra.core.services.logging;
 
 import java.io.IOException;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.logging.FileHandler;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
@@ -63,11 +66,24 @@ public class ReaiLoggingServiceImpl implements ReaiLoggingService {
 		Path targetPath = Paths.get(targetDirectoryPath, exportedFileName);
 		
 		try {
-			Files.createDirectories(targetPath);
-            Files.copy(logFilePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
-            Msg.info(ReaiLoggingServiceImpl.class, "Log file successfully exported to: " + targetPath);
-		} catch (IOException e) {
-			Msg.error(ReaiLoggingServiceImpl.class, "Unable to export logfile: " + e.getMessage());
-		}
+            Files.walkFileTree(logDir, new SimpleFileVisitor<Path>() {
+                @Override
+                public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+                    Path targetDir = targetPath.resolve(logDir.relativize(dir));
+                    Files.createDirectories(targetDir);
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                    Files.copy(file, targetPath.resolve(logDir.relativize(file)), StandardCopyOption.REPLACE_EXISTING);
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+
+            Msg.info(this.getClass(), "Log directory successfully exported to: " + targetPath);
+        } catch (IOException e) {
+            Msg.error(this.getClass(), "Unable to export log directory: " + e.getMessage());
+        }
 	}
 }

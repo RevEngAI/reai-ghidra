@@ -1,7 +1,5 @@
 package ai.reveng.toolkit.ghidra.core.services.logging;
 
-import java.nio.file.Path;
-
 import ai.reveng.toolkit.ghidra.core.CorePlugin;
 import ghidra.framework.plugintool.ServiceInfo;
 
