@@ -1,9 +1,19 @@
 package ai.reveng.toolkit.ghidra.core.ui.wizard;
 
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
+import ai.reveng.toolkit.ghidra.core.models.ReaiConfig;
+import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.panels.UserAvailableModelsPanel;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.panels.UserCredentialsPanel;
 import docking.wizard.AbstractMagePanelManager;
@@ -14,8 +24,9 @@ import ghidra.framework.plugintool.PluginTool;
 
 public class SetupWizardManager extends AbstractMagePanelManager<SetupWizardStateKey> {
 	private PluginTool tool;
+	private ReaiLoggingService loggingService;
 
-	public SetupWizardManager(WizardState<SetupWizardStateKey> initialState, PluginTool tool) {
+	public SetupWizardManager(WizardState<SetupWizardStateKey> initialState, PluginTool tool, ReaiLoggingService loggingService) {
 		super(initialState);
 		this.tool = tool;
 	}
@@ -32,15 +43,48 @@ public class SetupWizardManager extends AbstractMagePanelManager<SetupWizardStat
 	@Override
 	protected void doFinish() throws IllegalPanelStateException {
 		getWizardManager().completed(true);
-		tool.getOptions("Preferences").setString(ReaiPluginPackage.OPTION_KEY_APIKEY,
-				(String) getState().get(SetupWizardStateKey.API_KEY));
-		tool.getOptions("Preferences").setString(ReaiPluginPackage.OPTION_KEY_HOSTNAME,
-				(String) getState().get(SetupWizardStateKey.HOSTNAME));
-		tool.getOptions("Preferences").setString(ReaiPluginPackage.OPTION_KEY_MODEL,
-				(String) getState().get(SetupWizardStateKey.MODEL));
-		cleanup();
+		String apiKey = (String) getState().get(SetupWizardStateKey.API_KEY);
+		String hostname = (String) getState().get(SetupWizardStateKey.HOSTNAME);
+		String model = (String) getState().get(SetupWizardStateKey.MODEL);
+		
+		tool.getOptions("Preferences").setString(ReaiPluginPackage.OPTION_KEY_APIKEY, apiKey);
+		tool.getOptions("Preferences").setString(ReaiPluginPackage.OPTION_KEY_HOSTNAME, hostname);
+		tool.getOptions("Preferences").setString(ReaiPluginPackage.OPTION_KEY_MODEL, model);
+		
+		String uHome = System.getProperty("user.home");
+		String cDir = ".reai";
+		String cFileName = "reai.json";
+		Path configDirPath = Paths.get(uHome, cDir);
+		Path configFilePath = configDirPath.resolve(cFileName);
+		
+		// check that our .reai directory exists
+		if (!Files.exists(configDirPath)) {
+			try {
+				Files.createDirectories(configDirPath);
+			} catch (IOException e) {
+                cleanup();
+                return;
+            }
+		}
+		
+		// create a new config file, overwritting any existing one
+        try (FileWriter file = new FileWriter(configFilePath.toString())) {
+        	ReaiConfig config = new ReaiConfig();
+        	ReaiConfig.PluginSettings pluginSettings = new ReaiConfig.PluginSettings();
+        	
+        	pluginSettings.setApiKey(apiKey);
+        	pluginSettings.setHostname(hostname);
+        	pluginSettings.setModelName(model);
+        	config.setPluginSettings(pluginSettings);
 
-		// TODO write config to file
+        	Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        	gson.toJson(config, file);
+        } catch (IOException e) {
+        	cleanup();
+            return;
+        }
+		
+		cleanup();
 
 	}
 

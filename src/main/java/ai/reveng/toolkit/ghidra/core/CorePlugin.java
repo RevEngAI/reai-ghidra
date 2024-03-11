@@ -16,11 +16,19 @@
 package ai.reveng.toolkit.ghidra.core;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+import com.google.gson.Gson;
 
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
+import ai.reveng.toolkit.ghidra.core.models.ReaiConfig;
 import ai.reveng.toolkit.ghidra.core.services.api.ApiService;
 import ai.reveng.toolkit.ghidra.core.services.api.ApiServiceImpl;
-import ai.reveng.toolkit.ghidra.core.services.configuration.ConfigurationService;
 import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoundariesService;
 import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoundariesServiceImpl;
 import ai.reveng.toolkit.ghidra.core.services.importer.AnalysisImportService;
@@ -41,7 +49,6 @@ import docking.options.OptionsService;
 import docking.widgets.filechooser.GhidraFileChooser;
 import docking.widgets.filechooser.GhidraFileChooserMode;
 import ghidra.framework.plugintool.util.PluginStatus;
-import ghidra.program.model.listing.Program;
 import ghidra.util.Msg;
 
 /**
@@ -66,21 +73,58 @@ public class CorePlugin extends ProgramPlugin {
 	private AnalysisImportService analysisImportService;
 	private ReaiLoggingService loggingService;
 
+	private PluginTool tool;
+
 	public CorePlugin(PluginTool tool) {
 		super(tool);
+
+		this.tool = tool;
 
 		loggingService = new ReaiLoggingServiceImpl();
 		registerServiceProvided(ReaiLoggingService.class, loggingService);
 
-		// check if we have already run the first time setup
-		if (!hasSetupWizardRun()) {
+		String apikey = "invalid";
+		String hostname = "unknown";
+		String modelname = "unknown";
+
+		String uHome = System.getProperty("user.home");
+		String cDir = ".reai";
+		String cFileName = "reai.json";
+		Path configDirPath = Paths.get(uHome, cDir);
+		Path configFilePath = configDirPath.resolve(cFileName);
+
+		// check if we have already have a configfile to read
+		if (Files.exists(configFilePath)) {
+			// Read and parse the config file as JSON
+			try (FileReader reader = new FileReader(configFilePath.toString())) {
+				Gson gson = new Gson();
+				ReaiConfig config = gson.fromJson(reader, ReaiConfig.class);
+				apikey = config.getPluginSettings().getApiKey();
+				hostname = config.getPluginSettings().getHostname();
+				modelname = config.getPluginSettings().getModelName();
+				loggingService.info(config.toString());
+
+				// update project to use these
+				tool.getOptions("Preferences").setString(ReaiPluginPackage.OPTION_KEY_APIKEY, apikey);
+				tool.getOptions("Preferences").setString(ReaiPluginPackage.OPTION_KEY_HOSTNAME, hostname);
+				tool.getOptions("Preferences").setString(ReaiPluginPackage.OPTION_KEY_MODEL, modelname);
+			} catch (FileNotFoundException e) {
+				loggingService.error(e.getMessage());
+				Msg.showError(this, null, "Load Config", "Unable to find config file");
+			} catch (IOException e) {
+				loggingService.error(e.getMessage());
+				Msg.showError(this, null, "Load Config", "Unable to read config file: " + e.getMessage());
+			}
+		} else if (!hasSetupWizardRun()) {
 			runSetupWizard();
 			setWizardRun();
-		}
 
-		String apikey = tool.getOptions("Preferences").getString(ReaiPluginPackage.OPTION_KEY_APIKEY, "invalid");
-		String hostname = tool.getOptions("Preferences").getString(ReaiPluginPackage.OPTION_KEY_HOSTNAME, "unknown");
-		String modelname = tool.getOptions("Preferences").getString(ReaiPluginPackage.OPTION_KEY_MODEL, "unknown");
+			apikey = tool.getOptions("Preferences").getString(ReaiPluginPackage.OPTION_KEY_APIKEY, "invalid");
+			hostname = tool.getOptions("Preferences").getString(ReaiPluginPackage.OPTION_KEY_HOSTNAME, "unknown");
+			modelname = tool.getOptions("Preferences").getString(ReaiPluginPackage.OPTION_KEY_MODEL, "unknown");
+		} else {
+			Msg.showError(tool, null, "Load config", "Unable to load a config file, or start the wizard");
+		}
 
 		apiService = new ApiServiceImpl(hostname, apikey, modelname);
 		registerServiceProvided(ApiService.class, apiService);
@@ -160,8 +204,8 @@ public class CorePlugin extends ProgramPlugin {
 						"Successfully exported logs to: " + outDir.toString());
 			}
 		};
-		exportLogfile.setMenuBarData(new MenuData(
-				new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Export Logs" }, ReaiPluginPackage.NAME));
+		exportLogfile.setMenuBarData(new MenuData(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Export Logs" },
+				ReaiPluginPackage.NAME));
 		tool.addAction(exportLogfile);
 	}
 
@@ -182,7 +226,8 @@ public class CorePlugin extends ProgramPlugin {
 
 	private void runSetupWizard() {
 		loggingService.info("First time running setup wizard");
-		SetupWizardManager setupManager = new SetupWizardManager(new WizardState<SetupWizardStateKey>(), getTool());
+		SetupWizardManager setupManager = new SetupWizardManager(new WizardState<SetupWizardStateKey>(), getTool(),
+				loggingService);
 		WizardManager wizardManager = new WizardManager("RevEng.ai Setup Wizard", true, setupManager);
 		wizardManager.showWizard(tool.getToolFrame());
 
