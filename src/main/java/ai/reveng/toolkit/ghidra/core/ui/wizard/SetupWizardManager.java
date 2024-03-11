@@ -8,9 +8,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -24,7 +21,6 @@ import docking.wizard.IllegalPanelStateException;
 import docking.wizard.MagePanel;
 import docking.wizard.WizardState;
 import ghidra.framework.plugintool.PluginTool;
-import ghidra.util.Msg;
 
 public class SetupWizardManager extends AbstractMagePanelManager<SetupWizardStateKey> {
 	private PluginTool tool;
