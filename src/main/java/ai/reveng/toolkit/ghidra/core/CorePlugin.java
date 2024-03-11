@@ -23,14 +23,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
+import com.google.gson.Gson;
 
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
+import ai.reveng.toolkit.ghidra.core.models.ReaiConfig;
 import ai.reveng.toolkit.ghidra.core.services.api.ApiService;
 import ai.reveng.toolkit.ghidra.core.services.api.ApiServiceImpl;
-import ai.reveng.toolkit.ghidra.core.services.configuration.ConfigurationService;
 import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoundariesService;
 import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoundariesServiceImpl;
 import ai.reveng.toolkit.ghidra.core.services.importer.AnalysisImportService;
@@ -51,7 +49,6 @@ import docking.options.OptionsService;
 import docking.widgets.filechooser.GhidraFileChooser;
 import docking.widgets.filechooser.GhidraFileChooserMode;
 import ghidra.framework.plugintool.util.PluginStatus;
-import ghidra.program.model.listing.Program;
 import ghidra.util.Msg;
 
 /**
@@ -99,14 +96,13 @@ public class CorePlugin extends ProgramPlugin {
 		// check if we have already have a configfile to read
 		if (Files.exists(configFilePath)) {
 			// Read and parse the config file as JSON
-			JSONParser parser = new JSONParser();
 			try (FileReader reader = new FileReader(configFilePath.toString())) {
-				JSONObject configObject = (JSONObject) parser.parse(reader);
-				JSONObject credsObject = (JSONObject) configObject.get("PLUGIN_SETTINGS");
-				apikey = (String) credsObject.get("API_KEY");
-				hostname = (String) credsObject.get("HOSTNAME");
-				modelname = (String) credsObject.get("MODEL");
-				loggingService.info(configObject.toJSONString());
+				Gson gson = new Gson();
+				ReaiConfig config = gson.fromJson(reader, ReaiConfig.class);
+				apikey = config.getPluginSettings().getApiKey();
+				hostname = config.getPluginSettings().getHostname();
+				modelname = config.getPluginSettings().getModelName();
+				loggingService.info(config.toString());
 
 				// update project to use these
 				tool.getOptions("Preferences").setString(ReaiPluginPackage.OPTION_KEY_APIKEY, apikey);
@@ -118,9 +114,6 @@ public class CorePlugin extends ProgramPlugin {
 			} catch (IOException e) {
 				loggingService.error(e.getMessage());
 				Msg.showError(this, null, "Load Config", "Unable to read config file: " + e.getMessage());
-			} catch (ParseException e) {
-				loggingService.error(e.getMessage());
-				Msg.showError(this, null, "Load Config", "Unable to parse config file: " + e.getMessage());
 			}
 		} else if (!hasSetupWizardRun()) {
 			runSetupWizard();

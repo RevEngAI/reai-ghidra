@@ -11,7 +11,11 @@ import java.util.List;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
+import ai.reveng.toolkit.ghidra.core.models.ReaiConfig;
 import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.panels.UserAvailableModelsPanel;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.panels.UserCredentialsPanel;
@@ -69,14 +73,16 @@ public class SetupWizardManager extends AbstractMagePanelManager<SetupWizardStat
 		
 		// create a new config file, overwritting any existing one
         try (FileWriter file = new FileWriter(configFilePath.toString())) {
-            JSONObject defaultConfig = new JSONObject();
-            JSONObject pluginSettings = new JSONObject();
-            pluginSettings.put("API_KEY", apiKey);
-            pluginSettings.put("HOSTNAME", hostname);
-            pluginSettings.put("MODEL", model);
-            defaultConfig.put("PLUGIN_SETTINGS", pluginSettings);
-            file.write(defaultConfig.toJSONString());
-            file.flush();
+        	ReaiConfig config = new ReaiConfig();
+        	ReaiConfig.PluginSettings pluginSettings = new ReaiConfig.PluginSettings();
+        	
+        	pluginSettings.setApiKey(apiKey);
+        	pluginSettings.setHostname(hostname);
+        	pluginSettings.setModelName(model);
+        	config.setPluginSettings(pluginSettings);
+
+        	Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        	gson.toJson(config, file);
         } catch (IOException e) {
         	cleanup();
             return;
