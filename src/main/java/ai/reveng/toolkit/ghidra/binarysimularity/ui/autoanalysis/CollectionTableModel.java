@@ -3,11 +3,9 @@ package ai.reveng.toolkit.ghidra.binarysimularity.ui.autoanalysis;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
+import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
+import ai.reveng.toolkit.ghidra.core.services.api.types.Collection;
 
-import ai.reveng.toolkit.ghidra.core.services.api.ApiResponse;
-import ai.reveng.toolkit.ghidra.core.services.api.ApiService;
 import docking.widgets.table.AbstractDynamicTableColumn;
 import docking.widgets.table.TableColumnDescriptor;
 import docking.widgets.table.threaded.ThreadedTableModelStub;
@@ -32,15 +30,12 @@ public class CollectionTableModel extends ThreadedTableModelStub<CollectionRowOb
 
 	@Override
 	protected void doLoad(Accumulator<CollectionRowObject> accumulator, TaskMonitor monitor) throws CancelledException {
-		ApiService apiService = plugin.getService(ApiService.class);
-		ApiResponse res = apiService.collections();
-		JSONArray jCollections = res.getJsonArray();
-		for (int i = 0; i < jCollections.length(); i++) {
-			JSONObject jCollection = jCollections.getJSONObject(i);
-			String collectionName = jCollection.getString("collection_name");
-			System.out.println("Collection: " + collectionName);
-			accumulator.add(new CollectionRowObject(collectionName, false));
-		}
+		GhidraRevengService apiService = plugin.getService(GhidraRevengService.class);
+		List<Collection> res = apiService.collections();
+		res.forEach(
+				collection -> accumulator.add(new CollectionRowObject(collection.collectionName(), false))
+		);
+
 		
 	}
 

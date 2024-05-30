@@ -60,7 +60,17 @@ dependencies {
 	// this extension is built.
 	implementation 'com.moandjiezana.toml:toml4j:0.7.2'
   	implementation 'org.json:json:20230618'
+	implementation "com.google.guava:guava:33.2.0-jre"
 }
 
 // Exclude additional files from the built extension
 // Ex: buildExtension.exclude '.idea/**'
+
+
+sourceSets {
+	main {
+		java {
+			srcDir 'ghidra_scripts'
+		}
+	}
+}

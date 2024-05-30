@@ -15,7 +15,7 @@ import java.util.logging.SimpleFormatter;
 import ghidra.util.Msg;
 
 /**
- * Very simple logging service to enable use to export error logs
+ * Very simple logging service to enable us to export error logs
  */
 public class ReaiLoggingServiceImpl implements ReaiLoggingService {
 	private static final Logger logger = Logger.getLogger("REAIPlugin");

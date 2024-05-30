@@ -3,7 +3,7 @@ package ai.reveng.toolkit.ghidra.core.ui.wizard.panels;
 import javax.swing.JPanel;
 
 import ai.reveng.toolkit.ghidra.core.services.api.ApiResponse;
-import ai.reveng.toolkit.ghidra.core.services.api.ApiServiceImpl;
+import ai.reveng.toolkit.ghidra.core.services.api.TypedApiImplementation;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardStateKey;
 import docking.wizard.AbstractMageJPanel;
 import docking.wizard.IllegalPanelStateException;
@@ -133,17 +133,15 @@ public class UserCredentialsPanel extends AbstractMageJPanel<SetupWizardStateKey
 		}
 		
 		// test that the API Key is valid before moving on to model selection
-		ApiServiceImpl api = new ApiServiceImpl(tfHostname.getText(), tfApiKey.getText());
-		ApiResponse res = api.models();
-		
-		if (res.getStatusCode() > 299) {
-			String errMsg = res.getJsonObject().getString("error");
-			notifyListenersOfStatusMessage(errMsg);
+		TypedApiImplementation api = new TypedApiImplementation(tfHostname.getText(), tfApiKey.getText());
+		if (api.healthStatus()){
+			notifyListenersOfStatusMessage(" ");
+			return true;
+		} else {
+			notifyListenersOfStatusMessage(api.healthMessage());
 			return false;
 		}
 
-		notifyListenersOfStatusMessage(" ");
-		return true;
 	}
 
 	@Override

@@ -22,7 +22,7 @@ import org.json.JSONObject;
  */
 public class ApiRequesterImpl implements IApiRequester {
 
-	private HttpClient httpClient;
+	public HttpClient httpClient;
 	private String baseUrl;
 
 	public ApiRequesterImpl(String baseUrl) {

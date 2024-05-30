@@ -4,10 +4,7 @@ import javax.swing.JPanel;
 
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.binarysimularity.ui.functionsimularity.models.CanidateFunctionModel;
-import ai.reveng.toolkit.ghidra.core.services.api.ApiResponse;
-import ai.reveng.toolkit.ghidra.core.services.api.ApiService;
-import ai.reveng.toolkit.ghidra.core.services.api.types.Binary;
-import ai.reveng.toolkit.ghidra.core.services.api.types.FunctionEmbedding;
+import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
 
 import java.awt.BorderLayout;
@@ -15,7 +12,6 @@ import java.awt.BorderLayout;
 import docking.widgets.table.GTable;
 import ghidra.app.services.ProgramManager;
 import ghidra.framework.plugintool.PluginTool;
-import ghidra.program.model.address.Address;
 import ghidra.program.model.listing.Function;
 import ghidra.program.model.listing.Program;
 import ghidra.program.model.symbol.SourceType;
@@ -23,8 +19,6 @@ import ghidra.util.Msg;
 import ghidra.util.exception.DuplicateNameException;
 import javax.swing.JScrollPane;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
 import javax.swing.JButton;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -47,7 +41,7 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 
 /**
- * GUI for displaying results from a FunctionSimularity request
+ * GUI for displaying results from a FunctionSimilarity request
  */
 public class RenameFunctionFromSimilarFunctionsPanel extends JPanel {
 	private static final long serialVersionUID = -7365592104915627273L;
@@ -57,8 +51,8 @@ public class RenameFunctionFromSimilarFunctionsPanel extends JPanel {
 	private GTable canidateFunctionsTable;
 	private CanidateFunctionModel cfm = new CanidateFunctionModel();
 	private Function functionUnderReview;
-	private ApiService apiService;
-	private String currentBinaryHash;
+	private GhidraRevengService apiService;
+//	private String currentBinaryHash;
 	private JScrollPane canidateFunctionsScrollPanel;
 	private JPanel actionButtonPanel;
 	private JPanel parametersPanel;
@@ -90,8 +84,8 @@ public class RenameFunctionFromSimilarFunctionsPanel extends JPanel {
 		
 		ProgramManager programManager = tool.getService(ProgramManager.class);
 		this.currentProgram = programManager.getCurrentProgram();
-		apiService = tool.getService(ApiService.class);
-		currentBinaryHash = currentProgram.getExecutableSHA256();
+		apiService = tool.getService(GhidraRevengService.class);
+//		currentBinaryHash = currentProgram.getExecutableSHA256();
 
 		setLayout(new BorderLayout(0, 0));
 
@@ -236,57 +230,16 @@ public class RenameFunctionFromSimilarFunctionsPanel extends JPanel {
 			lblProgressStatusText.setText(PROGRESS_FETCHING_MSG);
 			progressBar.setValue(25);
 			cfm.clearData();
-			
-			long binID = tool.getOptions("Preferences").getLong(ReaiPluginPackage.OPTION_KEY_BINID, 0xff);
+			var r = apiService.getSimilarFunctions(functionUnderReview);
 
-			ApiResponse res = apiService.embeddings(binID);
-			
-			if (res.getStatusCode() > 299) {
-				loggingService.error("Function Simularity: " + res.getJsonObject().get("error").toString());
-				Msg.showError(actionButtonPanel, canidateFunctionsScrollPanel,
-						ReaiPluginPackage.WINDOW_PREFIX + "Function Simularity", res.getJsonObject().get("error"));
-				return;
-			}
-			
-			loggingService.info("Searching for func @ " + Long.parseLong(functionUnderReview.getEntryPoint().toString(), 16));
-
-			progressBar.setValue(50);
-			
-			Address baseAddr = this.currentProgram.getImageBase();
-			
-			loggingService.info("Using ghidra base address");
-
-			Binary bin = new Binary(res.getJsonArray(), baseAddr);
-			
-			loggingService.info("Cached binary");
-
-			FunctionEmbedding fe = bin
-					.getFunctionEmbedding(functionUnderReview.getEntryPoint().toString());
-			
-			loggingService.info(bin.toString());
-
-			if (fe == null) {
-				loggingService.error("No similar functions found");
-				Msg.showError(bin, canidateFunctionsScrollPanel,
-						ReaiPluginPackage.WINDOW_PREFIX + "Find Similar Functions", "No similar functions found");
-				return;
-			}
-
-			res = apiService.nearestSymbols(fe.getEmbedding(), currentBinaryHash,
-					Integer.parseInt(numResultsTf.getText()), null);
-
-			loggingService.info(fe.getEmbedding().toString());
-
-			JSONArray jCanidateFunctions = res.getJsonArray();
-
-			progressBar.setValue(75);
-
-			for (int i = 0; i < jCanidateFunctions.length(); i++) {
-				JSONObject jCanidateFunction = jCanidateFunctions.getJSONObject(i);
-				cfm.addRow(new String[] { jCanidateFunction.getString("name"),
-						jCanidateFunction.get("distance").toString(), jCanidateFunction.getString("binary_name") });
-			}
-		} finally {
+			r.forEach((f) -> {
+				cfm.addRow(new String[] { f.nearest_neighbor_function_name(), String.valueOf(f.confidence()), f.nearest_neighbor_binary_name() });
+			});
+		} catch (Exception e){
+			loggingService.error("Error fetching results");
+			Msg.showError(this, btnRefresh, ReaiPluginPackage.WINDOW_PREFIX + "Fetch Error", e.getMessage());
+		}
+		finally {
 			progressBar.setValue(100);
 			lblProgressStatusText.setText(PROGRESS_GOT_RESULTS_MSG);
 			btnRefresh.setEnabled(true);

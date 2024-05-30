@@ -20,6 +20,8 @@ public class ReaiPluginPackage extends PluginPackage {
 	public static final String OPTION_KEY_MODEL = PREFIX + "Model";
 	public static final String OPTION_KEY_BINID = PREFIX + "Binary ID";
 
+	public static final Integer INVALID_BINARY_ID = -1;
+
 	/**
 	 * Create a Top Level Plugin Package that uses the RevEng.AI logo
 	 */
