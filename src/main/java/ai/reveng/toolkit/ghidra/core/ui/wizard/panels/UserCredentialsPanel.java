@@ -134,7 +134,7 @@ public class UserCredentialsPanel extends AbstractMageJPanel<SetupWizardStateKey
 		
 		// test that the API Key is valid before moving on to model selection
 		TypedApiImplementation api = new TypedApiImplementation(tfHostname.getText(), tfApiKey.getText());
-		if (api.healthStatus()){
+		if (api.checkCredentials()){
 			notifyListenersOfStatusMessage(" ");
 			return true;
 		} else {

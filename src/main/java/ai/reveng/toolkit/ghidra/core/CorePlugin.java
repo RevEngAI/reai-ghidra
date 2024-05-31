@@ -120,7 +120,6 @@ public class CorePlugin extends ProgramPlugin {
 
 //		apiInfo.checkValidity();
 		revengService = new GhidraRevengService(apiInfo);
-		revengService.health();
 		registerServiceProvided(GhidraRevengService.class, revengService);
 
 		exportFunctionBoundariesService = new ExportFunctionBoundariesServiceImpl(tool);

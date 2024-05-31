@@ -326,5 +326,15 @@ public class TypedApiImplementation implements TypedApiInterface {
         });
         return result;
     }
+
+    public boolean checkCredentials(){
+        try {
+            this.models();
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+
+    }
 }
 

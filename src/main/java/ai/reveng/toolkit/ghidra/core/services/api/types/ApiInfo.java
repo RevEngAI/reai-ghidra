@@ -33,7 +33,7 @@ public record ApiInfo(
         var api = new TypedApiImplementation(this);
         try {
 
-            if (!api.healthStatus()) {
+            if (!api.checkCredentials()) {
                 throw new IllegalArgumentException(api.healthMessage());
             }
         } catch (JSONException e) {
