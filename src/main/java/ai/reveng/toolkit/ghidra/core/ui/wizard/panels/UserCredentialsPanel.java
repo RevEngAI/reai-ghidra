@@ -4,6 +4,7 @@ import javax.swing.JPanel;
 
 import ai.reveng.toolkit.ghidra.core.services.api.ApiResponse;
 import ai.reveng.toolkit.ghidra.core.services.api.TypedApiImplementation;
+import ai.reveng.toolkit.ghidra.core.services.api.types.ApiInfo;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardStateKey;
 import docking.wizard.AbstractMageJPanel;
 import docking.wizard.IllegalPanelStateException;
@@ -131,14 +132,17 @@ public class UserCredentialsPanel extends AbstractMageJPanel<SetupWizardStateKey
 			notifyListenersOfStatusMessage("Please enter a hostname for you API server");
 			return false;
 		}
-		
+		var apiInfo = new ApiInfo(tfHostname.getText(), tfApiKey.getText());
 		// test that the API Key is valid before moving on to model selection
-		TypedApiImplementation api = new TypedApiImplementation(tfHostname.getText(), tfApiKey.getText());
-		if (api.checkCredentials()){
-			notifyListenersOfStatusMessage(" ");
-			return true;
+		if (apiInfo.checkServer()){
+			if (apiInfo.checkCredentials()){
+				return true;
+			} else {
+				notifyListenersOfStatusMessage("Problem with API key");
+				return false;
+			}
 		} else {
-			notifyListenersOfStatusMessage(api.healthMessage());
+			notifyListenersOfStatusMessage("Problem with host");
 			return false;
 		}
 

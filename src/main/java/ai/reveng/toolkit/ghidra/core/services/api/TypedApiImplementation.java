@@ -328,13 +328,27 @@ public class TypedApiImplementation implements TypedApiInterface {
     }
 
     public boolean checkCredentials(){
+        var request = requestBuilderForEndpoint("authenticate")
+                .GET()
+                .build();
+        HttpResponse<String> response  = null;
         try {
-            this.models();
-            return true;
-        } catch (Exception e) {
-            return false;
+            response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
 
+        switch (response.statusCode()){
+            case 200:
+
+                return true;
+            case 401:
+                return false;
+            default:
+                throw new RuntimeException("Request with unexpected status code: " + response.statusCode() + " and message: " + response.body());
+        }
     }
 }
 

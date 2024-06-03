@@ -23,7 +23,20 @@ public record ApiInfo(
         this(URI.create(hostURI), apiKey);
     }
 
-    public void checkValidity(){
+
+    public boolean check(){
+        return checkServer() && checkCredentials();
+    }
+    public boolean checkServer(){
+        var api = new TypedApiImplementation(this);
+        try {
+            api.health();
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+    public boolean checkCredentials(){
         if (hostURI == null || apiKey == null){
             throw new IllegalArgumentException("hostURI and apiKey must not be null");
         }
@@ -32,14 +45,11 @@ public record ApiInfo(
 
         var api = new TypedApiImplementation(this);
         try {
-
-            if (!api.checkCredentials()) {
-                throw new IllegalArgumentException(api.healthMessage());
-            }
+            return api.checkCredentials();
         } catch (JSONException e) {
             throw new IllegalArgumentException("Invalid JSON response from server " + hostURI);
         } catch (Exception e) {
-            throw new IllegalArgumentException("Failed to connect to server");
+            throw new IllegalArgumentException("Failed to validate credentials", e);
         }
 
     }
