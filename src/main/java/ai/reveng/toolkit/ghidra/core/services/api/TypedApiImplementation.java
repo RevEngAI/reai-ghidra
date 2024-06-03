@@ -2,6 +2,7 @@ package ai.reveng.toolkit.ghidra.core.services.api;
 
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
 import ai.reveng.toolkit.ghidra.core.services.api.types.Collection;
+import com.google.common.primitives.Bytes;
 import org.json.JSONObject;
 
 import java.io.File;
@@ -324,7 +325,12 @@ public class TypedApiImplementation implements TypedApiInterface {
         var requestBuilder = HttpRequest.newBuilder(uri);
         headers.forEach(requestBuilder::header);
         requestBuilder.GET();
-        return sendRequest(requestBuilder.build());
+        try {
+            var jsonResponse = sendRequest(requestBuilder.build());
+            return jsonResponse;
+        } catch (Exception e) {
+            return new JSONObject(Map.of("success", false, "message", e.getMessage()));
+        }
     }
 
     private HttpRequest.Builder requestBuilderForEndpoint(String endpoint){
