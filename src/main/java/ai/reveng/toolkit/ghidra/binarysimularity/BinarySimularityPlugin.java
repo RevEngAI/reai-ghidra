@@ -107,7 +107,9 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 				.withContext(ProgramActionContext.class)
 				.enabledWhen(context -> context.getProgram() != null)
 				.onAction(context -> {
-					apiService.upload(context.getProgram());
+					BinaryHash hash = apiService.upload(context.getProgram());
+					Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Upload Binary",
+							"Binary uploaded with hash: " + hash.sha256());
 				})
 				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Upload Binary" })
 //				.popupMenuPath(new String[] { "Upload Binary" })

@@ -286,12 +286,6 @@ public class GhidraRevengService {
     }
 
     public BinaryHash upload(Program program) {
-        // TODO: remove this hardcoded hash once upload works (and can check for already uploaded binaries)
-        if (program.getExecutableSHA256().equals("b04c1259718dd16c0ffbd0931aeecf07746775cc2f1cda76e46d51af165f3ba6")){
-            return new BinaryHash("b04c1259718dd16c0ffbd0931aeecf07746775cc2f1cda76e46d51af165f3ba6");
-        }
-
-
         // TODO: Check that the file at the path is actually the same as the program (via hash)
 
         try {
@@ -307,7 +301,6 @@ public class GhidraRevengService {
         } catch (FileNotFoundException e) {
             throw new RuntimeException(e);
         }
-//        throw new UnsupportedOperationException("upload not implemented yet");
     }
 
     public AnalysisStatus status(Program program) {

@@ -88,10 +88,31 @@ public class TypedApiImplementation implements TypedApiInterface {
         if (!bin.exists())
             throw new FileNotFoundException("Binary to upload does not exist");
 
+        String boundary = "------------------------" + UUID.randomUUID().toString();
+
+        String bodyStart = "--" + boundary + "\r\n" +
+                "Content-Disposition: form-data; name=\"file\"; filename=\"" + binPath.getFileName() + "\"\r\n" +
+                "Content-Type: application/octet-stream\r\n\r\n";
+
+        String bodyEnd = "\r\n--" + boundary + "--\r\n";
+
+        // Read file bytes
+        byte[] fileBytes = new byte[0];
+        try {
+            fileBytes = java.nio.file.Files.readAllBytes(binPath);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        // Combine all parts of the body
+        byte[] requestBody = Bytes.concat(bodyStart.getBytes(), fileBytes, bodyEnd.getBytes());
+
+        // Create HttpRequest
         var request = requestBuilderForEndpoint("upload")
-                .POST(HttpRequest.BodyPublishers.ofFile(binPath))
-                .header("Content-Type", "multipart/form-data; boundary=----boundary")
+                .POST(HttpRequest.BodyPublishers.ofByteArray(requestBody))
+                .header("Content-Type", "multipart/form-data; boundary=" + boundary)
                 .build();
+
 
         return BinaryHash.fromJSONObject(sendRequest(request));
     }
