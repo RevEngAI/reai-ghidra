@@ -33,8 +33,8 @@ The RevEng.AI Toolkit allows you to interact with our API from within Ghidra. Th
 ## Key Features
 
 * Upload the current binary for analysis
-* Rename a function based on similar functions from our dataset
-* Ask for a human readable function explanation
+* Automatically rename all functions above a confidence threshold
+* Show similar functions and their names for one selected function
 
 ## Installation
 

@@ -22,6 +22,8 @@ import docking.wizard.MagePanel;
 import docking.wizard.WizardState;
 import ghidra.framework.plugintool.PluginTool;
 
+import static ai.reveng.toolkit.ghidra.core.CorePlugin.REAI_WIZARD_RUN_PREF;
+
 public class SetupWizardManager extends AbstractMagePanelManager<SetupWizardStateKey> {
 	private PluginTool tool;
 	private ReaiLoggingService loggingService;
@@ -50,6 +52,7 @@ public class SetupWizardManager extends AbstractMagePanelManager<SetupWizardStat
 		tool.getOptions("Preferences").setString(ReaiPluginPackage.OPTION_KEY_APIKEY, apiKey);
 		tool.getOptions("Preferences").setString(ReaiPluginPackage.OPTION_KEY_HOSTNAME, hostname);
 		tool.getOptions("Preferences").setString(ReaiPluginPackage.OPTION_KEY_MODEL, model);
+		tool.getOptions("Preferences").setString(REAI_WIZARD_RUN_PREF, "true");
 		
 		String uHome = System.getProperty("user.home");
 		String cDir = ".reai";

@@ -19,20 +19,22 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
+import java.util.Optional;
 
+import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
+import ai.reveng.toolkit.ghidra.core.services.api.types.AnalysisResult;
+import ai.reveng.toolkit.ghidra.core.services.api.types.AnalysisStatus;
+import ai.reveng.toolkit.ghidra.core.services.api.types.ApiInfo;
+import ai.reveng.toolkit.ghidra.core.services.api.types.BinaryID;
 import com.google.gson.Gson;
 
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.core.models.ReaiConfig;
-import ai.reveng.toolkit.ghidra.core.services.api.ApiService;
-import ai.reveng.toolkit.ghidra.core.services.api.ApiServiceImpl;
 import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoundariesService;
 import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoundariesServiceImpl;
-import ai.reveng.toolkit.ghidra.core.services.importer.AnalysisImportService;
-import ai.reveng.toolkit.ghidra.core.services.importer.AnalysisImportServiceImpl;
 import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
 import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingServiceImpl;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardManager;
@@ -40,8 +42,10 @@ import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardStateKey;
 import docking.ActionContext;
 import docking.action.DockingAction;
 import docking.action.MenuData;
+import docking.action.builder.ActionBuilder;
 import docking.wizard.WizardManager;
 import docking.wizard.WizardState;
+import ghidra.app.context.ProgramActionContext;
 import ghidra.app.plugin.PluginCategoryNames;
 import ghidra.app.plugin.ProgramPlugin;
 import ghidra.framework.plugintool.*;
@@ -50,27 +54,32 @@ import docking.widgets.filechooser.GhidraFileChooser;
 import docking.widgets.filechooser.GhidraFileChooserMode;
 import ghidra.framework.plugintool.util.PluginStatus;
 import ghidra.util.Msg;
+import ghidra.util.task.MonitoredRunnable;
+import ghidra.util.task.RunManager;
+import ghidra.util.task.TaskMonitor;
 
 /**
  * CorePlugin for accessing the RevEng.AI Platform
+ * It provides the {@link GhidraRevengService}
+ * This is then used by other plugins to implement funcionalities
  */
 //@formatter:off
 @PluginInfo(
 	status = PluginStatus.STABLE,
 	packageName = ReaiPluginPackage.NAME,
-	category = PluginCategoryNames.MISC,
+	category = PluginCategoryNames.COMMON,
 	shortDescription = "Toolkit for using RevEngAI API",
 	description = "Toolkit for using RevEng.AI API",
 	servicesRequired = { OptionsService.class },
-	servicesProvided = { ApiService.class, ExportFunctionBoundariesService.class, AnalysisImportService.class, ReaiLoggingService.class }
+	servicesProvided = { GhidraRevengService.class, ExportFunctionBoundariesService.class, ReaiLoggingService.class }
 )
 //@formatter:on
 public class CorePlugin extends ProgramPlugin {
-	private static final String REAI_WIZARD_RUN_PREF = "REAISetupWizardRun";
+	public static final String REAI_WIZARD_RUN_PREF = "REAISetupWizardRun";
+	private final RunManager runMgr;
 
-	private ApiService apiService;
+	private GhidraRevengService revengService;
 	private ExportFunctionBoundariesService exportFunctionBoundariesService;
-	private AnalysisImportService analysisImportService;
 	private ReaiLoggingService loggingService;
 
 	private PluginTool tool;
@@ -80,134 +89,126 @@ public class CorePlugin extends ProgramPlugin {
 
 		this.tool = tool;
 
+		var toolOptions =  tool;
+		tool.getOptions("Preferences").registerOption(REAI_WIZARD_RUN_PREF, "false", null, "If the setup wizard has been run");
 		loggingService = new ReaiLoggingServiceImpl();
 		registerServiceProvided(ReaiLoggingService.class, loggingService);
 
-		String apikey = "invalid";
-		String hostname = "unknown";
-		String modelname = "unknown";
 
-		String uHome = System.getProperty("user.home");
-		String cDir = ".reai";
-		String cFileName = "reai.json";
-		Path configDirPath = Paths.get(uHome, cDir);
-		Path configFilePath = configDirPath.resolve(cFileName);
+		ApiInfo apiInfo;
 
-		// check if we have already have a configfile to read
-		if (Files.exists(configFilePath)) {
-			// Read and parse the config file as JSON
-			try (FileReader reader = new FileReader(configFilePath.toString())) {
-				Gson gson = new Gson();
-				ReaiConfig config = gson.fromJson(reader, ReaiConfig.class);
-				apikey = config.getPluginSettings().getApiKey();
-				hostname = config.getPluginSettings().getHostname();
-				modelname = config.getPluginSettings().getModelName();
-				loggingService.info(config.toString());
+//		if (!hasSetupWizardRun()) {
+//			runSetupWizard();
+//			setWizardRun();
+//
+//			apiInfo = getApiInfoFromToolOptions();
+//			apikey = tool.getOptions("Preferences").getString(ReaiPluginPackage.OPTION_KEY_APIKEY, "invalid");
+//			hostname = tool.getOptions("Preferences").getString(ReaiPluginPackage.OPTION_KEY_HOSTNAME, "unknown");
+//			modelname = tool.getOptions("Preferences").getString(ReaiPluginPackage.OPTION_KEY_MODEL, "unknown");
+//		} else {
+//			Msg.showError(tool, null, "Load config", "Unable to load a config file, or start the wizard");
+//		}
 
-				// update project to use these
-				tool.getOptions("Preferences").setString(ReaiPluginPackage.OPTION_KEY_APIKEY, apikey);
-				tool.getOptions("Preferences").setString(ReaiPluginPackage.OPTION_KEY_HOSTNAME, hostname);
-				tool.getOptions("Preferences").setString(ReaiPluginPackage.OPTION_KEY_MODEL, modelname);
-			} catch (FileNotFoundException e) {
-				loggingService.error(e.getMessage());
-				Msg.showError(this, null, "Load Config", "Unable to find config file");
-			} catch (IOException e) {
-				loggingService.error(e.getMessage());
-				Msg.showError(this, null, "Load Config", "Unable to read config file: " + e.getMessage());
-			}
-		} else if (!hasSetupWizardRun()) {
-			runSetupWizard();
-			setWizardRun();
+		apiInfo = getApiInfoFromToolOptions().or(this::getApiInfoFromConfig).orElseThrow();
 
-			apikey = tool.getOptions("Preferences").getString(ReaiPluginPackage.OPTION_KEY_APIKEY, "invalid");
-			hostname = tool.getOptions("Preferences").getString(ReaiPluginPackage.OPTION_KEY_HOSTNAME, "unknown");
-			modelname = tool.getOptions("Preferences").getString(ReaiPluginPackage.OPTION_KEY_MODEL, "unknown");
-		} else {
-			Msg.showError(tool, null, "Load config", "Unable to load a config file, or start the wizard");
-		}
+//		try {
+//			apiInfo.checkValidity();
+//		} catch (IllegalArgumentException e) {
+//			loggingService.error(e.getMessage());
+//			Msg.showError(this, null, "API Info", e.getMessage());
+//		}
 
-		apiService = new ApiServiceImpl(hostname, apikey, modelname);
-		registerServiceProvided(ApiService.class, apiService);
+//		apiInfo.checkValidity();
+		revengService = new GhidraRevengService(apiInfo);
+		registerServiceProvided(GhidraRevengService.class, revengService);
 
 		exportFunctionBoundariesService = new ExportFunctionBoundariesServiceImpl(tool);
 		registerServiceProvided(ExportFunctionBoundariesService.class, exportFunctionBoundariesService);
 
-		analysisImportService = new AnalysisImportServiceImpl(tool);
-		registerServiceProvided(AnalysisImportService.class, analysisImportService);
+		runMgr = new RunManager();
 
 		setupActions();
 
 	}
 
-	private void setupActions() {
-		DockingAction runWizard = new DockingAction("Run Setup Wizard", getName()) {
-
-			@Override
-			public void actionPerformed(ActionContext context) {
-				runSetupWizard();
-
-			}
-
-		};
-		runWizard.setMenuBarData(new MenuData(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Run Setup Wizard" },
-				ReaiPluginPackage.NAME));
-		tool.addAction(runWizard);
-
-		DockingAction importAnalysis = new DockingAction("Import Analysis", getName()) {
-
-			@Override
-			public void actionPerformed(ActionContext context) {
-				GhidraFileChooser fileChooser = new GhidraFileChooser(null);
-				fileChooser.setFileSelectionMode(GhidraFileChooserMode.FILES_ONLY);
-
-				File jsonFile = fileChooser.getSelectedFile(true);
-				fileChooser.dispose();
-
-				if (jsonFile == null) {
-					loggingService.error("No analysis selected for import");
-					Msg.showError(jsonFile, null, ReaiPluginPackage.WINDOW_PREFIX + "Import Analysis",
-							"No Binary Selected", null);
-					return;
-				}
-
-				analysisImportService.importFromJSON(jsonFile);
-
-				loggingService.info("Successfully imported analysis result");
-				Msg.showInfo(jsonFile, null, ReaiPluginPackage.WINDOW_PREFIX + "Import Analysis",
-						"Successfully imported analysis result");
-			}
-		};
-		importAnalysis.setMenuBarData(new MenuData(
-				new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Import Analysis" }, ReaiPluginPackage.NAME));
-		tool.addAction(importAnalysis);
-
-		DockingAction exportLogfile = new DockingAction("Export Plugin Logs", getName()) {
-
-			@Override
-			public void actionPerformed(ActionContext context) {
-				GhidraFileChooser fileChooser = new GhidraFileChooser(null);
-				fileChooser.setFileSelectionMode(GhidraFileChooserMode.DIRECTORIES_ONLY);
-
-				File outDir = fileChooser.getSelectedFile(true);
-				fileChooser.dispose();
-
-				if (outDir == null) {
-					loggingService.error("No dir selected for logfile export");
-					Msg.showError(outDir, null, ReaiPluginPackage.WINDOW_PREFIX + "Export logfile",
-							"No output directory provided to export logs to", null);
-					return;
-				}
-
-				loggingService.export(outDir.toString(), "reai_logs");
-
-				Msg.showInfo(outDir, null, ReaiPluginPackage.WINDOW_PREFIX + "Export Logs",
-						"Successfully exported logs to: " + outDir.toString());
-			}
-		};
-		exportLogfile.setMenuBarData(new MenuData(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Export Logs" },
-				ReaiPluginPackage.NAME));
-		tool.addAction(exportLogfile);
+	private Optional<ApiInfo> getApiInfoFromToolOptions(){
+		var apikey = tool.getOptions("Preferences").getString(ReaiPluginPackage.OPTION_KEY_APIKEY, "invalid");
+		var hostname = tool.getOptions("Preferences").getString(ReaiPluginPackage.OPTION_KEY_HOSTNAME, "unknown");
+		if (apikey.equals("invalid") || hostname.equals("unknown")) {
+			return Optional.empty();
+		}
+		var apiInfo = new ApiInfo(hostname, apikey);
+//		apiInfo.checkValidity();
+		return Optional.of(apiInfo);
 	}
+
+	/**
+	 * Attempts to generate an {@link ApiInfo} object from the config file
+	 * @return
+	 */
+	private Optional<ApiInfo> getApiInfoFromConfig(){
+        try {
+            return Optional.of(ApiInfo.fromConfig());
+        } catch (FileNotFoundException e) {
+			loggingService.error(e.getMessage());
+			Msg.showError(this, null, "Load Config", "Unable to find config file");
+            return Optional.empty();
+        }
+
+    }
+
+	private void setupActions() {
+
+		new ActionBuilder("Run Setup Wizard", this.toString())
+				.withContext(ActionContext.class)
+				.enabledWhen(c -> !hasSetupWizardRun())
+				.onAction(context -> runSetupWizard())
+				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Run Setup Wizard" })
+				.buildAndInstall(tool);
+
+//		new ActionBuilder("Export Plugin Logs", getName())
+//				.onAction(context -> exportLogs())
+//				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Export Logs" })
+//				.buildAndInstall(tool);
+
+
+		new ActionBuilder("Connect to existing analysis", this.toString())
+				.withContext(ProgramActionContext.class)
+				.enabledWhen(c -> !revengService.isKnownProgram(c.getProgram()))
+				.onAction(this::connectToExistingAnalysis)
+				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Connect to existing analysis" })
+				.buildAndInstall(tool);
+
+	}
+
+	private void connectToExistingAnalysis(ProgramActionContext context) {
+        List<AnalysisResult> results = revengService.searchForProgram(context.getProgram());
+		var finishedResults = results.stream()
+				.filter(r -> r.status() == AnalysisStatus.Complete)
+				.sorted((a,b ) -> b.binary_id().compareTo(a.binary_id())) // sort by highest binary ID first
+				.toList();
+		if (finishedResults.size() == 1){
+			AnalysisResult a = finishedResults.get(0);
+			BinaryID binID = a.binary_id();
+			connectToAnalysis(binID);
+		} else if (finishedResults.isEmpty()){
+			Msg.showInfo(this, null, "Connectint to existing analysis failed", "No results found for program");
+		} else {
+			// TODO: Implement UI choice dialog here
+			Msg.info(this, "Multiple results found for program. Defaulting to most recent one");
+			AnalysisResult a = finishedResults.get(0);
+			connectToAnalysis(a.binary_id());
+		}
+	}
+
+	private void connectToAnalysis(BinaryID binID) {
+		revengService.addBinaryIDforProgram(currentProgram, binID);
+		Msg.showInfo(this,null, "", "Connected to binary id: " + binID.toString());
+
+
+	}
+
+
 
 	@Override
 	public void init() {
@@ -232,6 +233,27 @@ public class CorePlugin extends ProgramPlugin {
 		wizardManager.showWizard(tool.getToolFrame());
 
 		return;
+	}
+
+
+	private void exportLogs(){
+		GhidraFileChooser fileChooser = new GhidraFileChooser(null);
+		fileChooser.setFileSelectionMode(GhidraFileChooserMode.DIRECTORIES_ONLY);
+
+		File outDir = fileChooser.getSelectedFile(true);
+		fileChooser.dispose();
+
+		if (outDir == null) {
+			loggingService.error("No dir selected for logfile export");
+			Msg.showError(outDir, null, ReaiPluginPackage.WINDOW_PREFIX + "Export logfile",
+					"No output directory provided to export logs to", null);
+			return;
+		}
+
+		loggingService.export(outDir.toString(), "reai_logs");
+
+		Msg.showInfo(outDir, null, ReaiPluginPackage.WINDOW_PREFIX + "Export Logs",
+				"Successfully exported logs to: " + outDir.toString());
 	}
 
 }

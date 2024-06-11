@@ -15,32 +15,28 @@
  */
 package ai.reveng.toolkit.ghidra.binarysimularity;
 
-import java.awt.event.InputEvent;
-import java.awt.event.KeyEvent;
-import java.io.File;
-
-import org.json.JSONObject;
-
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
-import ai.reveng.toolkit.ghidra.binarysimularity.actions.RenameFromSimilarFunctionsAction;
 import ai.reveng.toolkit.ghidra.binarysimularity.ui.autoanalysis.AutoAnalysisDockableDialog;
-import ai.reveng.toolkit.ghidra.core.services.api.AnalysisOptions;
-import ai.reveng.toolkit.ghidra.core.services.api.ApiResponse;
-import ai.reveng.toolkit.ghidra.core.services.api.ApiService;
+import ai.reveng.toolkit.ghidra.binarysimularity.ui.functionsimularity.FunctionSimularityDockableDialog;
+import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
+import ai.reveng.toolkit.ghidra.core.services.api.types.AnalysisStatus;
+import ai.reveng.toolkit.ghidra.core.services.api.types.BinaryHash;
+import ai.reveng.toolkit.ghidra.core.services.api.types.BinaryID;
 import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoundariesService;
 import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
-import docking.ActionContext;
-import docking.action.DockingAction;
-import docking.action.KeyBindingData;
-import docking.action.MenuData;
-import docking.widgets.filechooser.GhidraFileChooser;
-import docking.widgets.filechooser.GhidraFileChooserMode;
+import docking.action.builder.ActionBuilder;
+import ghidra.app.context.ProgramActionContext;
+import ghidra.app.context.ProgramLocationActionContext;
 import ghidra.app.plugin.PluginCategoryNames;
 import ghidra.app.plugin.ProgramPlugin;
 import ghidra.app.services.ProgramManager;
-import ghidra.framework.plugintool.*;
+import ghidra.framework.plugintool.PluginInfo;
+import ghidra.framework.plugintool.PluginTool;
 import ghidra.framework.plugintool.util.PluginStatus;
 import ghidra.util.Msg;
+import ghidra.util.task.MonitoredRunnable;
+import ghidra.util.task.RunManager;
+import ghidra.util.task.TaskMonitor;
 
 /**
  * This plugin provides features for performing binary code similarity using the
@@ -50,16 +46,16 @@ import ghidra.util.Msg;
 @PluginInfo(
 	status = PluginStatus.STABLE,
 	packageName = ReaiPluginPackage.NAME,
-	category = PluginCategoryNames.DIFF,
+	category = PluginCategoryNames.COMMON,
 	shortDescription = "Support for Binary Simularity Featrues of RevEng.AI Toolkit.",
 	description = "Enable features that support binary simlularity operations, including binary upload, and auto-renaming",
-	servicesRequired = { ApiService.class, ProgramManager.class, ExportFunctionBoundariesService.class, ReaiLoggingService.class }
+	servicesRequired = { GhidraRevengService.class, ProgramManager.class, ExportFunctionBoundariesService.class, ReaiLoggingService.class }
 )
 //@formatter:on
 public class BinarySimularityPlugin extends ProgramPlugin {
-	private ApiService apiService;
-	private ExportFunctionBoundariesService exportFunctionBoundariesService;
+	private GhidraRevengService apiService;
 	public ReaiLoggingService loggingService;
+	private RunManager runMgr;
 
 	/**
 	 * Plugin constructor.
@@ -68,6 +64,7 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 	 */
 	public BinarySimularityPlugin(PluginTool tool) {
 		super(tool);
+		runMgr = new RunManager();
 
 		loggingService = tool.getService(ReaiLoggingService.class);
 		if (loggingService == null) {
@@ -77,116 +74,142 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 		setupActions();
 	}
 
+	@Override
+	public void serviceAdded(Class<?> interfaceClass, Object service) {
+		if (interfaceClass == ReaiLoggingService.class) {
+			loggingService = (ReaiLoggingService) service;
+		}
+	}
+
 	private void setupActions() {
-		DockingAction uploadBinary = new DockingAction("Upload Binary", getName()) {
 
-			@Override
-			public void actionPerformed(ActionContext context) {
-				loggingService.info("Upload bin");
-				File binFile;
+//		uploadBinary.setMenuBarData(new MenuData(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Upload Binary" },
+//				ReaiPluginPackage.NAME));
+//		uploadBinary.setPopupMenuData(new MenuData(new String[] { "Upload Binary" }, ReaiPluginPackage.NAME));
+//		tool.addAction(uploadBinary);
 
-				loggingService.info("Attempting to read:" + currentProgram.getExecutablePath());
+		new ActionBuilder("Upload Binary", this.getName())
+				.withContext(ProgramActionContext.class)
+				.enabledWhen(context -> context.getProgram() != null)
+				.onAction(context -> {
+					BinaryHash hash = apiService.upload(context.getProgram());
+					Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Upload Binary",
+							"Binary uploaded with hash: " + hash.sha256());
+				})
+				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Upload Binary" })
+//				.popupMenuPath(new String[] { "Upload Binary" })
+				.buildAndInstall(tool);
 
-				if (new File(currentProgram.getExecutablePath()).exists()) {
-					binFile = new File(currentProgram.getExecutablePath());
-				} else {
-					GhidraFileChooser fileChooser = new GhidraFileChooser(null);
-					fileChooser.setFileSelectionMode(GhidraFileChooserMode.FILES_ONLY);
+		new ActionBuilder("Create new Analysis for Binary", this.getName())
+				.withContext(ProgramActionContext.class)
+				.enabledWhen(context -> context.getProgram() != null && !apiService.isKnownProgram(context.getProgram()))
+				.onAction(context -> {
+					if (apiService.searchForProgram(context.getProgram()).isEmpty()){
+						// We assume that if the program was uploaded that there is probably
+						// at least one analysis for it.
+						// So if there is no existing analysis, we uplaod the binary
+						apiService.upload(context.getProgram());
+					}
+					var binID = apiService.analyse(context.getProgram());
+					Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Create new Analysis for Binary",
+							"Analysis is running for binary with ID: " + binID.value() + "\n"
+					+ "You will be notified when the analysis is complete.");
+					spawnAnalysisStatusChecker(binID);
+					// Trigger a context refresh so the UI status of the actions gets updated
+					// because now other actions are available
+					tool.contextChanged(null);
+				})
+				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Create new Analysis for Binary" })
+				.buildAndInstall(tool);
 
-					binFile = fileChooser.getSelectedFile(true);
-					fileChooser.dispose();
-				}
 
-				if (binFile == null) {
-					loggingService.error("No file selected for upload");
-					Msg.showError(binFile, null, ReaiPluginPackage.WINDOW_PREFIX + "Upload Binary",
-							"No Binary Selected", null);
-					return;
-				}
-
-				String baseAddr = currentProgram.getImageBase().toString("0x");
-
-				JSONObject symbols = new JSONObject();
-				symbols.put("base_addr", baseAddr);
-				symbols.put("functions", exportFunctionBoundariesService.getFunctionsArray());
-
-				String hash = apiService.upload(binFile.toPath()).getJsonObject().getString("sha_256_hash");
-
-				AnalysisOptions ao = new AnalysisOptions.Builder().fileName(binFile.toPath().toFile().getName())
-						.binHash(hash).symbols(symbols).build();
-
-				ApiResponse res = apiService.analyse(ao);
-
-				if (res.getStatusCode() == 200) {
-					int binID = res.getJsonObject().getInt("binary_id");
-					loggingService.info("Got binary_id: " + binID);
-					tool.getOptions("Preferences").setLong(ReaiPluginPackage.OPTION_KEY_BINID, binID);
-				}
-				loggingService.info(res.toString());
-			}
-
-		};
-		uploadBinary.setMenuBarData(new MenuData(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Upload Binary" },
-				ReaiPluginPackage.NAME));
-		uploadBinary.setPopupMenuData(new MenuData(new String[] { "Upload Binary" }, ReaiPluginPackage.NAME));
-		tool.addAction(uploadBinary);
-
-		DockingAction checkStatusAction = new DockingAction("Check Analysis Status", getName()) {
-
-			@Override
-			public void actionPerformed(ActionContext context) {
-				long bid = tool.getOptions("Preferences").getLong(ReaiPluginPackage.OPTION_KEY_BINID, 0xffff);
-				ApiResponse res = apiService.status(bid);
-				try {
-					loggingService.info("Check Status: " + res.getJsonObject().get("status"));
+		new ActionBuilder("Check Analysis Status", this.getName())
+				.withContext(ProgramActionContext.class)
+				.enabledWhen(context -> context.getProgram() != null && apiService.isKnownProgram(context.getProgram()))
+				.onAction(context -> {
+					AnalysisStatus status = apiService.status(context.getProgram());
+					loggingService.info("Check Status: " + status);
 					Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Check Analysis Status",
-							"Status: " + res.getJsonObject().get("status"));
-				} catch (Exception e) {
-					loggingService.error("Error getting status");
-					Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Check Analysis Status",
-							"Error getting status\n\nCheck:\n- You have downloaded your binary id from the portal\n- You have uploaded the current binary to the portal");
-				}
-			}
-		};
-		checkStatusAction.setMenuBarData(new MenuData(
-				new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Check Analysis Status" }, ReaiPluginPackage.NAME));
-		checkStatusAction
-				.setPopupMenuData(new MenuData(new String[] { "Check Analysis Status" }, ReaiPluginPackage.NAME));
-		tool.addAction(checkStatusAction);
+							"Status: " + status);
+				})
+				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Check Analysis Status" })
+//				.popupMenuPath(new String[] { "Check Analysis Status" })
+				.buildAndInstall(tool);
 
-		RenameFromSimilarFunctionsAction rsfAction = new RenameFromSimilarFunctionsAction(getName(), getTool());
-		rsfAction.setPopupMenuData(
-				new MenuData(new String[] { "Rename From Similar Functions" }, ReaiPluginPackage.NAME));
-		// default to ctrl+shift R
-		rsfAction.setKeyBindingData(
-				new KeyBindingData(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
-		tool.addAction(rsfAction);
+		new ActionBuilder("Rename From Similar Functions", this.getName())
+				.withContext(ProgramLocationActionContext.class)
+				.enabledWhen(context -> {
+					var func = context.getProgram().getFunctionManager().getFunctionContaining(context.getAddress());
+					return func != null
+							&& apiService.isKnownProgram(context.getProgram())
+							&& apiService.isProgramAnalysed(context.getProgram());
+				})
+				.onAction(context -> {
+					var func = context.getProgram().getFunctionManager().getFunctionContaining(context.getAddress());
+					if (!apiService.isKnownFunction(func)){
+						Msg.showError(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Rename From Similar Functions",
+								"Function is not known to the RevEng API." +
+										"This can happen if the function boundaries do not match.\n" +
+								"You can create a new analysis based on the current analysis state to fix this.");
+						return;
+					}
 
-		DockingAction autoAnalysisAction = new DockingAction("Auto Analysis Similar Functions", this.getName()) {
+					FunctionSimularityDockableDialog renameDialogue = new FunctionSimularityDockableDialog(func, tool);
+					tool.showDialog(renameDialogue);
+				})
+//				.keyBinding(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK))
+				.popupMenuPath(new String[] { "Rename From Similar Functions" })
+				.popupMenuGroup(ReaiPluginPackage.NAME)
+				.buildAndInstall(tool);
 
-			@Override
-			public void actionPerformed(ActionContext context) {
-				AutoAnalysisDockableDialog autoAnalyse = new AutoAnalysisDockableDialog(tool);
-				tool.showDialog(autoAnalyse);
 
-			}
-		};
-		autoAnalysisAction.setMenuBarData(
-				new MenuData(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Auto Analyse Binary Symbols" },
-						ReaiPluginPackage.NAME));
-		autoAnalysisAction
-				.setPopupMenuData(new MenuData(new String[] { "Auto Analyse Binary Symbols" }, ReaiPluginPackage.NAME));
-		// default to ctrl+shift A
-		autoAnalysisAction.setKeyBindingData(
-				new KeyBindingData(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
-		tool.addAction(autoAnalysisAction);
+		new ActionBuilder("Auto Analysis Similar Functions", this.getName())
+				.menuGroup(ReaiPluginPackage.NAME)
+				.menuPath(ReaiPluginPackage.MENU_GROUP_NAME, "Auto Analyse Binary Symbols")
+				.withContext(ProgramActionContext.class)
+				.enabledWhen(context -> apiService.isKnownProgram(context.getProgram()))
+				.onAction(context -> {
+					if (apiService.status(context.getProgram()) != AnalysisStatus.Complete) {
+						Msg.showError(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Auto Analyse Binary Symbols",
+								"Analysis must have completed before running name import");
+						return;
+					}
+					AutoAnalysisDockableDialog autoAnalyse = new AutoAnalysisDockableDialog(tool);
+					tool.showDialog(autoAnalyse);
+				})
+//				.keyBinding()autoAnalysisAction.setKeyBindingData( new KeyBindingData(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
+				.buildAndInstall(tool);
 	}
 
 	@Override
 	public void init() {
 		super.init();
 
-		apiService = tool.getService(ApiService.class);
-		exportFunctionBoundariesService = tool.getService(ExportFunctionBoundariesService.class);
+		apiService = tool.getService(GhidraRevengService.class);
 	}
+
+	private void spawnAnalysisStatusChecker(BinaryID binID){
+		runMgr.runNext(new MonitoredRunnable() {
+			@Override
+			public void monitoredRun(TaskMonitor monitor) {
+				monitor.setMessage("Checking analysis status");
+
+				// Check the status of the analysis every 5 seconds
+				while (true) {
+					AnalysisStatus result = apiService.status(binID);
+					if (result == AnalysisStatus.Complete) {
+						Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Analysis Status",
+								"Analysis is complete for binary with ID: " + binID.value());
+						break;
+					}
+					try {
+						Thread.sleep(5000);
+					} catch (InterruptedException e) {
+						loggingService.error(e.getMessage());
+					}
+				}
+			}
+		}, "Checking analysis status", 0);
+	}
+
 }

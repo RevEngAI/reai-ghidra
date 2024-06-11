@@ -11,8 +11,7 @@ import javax.swing.SwingWorker;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
+import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.binarysimularity.ui.autoanalysis.AutoAnalysisResultsRowObject;
@@ -20,10 +19,8 @@ import ai.reveng.toolkit.ghidra.binarysimularity.ui.autoanalysis.AutoAnalysisRes
 import ai.reveng.toolkit.ghidra.binarysimularity.ui.autoanalysis.AutoAnalysisSummary;
 import ai.reveng.toolkit.ghidra.binarysimularity.ui.autoanalysis.CollectionRowObject;
 import ai.reveng.toolkit.ghidra.binarysimularity.ui.autoanalysis.CollectionTableModel;
-import ai.reveng.toolkit.ghidra.core.services.api.ApiResponse;
-import ai.reveng.toolkit.ghidra.core.services.api.ApiService;
-import ai.reveng.toolkit.ghidra.core.services.api.types.Binary;
-import ai.reveng.toolkit.ghidra.core.services.api.types.FunctionEmbedding;
+import ai.reveng.toolkit.ghidra.core.services.api.types.FunctionMatch;
+import ai.reveng.toolkit.ghidra.core.services.api.types.GhidraFunctionMatch;
 import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
 import docking.widgets.table.GFilterTable;
 import ghidra.app.services.ProgramManager;
@@ -31,26 +28,25 @@ import ghidra.framework.plugintool.PluginTool;
 import ghidra.program.model.listing.Function;
 import ghidra.program.model.listing.FunctionManager;
 import ghidra.program.model.listing.Program;
+import ghidra.program.model.symbol.Namespace;
 import ghidra.program.model.symbol.SourceType;
 import ghidra.util.Msg;
 import ghidra.util.exception.DuplicateNameException;
+import ghidra.util.exception.InvalidInputException;
+
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import javax.swing.JProgressBar;
 import javax.swing.JTabbedPane;
-import javax.swing.JSplitPane;
-import javax.swing.JList;
-import javax.swing.AbstractListModel;
-import javax.swing.JScrollPane;
-import javax.swing.JCheckBox;
 import java.awt.GridLayout;
 import javax.swing.BoxLayout;
 import javax.swing.SwingConstants;
-import java.awt.FlowLayout;
 import java.awt.Component;
 
 /**
@@ -104,12 +100,12 @@ public class AutoAnalysisPanel extends JPanel {
 		tabbedPanel = new JTabbedPane(JTabbedPane.TOP);
 		optionsPanel.add(tabbedPanel, BorderLayout.NORTH);
 		
-		JPanel collectionsPanel = new JPanel();
-		tabbedPanel.addTab("Collections", null, collectionsPanel, null);
-		collectionsModel = new CollectionTableModel(tool);
-		collectionsPanel.setLayout(new BorderLayout(0, 0));
-		collectionsTable = new GFilterTable<CollectionRowObject>(collectionsModel);
-		collectionsPanel.add(collectionsTable);
+//		JPanel collectionsPanel = new JPanel();
+//		tabbedPanel.addTab("Collections", null, collectionsPanel, null);
+//		collectionsModel = new CollectionTableModel(tool);
+//		collectionsPanel.setLayout(new BorderLayout(0, 0));
+//		collectionsTable = new GFilterTable<CollectionRowObject>(collectionsModel);
+//		collectionsPanel.add(collectionsTable);
 		
 		resultsPanel = new JPanel();
 		tabbedPanel.addTab("Results", null, resultsPanel, null);
@@ -159,7 +155,7 @@ public class AutoAnalysisPanel extends JPanel {
 		
 		lblUnsuccessfulAnalysesValue = new JLabel("0");
 		statsPanel.add(lblUnsuccessfulAnalysesValue);
-		tabbedPanel.setEnabledAt(1, false);
+//		tabbedPanel.setEnabledAt(0, false);
 
 		JPanel confidencePanel = new JPanel();
 		optionsPanel.add(confidencePanel, BorderLayout.SOUTH);
@@ -203,7 +199,13 @@ public class AutoAnalysisPanel extends JPanel {
 				SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
 					@Override
 					protected Void doInBackground() throws Exception {
-						performAutoAnalysis();
+						try {
+							performAutoAnalysis();
+						} catch (Exception exc) {
+							Msg.showError(this, btnStartAnalysis,
+									ReaiPluginPackage.WINDOW_PREFIX + "Auto Analysis Error", exc.getMessage());
+							loggingService.error(exc.getMessage());
+						}
 						return null;
 					}
 				};
@@ -236,100 +238,91 @@ public class AutoAnalysisPanel extends JPanel {
 		return sb.toString();
 	}
 	
-	private void performAutoAnalysis() {		
+	private void performAutoAnalysis() {
 		analysisSummary = new AutoAnalysisSummary();
 		List<AutoAnalysisResultsRowObject> tableEntries = new ArrayList<AutoAnalysisResultsRowObject>();
 		btnStartAnalysis.setEnabled(false);
-		getTabbedPanel().setEnabledAt(1, false);
-		ApiService apiService = tool.getService(ApiService.class);
+//		getTabbedPanel().setEnabledAt(1, false);
+		GhidraRevengService apiService = tool.getService(GhidraRevengService.class);
 		ProgramManager programManager = tool.getService(ProgramManager.class);
 		Program currentProgram = programManager.getCurrentProgram();
 		FunctionManager fm = currentProgram.getFunctionManager();
-
-		String currentBinaryHash = currentProgram.getExecutableSHA256();
-		long binID = tool.getOptions("Preferences").getLong(ReaiPluginPackage.OPTION_KEY_BINID, 0xff);
-
-		ApiResponse res = apiService.embeddings(binID);
-
-		if (res.getStatusCode() > 299) {
-			loggingService.error("Auto Analysis Error: " + res.getJsonObject().get("error").toString());
-			Msg.showError(fm, null, ReaiPluginPackage.WINDOW_PREFIX + "Auto Analysis",
-					res.getJsonObject().get("error"));
-			return;
-		}
-		
 		/*
 		 * using getFunctionCount() also returns external functions so our count is wrong for the progress.
-		 * Instead we just count the number of entries that are contained in the iterator
+		 * Instead, we just count the number of entries that are contained in the iterator
 		 */
 		long numFuncs = StreamSupport.stream(fm.getFunctions(true).spliterator(), false).count();
 		int cursor = 0;
 		progressBar.setValue(0);
 
-		Binary bin = new Binary(res.getJsonArray(), currentProgram.getImageBase());
-		
-		boolean log_unsuc = numFuncs > 1000 ? false : true;
-		for (Function func : fm.getFunctions(true)) {
+		progressBar.setString("Fetching similar functions for program");
+		var thresholdConfidence = (double) getConfidenceSlider().getValue() / 100;
+
+
+        Map<Function, List<GhidraFunctionMatch>> r = apiService.getSimilarFunctions(currentProgram, 1, 1 - thresholdConfidence);
+		int transactionID = currentProgram.startTransaction("Rename function from autoanalysis");
+
+        Namespace revengMatchNamespace = null;
+        try {
+            revengMatchNamespace = currentProgram.getSymbolTable().getOrCreateNameSpace(
+                    currentProgram.getGlobalNamespace(),
+                    "RevEng",
+                    SourceType.ANALYSIS
+            );
+        } catch (DuplicateNameException e) {
+            throw new RuntimeException(e);
+        } catch (InvalidInputException e) {
+            throw new RuntimeException(e);
+        }
+        for (Function func : fm.getFunctions(true)) {
+
 			progressBar.setString("Searching for " + func.getName() + " [" + (cursor+1) + "/" + numFuncs + "]");
 			loggingService.info("Searching for " + func.getName() + " [" + (cursor+1) + "/" + numFuncs + "]");
 			analysisSummary.incrementStat("total_analyses");
-			
-			FunctionEmbedding fe = bin.getFunctionEmbedding(func.getEntryPoint().toString());
-			if (fe == null) {
-				cursor++;
-				int progress = (int) (((double) cursor / numFuncs) * 100);
-				loggingService.info("Progress: " + progress);
-				progressBar.setValue(progress);
-				analysisSummary.incrementStat("skipped_analyses");
-				if (log_unsuc) {
-					tableEntries.add(new AutoAnalysisResultsRowObject(func.getName(), "N/A", false, "No Function Embedding Found"));
-				}
-				continue;
-			}
-			 
-			String regex = generateRegex(collectionsModel.getSelectedCollections());
-			
-			res = apiService.nearestSymbols(fe.getEmbedding(), currentBinaryHash, 1, regex);
-			
-			if (res.getStatusCode() != 200) {
-				cursor++;
-				int progress = (int) (((double) cursor / numFuncs) * 100);
-				loggingService.info("Progress: " + progress);
-				progressBar.setValue(progress);
-				analysisSummary.incrementStat("unsuccessful_analyses");
-				if (log_unsuc) {
-					tableEntries.add(new AutoAnalysisResultsRowObject(func.getName(), "N/A", false, res.getResponseBody()));
-				}
-				continue;
-			}
-			
-			String srcSymbol = func.getName();
-			JSONObject jFunc = res.getJsonArray().getJSONObject(0);
-			Double distance = jFunc.getDouble("distance");
-			if (distance >= getConfidenceSlider().getValue() / 100) {
-				loggingService.info(
-						"Found symbol '" + jFunc.getString("name") + "' with a confidence of " + distance);
-				int transactionID = currentProgram.startTransaction("Rename function from autoanalysis");
-				try {
-					func.setName(jFunc.getString("name"), SourceType.USER_DEFINED);
-					currentProgram.endTransaction(transactionID, true);
-					tableEntries.add(new AutoAnalysisResultsRowObject(srcSymbol,jFunc.getString("name") + " ("+ jFunc.getString("binary_name") + ")", true, "Renamed with confidence of '" + distance));
-				} catch (DuplicateNameException exc) {
-					loggingService.error("Symbol already exists");
-					currentProgram.endTransaction(transactionID, false);
-					Msg.showError(bin, btnStartAnalysis,
-							ReaiPluginPackage.WINDOW_PREFIX + "Rename Function Error", exc.getMessage());
-				} catch (Exception exc) {
-					currentProgram.endTransaction(transactionID, false);
-					loggingService.error("Unknown Error");
+			var functionMatches = r.getOrDefault(func, List.of());
+
+			if (!functionMatches.isEmpty()){
+				var bestMatch = functionMatches.get(0);
+
+				if (bestMatch.confidence() >= (double) getConfidenceSlider().getValue() / 100) {
+					loggingService.info(
+							"Found symbol '" + bestMatch.nearest_neighbor_function_name()+ "' with a confidence of " + bestMatch.confidence());
+					try {
+						func.setName(bestMatch.nearest_neighbor_function_name(), SourceType.USER_DEFINED);
+						var libraryNamespace = currentProgram.getSymbolTable().getOrCreateNameSpace(
+								revengMatchNamespace,
+								bestMatch.nearest_neighbor_binary_name(),
+								SourceType.USER_DEFINED);
+
+						func.setParentNamespace(libraryNamespace);
+						tableEntries.add(
+								new AutoAnalysisResultsRowObject(
+										func.getName(),
+										bestMatch.nearest_neighbor_function_name() + " ("+ bestMatch.nearest_neighbor_binary_name() + ")",
+										true,
+										"Renamed with confidence of '" + bestMatch.confidence()
+								)
+						);
+					} catch (DuplicateNameException exc) {
+						loggingService.error("Symbol already exists");
+						currentProgram.endTransaction(transactionID, false);
+						Msg.showError(this, btnStartAnalysis,
+								ReaiPluginPackage.WINDOW_PREFIX + "Rename Function Error", exc.getMessage());
+					} catch (Exception exc) {
+						currentProgram.endTransaction(transactionID, false);
+						loggingService.error("Unknown Error");
+					}
 				}
 			}
+
 			analysisSummary.incrementStat("successful_analyses");
 			cursor++;
 			int progress = (int) (((double) cursor / numFuncs) * 100);
 			loggingService.info("Progress: " + progress);
 			progressBar.setValue(progress);
 		}
+		currentProgram.endTransaction(transactionID, true);
+
 		progressBar.setString("Finished");
 		btnStartAnalysis.setEnabled(true);
 		autoanalysisResultsModel.batch(tableEntries);
@@ -337,7 +330,7 @@ public class AutoAnalysisPanel extends JPanel {
 		lblSuccessfulAnalysesValue.setText(Integer.toString(analysisSummary.getStat("successful_analyses")));
 		lblSkippedAnalysisValue.setText(Integer.toString(analysisSummary.getStat("skipped_analyses")));
 		lblUnsuccessfulAnalysesValue.setText(Integer.toString(analysisSummary.getStat("unsuccessful_analyses")));
-		getTabbedPanel().setEnabledAt(1, true);
+//		getTabbedPanel().setEnabledAt(1, true);
 		
 	}
 

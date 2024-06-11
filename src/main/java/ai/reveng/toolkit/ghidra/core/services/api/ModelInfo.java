@@ -1,5 +1,7 @@
 package ai.reveng.toolkit.ghidra.core.services.api;
 
+import org.json.JSONObject;
+
 import java.util.regex.Pattern;
 
 /**
@@ -47,6 +49,10 @@ public class ModelInfo {
 			this.minVersion = 0;
 		}
 
+	}
+
+	public static ModelInfo fromJSONObject(JSONObject o) {
+		return new ModelInfo(o.getString("model_name"));
 	}
 
 	public String getName() {

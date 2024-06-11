@@ -9,7 +9,7 @@ import ghidra.framework.plugintool.PluginTool;
 import ghidra.program.model.listing.Function;
 
 /**
- * GUI component for renaming a function from a selection of canidate functions
+ * GUI component for renaming a function from a selection of candidate functions
  */
 public class FunctionSimularityDockableDialog extends DialogComponentProvider {
 	private RenameFunctionFromSimilarFunctionsPanel panel;
