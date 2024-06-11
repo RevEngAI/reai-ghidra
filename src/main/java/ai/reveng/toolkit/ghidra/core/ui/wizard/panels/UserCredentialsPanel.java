@@ -2,8 +2,6 @@ package ai.reveng.toolkit.ghidra.core.ui.wizard.panels;
 
 import javax.swing.JPanel;
 
-import ai.reveng.toolkit.ghidra.core.services.api.ApiResponse;
-import ai.reveng.toolkit.ghidra.core.services.api.TypedApiImplementation;
 import ai.reveng.toolkit.ghidra.core.services.api.types.ApiInfo;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardStateKey;
 import docking.wizard.AbstractMageJPanel;
@@ -150,7 +148,5 @@ public class UserCredentialsPanel extends AbstractMageJPanel<SetupWizardStateKey
 
 	@Override
 	public void initialize() {
-		// TODO Auto-generated method stub
-
 	}
 }

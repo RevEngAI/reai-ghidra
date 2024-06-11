@@ -14,7 +14,6 @@ import ghidra.program.model.symbol.SourceType;
 import ghidra.util.Msg;
 import ghidra.util.exception.DuplicateNameException;
 import ghidra.util.exception.InvalidInputException;
-import org.h2.engine.Mode;
 
 import java.io.FileNotFoundException;
 import java.nio.file.Path;
@@ -255,7 +254,7 @@ public class GhidraRevengService {
     }
 
     private Optional<ModelName> getModelNameForProgram(Program program){
-        // TODO: More complicated choices should be supported later
+        // TODO: Model name choice will be removed from the client API in the future
         var format = program.getOptions("Program Information").getString("Executable Format", null);
         if (format.equals(ElfLoader.ELF_NAME)){
             return Optional.of(new ModelName("binnet-0.3-x86-linux"));
@@ -279,9 +278,8 @@ public class GhidraRevengService {
         return result;
     }
 
-    public BinaryHash hashOfProgram(Program program) {
+    private BinaryHash hashOfProgram(Program program) {
         // TODO: we break the guarantee that a BinaryHash implies that a file of this hash has already been uploaded
-
         return new BinaryHash(program.getExecutableSHA256());
     }
 

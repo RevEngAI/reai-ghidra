@@ -12,10 +12,7 @@ import ai.reveng.toolkit.ghidra.core.services.api.types.*;
  * This is a generic Java Interface and should not use any Ghidra specific classes
  */
 public interface TypedApiInterface {
-    public Object echo();
-
     // Analysis
-
     List<AnalysisResult> search(
             BinaryHash hash,
             String binaryName,
@@ -30,7 +27,7 @@ public interface TypedApiInterface {
 
 
 
-    default ApiResponse delete(BinaryID binID) {
+    default Object delete(BinaryID binID) {
         throw new UnsupportedOperationException("delete not implemented yet");
     }
 

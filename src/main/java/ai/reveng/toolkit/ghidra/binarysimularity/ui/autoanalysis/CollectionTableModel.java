@@ -99,14 +99,12 @@ public class CollectionTableModel extends ThreadedTableModelStub<CollectionRowOb
 
 		@Override
 		public String getColumnName() {
-			// TODO Auto-generated method stub
 			return "Include";
 		}
 
 		@Override
 		public Boolean getValue(CollectionRowObject rowObject, Settings settings, Object data,
 				ServiceProvider serviceProvider) throws IllegalArgumentException {
-			// TODO Auto-generated method stub
 			return rowObject.isInclude();
 		}
 		

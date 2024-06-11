@@ -15,43 +15,28 @@
  */
 package ai.reveng.toolkit.ghidra.binarysimularity;
 
-import java.awt.event.InputEvent;
-import java.awt.event.KeyEvent;
-import java.io.File;
-import java.io.IOException;
-import java.util.Objects;
-
+import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
+import ai.reveng.toolkit.ghidra.binarysimularity.ui.autoanalysis.AutoAnalysisDockableDialog;
 import ai.reveng.toolkit.ghidra.binarysimularity.ui.functionsimularity.FunctionSimularityDockableDialog;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.api.types.AnalysisStatus;
 import ai.reveng.toolkit.ghidra.core.services.api.types.BinaryHash;
 import ai.reveng.toolkit.ghidra.core.services.api.types.BinaryID;
-import docking.action.builder.ActionBuilder;
-import ghidra.app.context.NavigatableActionContext;
-import ghidra.app.context.ProgramActionContext;
-import ghidra.app.context.ProgramLocationActionContext;
-import ghidra.util.HashUtilities;
-import ghidra.util.task.MonitoredRunnable;
-import ghidra.util.task.RunManager;
-import ghidra.util.task.TaskMonitor;
-import org.json.JSONObject;
-
-import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
-import ai.reveng.toolkit.ghidra.binarysimularity.ui.autoanalysis.AutoAnalysisDockableDialog;
 import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoundariesService;
 import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
-import docking.ActionContext;
-import docking.action.DockingAction;
-import docking.action.KeyBindingData;
-import docking.action.MenuData;
-import docking.widgets.filechooser.GhidraFileChooser;
-import docking.widgets.filechooser.GhidraFileChooserMode;
+import docking.action.builder.ActionBuilder;
+import ghidra.app.context.ProgramActionContext;
+import ghidra.app.context.ProgramLocationActionContext;
 import ghidra.app.plugin.PluginCategoryNames;
 import ghidra.app.plugin.ProgramPlugin;
 import ghidra.app.services.ProgramManager;
-import ghidra.framework.plugintool.*;
+import ghidra.framework.plugintool.PluginInfo;
+import ghidra.framework.plugintool.PluginTool;
 import ghidra.framework.plugintool.util.PluginStatus;
 import ghidra.util.Msg;
+import ghidra.util.task.MonitoredRunnable;
+import ghidra.util.task.RunManager;
+import ghidra.util.task.TaskMonitor;
 
 /**
  * This plugin provides features for performing binary code similarity using the
@@ -61,7 +46,7 @@ import ghidra.util.Msg;
 @PluginInfo(
 	status = PluginStatus.STABLE,
 	packageName = ReaiPluginPackage.NAME,
-	category = PluginCategoryNames.DIFF,
+	category = PluginCategoryNames.COMMON,
 	shortDescription = "Support for Binary Simularity Featrues of RevEng.AI Toolkit.",
 	description = "Enable features that support binary simlularity operations, including binary upload, and auto-renaming",
 	servicesRequired = { GhidraRevengService.class, ProgramManager.class, ExportFunctionBoundariesService.class, ReaiLoggingService.class }
@@ -119,7 +104,12 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 				.withContext(ProgramActionContext.class)
 				.enabledWhen(context -> context.getProgram() != null && !apiService.isKnownProgram(context.getProgram()))
 				.onAction(context -> {
-//					apiService.ensureUploaded
+					if (apiService.searchForProgram(context.getProgram()).isEmpty()){
+						// We assume that if the program was uploaded that there is probably
+						// at least one analysis for it.
+						// So if there is no existing analysis, we uplaod the binary
+						apiService.upload(context.getProgram());
+					}
 					var binID = apiService.analyse(context.getProgram());
 					Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Create new Analysis for Binary",
 							"Analysis is running for binary with ID: " + binID.value() + "\n"

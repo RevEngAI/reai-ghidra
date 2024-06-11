@@ -48,17 +48,13 @@ public class TypedApiImplementation implements TypedApiInterface {
         headers = new HashMap<>();
         headers.put("Authorization", this.apiKey);
         headers.put("User-Agent", "REAIT Java Proxy");
-        headers.put("Accept-Encoding", "gzip, deflate, br");
+        // TODO: Actually implement support for some encodings and then accept them
+//        headers.put("Accept-Encoding", "gzip, deflate, br");
     }
 
 
     public TypedApiImplementation(ApiInfo info){
         this(info.hostURI().toString(), info.apiKey());
-    }
-
-    public ApiResponse echo() {
-        return null;
-
     }
 
     public List<AnalysisResult> recentAnalyses(AnalysisStatus status, AnalysisScope scope, int number) {

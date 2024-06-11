@@ -1,8 +1,6 @@
 package ai.reveng.toolkit.ghidra.core.services.api.types;
 
 
-import org.jetbrains.annotations.NotNull;
-
 /**
  * Data type for all reveng API responses or parameters that are a binary ID
  * They are called binary ID in the API doc, but they should be thought of as _analysis_ ids
@@ -10,7 +8,7 @@ import org.jetbrains.annotations.NotNull;
  */
 public record BinaryID(int value) implements Comparable<BinaryID> {
     @Override
-    public int compareTo(@NotNull BinaryID binaryID) {
+    public int compareTo(BinaryID binaryID) {
         return Integer.compare(value, binaryID.value);
     }
 

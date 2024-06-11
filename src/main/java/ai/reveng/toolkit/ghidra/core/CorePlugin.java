@@ -67,7 +67,7 @@ import ghidra.util.task.TaskMonitor;
 @PluginInfo(
 	status = PluginStatus.STABLE,
 	packageName = ReaiPluginPackage.NAME,
-	category = PluginCategoryNames.MISC,
+	category = PluginCategoryNames.COMMON,
 	shortDescription = "Toolkit for using RevEngAI API",
 	description = "Toolkit for using RevEng.AI API",
 	servicesRequired = { OptionsService.class },

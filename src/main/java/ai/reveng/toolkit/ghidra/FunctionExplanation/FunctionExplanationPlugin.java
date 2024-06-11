@@ -18,7 +18,7 @@ import ghidra.framework.plugintool.util.PluginStatus;
 @PluginInfo(
 	status = PluginStatus.STABLE,
 	packageName = ReaiPluginPackage.NAME,
-	category = PluginCategoryNames.DECOMPILER,
+	category = PluginCategoryNames.COMMON,
 	shortDescription = "Provide Function Explanation using AI",
 	description = "Provides support for annotating functions in the decompiler view with human read comments on what the function does",
 	servicesRequired = { TypedApiInterface.class, ProgramManager.class, ReaiLoggingService.class }

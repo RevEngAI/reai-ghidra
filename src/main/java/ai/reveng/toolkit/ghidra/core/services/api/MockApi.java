@@ -11,10 +11,6 @@ import java.util.List;
 import java.util.Map;
 
 public class MockApi implements TypedApiInterface{
-    @Override
-    public Object echo() {
-        return null;
-    }
 
     @Override
     public List<AnalysisResult> search(BinaryHash hash, String binaryName, Collection collection, AnalysisStatus state) {
@@ -27,7 +23,7 @@ public class MockApi implements TypedApiInterface{
     }
 
     @Override
-    public ApiResponse delete(BinaryID binID) {
+    public Object delete(BinaryID binID) {
         return TypedApiInterface.super.delete(binID);
     }
 

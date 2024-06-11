@@ -28,9 +28,12 @@ import ghidra.framework.plugintool.PluginTool;
 import ghidra.program.model.listing.Function;
 import ghidra.program.model.listing.FunctionManager;
 import ghidra.program.model.listing.Program;
+import ghidra.program.model.symbol.Namespace;
 import ghidra.program.model.symbol.SourceType;
 import ghidra.util.Msg;
 import ghidra.util.exception.DuplicateNameException;
+import ghidra.util.exception.InvalidInputException;
+
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
@@ -235,7 +238,7 @@ public class AutoAnalysisPanel extends JPanel {
 		return sb.toString();
 	}
 	
-	private void performAutoAnalysis() {		
+	private void performAutoAnalysis() {
 		analysisSummary = new AutoAnalysisSummary();
 		List<AutoAnalysisResultsRowObject> tableEntries = new ArrayList<AutoAnalysisResultsRowObject>();
 		btnStartAnalysis.setEnabled(false);
@@ -246,7 +249,7 @@ public class AutoAnalysisPanel extends JPanel {
 		FunctionManager fm = currentProgram.getFunctionManager();
 		/*
 		 * using getFunctionCount() also returns external functions so our count is wrong for the progress.
-		 * Instead we just count the number of entries that are contained in the iterator
+		 * Instead, we just count the number of entries that are contained in the iterator
 		 */
 		long numFuncs = StreamSupport.stream(fm.getFunctions(true).spliterator(), false).count();
 		int cursor = 0;
@@ -259,7 +262,19 @@ public class AutoAnalysisPanel extends JPanel {
         Map<Function, List<GhidraFunctionMatch>> r = apiService.getSimilarFunctions(currentProgram, 1, 1 - thresholdConfidence);
 		int transactionID = currentProgram.startTransaction("Rename function from autoanalysis");
 
-		for (Function func : fm.getFunctions(true)) {
+        Namespace revengMatchNamespace = null;
+        try {
+            revengMatchNamespace = currentProgram.getSymbolTable().getOrCreateNameSpace(
+                    currentProgram.getGlobalNamespace(),
+                    "RevEng",
+                    SourceType.ANALYSIS
+            );
+        } catch (DuplicateNameException e) {
+            throw new RuntimeException(e);
+        } catch (InvalidInputException e) {
+            throw new RuntimeException(e);
+        }
+        for (Function func : fm.getFunctions(true)) {
 
 			progressBar.setString("Searching for " + func.getName() + " [" + (cursor+1) + "/" + numFuncs + "]");
 			loggingService.info("Searching for " + func.getName() + " [" + (cursor+1) + "/" + numFuncs + "]");
@@ -274,7 +289,8 @@ public class AutoAnalysisPanel extends JPanel {
 							"Found symbol '" + bestMatch.nearest_neighbor_function_name()+ "' with a confidence of " + bestMatch.confidence());
 					try {
 						func.setName(bestMatch.nearest_neighbor_function_name(), SourceType.USER_DEFINED);
-						var libraryNamespace = currentProgram.getSymbolTable().getOrCreateNameSpace(currentProgram.getGlobalNamespace(),
+						var libraryNamespace = currentProgram.getSymbolTable().getOrCreateNameSpace(
+								revengMatchNamespace,
 								bestMatch.nearest_neighbor_binary_name(),
 								SourceType.USER_DEFINED);
 

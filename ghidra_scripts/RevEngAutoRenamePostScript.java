@@ -19,13 +19,19 @@ public class RevEngAutoRenamePostScript extends GhidraScript {
         // Wait for analysis to finish
         waitForAnalysis(ghidraRevengService, binID);
 
+        var revengMatchNamespace = currentProgram.getSymbolTable().getOrCreateNameSpace(
+                currentProgram.getGlobalNamespace(),
+                "RevEng",
+                SourceType.ANALYSIS
+        );
         // Fetch Function matches
         ghidraRevengService.getSimilarFunctions(currentProgram, 1, 0.05).forEach(
                 (function, matches) -> {
                     var bestMatch = matches.get(0);
                     Namespace libraryNamespace = null;
                     try {
-                        libraryNamespace = currentProgram.getSymbolTable().getOrCreateNameSpace(currentProgram.getGlobalNamespace(),
+                        libraryNamespace = currentProgram.getSymbolTable().getOrCreateNameSpace(
+                                revengMatchNamespace,
                                 bestMatch.nearest_neighbor_binary_name(),
                                 SourceType.ANALYSIS);
                     } catch (DuplicateNameException e) {

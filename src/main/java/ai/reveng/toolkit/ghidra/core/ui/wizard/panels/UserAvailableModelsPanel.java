@@ -56,13 +56,10 @@ public class UserAvailableModelsPanel extends AbstractMageJPanel<SetupWizardStat
 
 	@Override
 	public void addDependencies(WizardState<SetupWizardStateKey> state) {
-		// TODO Auto-generated method stub
-
 	}
 
 	@Override
 	public WizardPanelDisplayability getPanelDisplayabilityAndUpdateState(WizardState<SetupWizardStateKey> state) {
-		// TODO Auto-generated method stub
 		return WizardPanelDisplayability.MUST_BE_DISPLAYED;
 	}
 
@@ -106,8 +103,6 @@ public class UserAvailableModelsPanel extends AbstractMageJPanel<SetupWizardStat
 
 	@Override
 	public void dispose() {
-		// TODO Auto-generated method stub
-
 	}
 
 	@Override
@@ -127,7 +122,5 @@ public class UserAvailableModelsPanel extends AbstractMageJPanel<SetupWizardStat
 
 	@Override
 	public void initialize() {
-		// TODO Auto-generated method stub
-
 	}
 }
