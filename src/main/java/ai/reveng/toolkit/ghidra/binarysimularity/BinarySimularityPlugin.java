@@ -104,12 +104,7 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 				.withContext(ProgramActionContext.class)
 				.enabledWhen(context -> context.getProgram() != null && !apiService.isKnownProgram(context.getProgram()))
 				.onAction(context -> {
-					if (apiService.searchForProgram(context.getProgram()).isEmpty()){
-						// We assume that if the program was uploaded that there is probably
-						// at least one analysis for it.
-						// So if there is no existing analysis, we uplaod the binary
-						apiService.upload(context.getProgram());
-					}
+					apiService.upload(context.getProgram());
 					var binID = apiService.analyse(context.getProgram());
 					Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Create new Analysis for Binary",
 							"Analysis is running for binary with ID: " + binID.value() + "\n"
