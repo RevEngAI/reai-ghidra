@@ -260,7 +260,7 @@ public class AutoAnalysisPanel extends JPanel {
 
 
         Map<Function, List<GhidraFunctionMatch>> r = apiService.getSimilarFunctions(currentProgram, 1, 1 - thresholdConfidence);
-		int transactionID = currentProgram.startTransaction("Rename function from autoanalysis");
+		int transactionID = currentProgram.startTransaction("RevEng: Rename all functions from best match");
 
         Namespace revengMatchNamespace = null;
         try {
