@@ -72,12 +72,11 @@ public class GhidraRevengService {
     /**
      * Tries to find a BinaryID for a given program
      * If the program already has a BinaryID associated with it, it will return that
-     * If the program has no BinaryID associated with it and the API doesn't know it, it will return empty
-     *
+
      * @param program
      * @return
      */
-    private Optional<BinaryID> getBinaryIDFor(Program program){
+    public Optional<BinaryID> getBinaryIDFor(Program program){
         if (programMap.containsKey(program)){
             return Optional.of(programMap.get(program));
         }
