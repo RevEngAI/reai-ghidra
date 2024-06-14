@@ -13,7 +13,9 @@ Released as open source by RevEng.ai - https://reveng.ai
 
 ## Description
 
-The RevEng.AI Toolkit allows you to interact with our API from within Ghidra. This allows you to upload your currently open binary for analysis, and use it for Binary Code Simularity to help you Reverse Engineer stripped binaries.
+The RevEng.AI Toolkit allows you to interact with our API from within Ghidra.
+This allows you to upload your currently open binary for analysis,
+and use it for Binary Code Similarity to help you Reverse Engineer stripped binaries.
 
 ## Table of Contents
 
@@ -69,8 +71,9 @@ In this section, we provide an example workflow for our plugin that uses test bi
 
 Once the plugin is loaded, there will be additional controls in the toolbar under `RevEngAI Toolkit`.
 
-The first thing we need to do is configure the tool with our API key and the desired "model".
-- Each **model** defines a different set of features you want the AI to find in you binary.
+### Setup
+
+The first thing we need to do is configure the tool with our API key and the host to use.
 
 When you load the plugin for the first time, or by selecting `RevEngAI -> Run Setup Wizard`, you will be guided through the configuration process.
 
@@ -82,25 +85,29 @@ When you load the plugin for the first time, or by selecting `RevEngAI -> Run Se
 
 ![Config Window Complete](screenshots/plugin-config-models.png)
 
+
+### Running an Analysis
+
 You are now ready to upload a binary.
 
-Import `src/test/resources/fdupes` into Ghidra and then click `Upload`, either by going `RevEngAI Toolkit -> Upload Binary`, or by right-clicking in the listing view and selecting `Upload Binary`
+Import `src/test/resources/fdupes` into Ghidra and then create a new RevEng analysis, by going to `RevEngAI Toolkit -> Create New Analysis for Binary`.
 
-![Upload using toolbar menu](screenshots/upload-menu.png)
+[//]: # (![Upload using toolbar menu]&#40;screenshots/upload-menu.png&#41;)
 
-![Upload from popup menu](screenshots/upload-popup.png)
+[//]: # (![Upload from popup menu]&#40;screenshots/upload-popup.png&#41;)
 
 > We are using `fdupes` with symbols to allow the model to learn what these functions look like, and to provide meaningful labels that we can use later to rename similar binaries.
 
-You can check the status of your request by selecting `Check Analysis Status` from either of the menus like before.
+You can check the status of your request by selecting `Check Analysis Status` from the same menu.
+Starting an analysis also triggers a background Ghidra thread that will periodically check the status
+and pop a notification when the analysis is complete.
 
-We now have uploaded fdupes to our dataset, meaning we can now use it for our binary similarity tasks. Lets see how this works on a stripped version of fdupes.
+We now have uploaded `fdupes` to our dataset, meaning we can now use it for our binary similarity tasks. Let's see how this works on a stripped version of fdupes.
 
 Import `src/test/resourcesfdupes.stripped` using the same steps as before. Once this has been completed, you can move on to the next step.
 
-With fdupes.stripped open in Ghidra, select a funtion in Ghidra's listing view, and `right-click -> Rename from Similar Functions`, or `CTRL-Shift + R`. This will open the function renaming window.
-
-> Note that you need to select the start of the function in order for this menu-item to appear in the right context.
+With `fdupes.stripped` open in Ghidra, select a funtion in Ghidra's listing or decompiler view, and `right-click -> Rename from Similar Functions`, or `CTRL-Shift + R`.
+This will open the function renaming window.
 
 ![Function Rename Action](screenshots/rename-action.png)
 ![Function Renaming Window](screenshots/rename-gui.png)
@@ -115,9 +122,9 @@ You can also batch analyse the binary to rename functions using the `Auto Analys
 
 ![Auto Analyse Tool](screenshots/auto-analysis-gui.png)
 
-This tool pull the list of collections you have access to on your account, and allows you to specify which collections you want to be included in your auto analysis by clicking on the checkbox. Selecting no collections will enable all of the available collections in your search.
+[//]: # (This tool pull the list of collections you have access to on your account, and allows you to specify which collections you want to be included in your auto analysis by clicking on the checkbox. Selecting no collections will enable all the available collections in your search.)
 
-Move the slider to determine the confidence level you want to use for batch renaming. Any function returned that is higher than this value will automatically be renamed in the listing view. Clicking the `start` button will kick-off the analysis, which you can track in the blue progress bar
+Move the slider to determine the confidence level you want to use for batch renaming. Any function returned that is higher than this value will automatically be renamed in the listing view. Clicking the `start` button will kick off the analysis, which you can track in the blue progress bar
 
 ![Auto Analysis Progress](screenshots/auto-analysis-gui-run.png)
 
@@ -128,23 +135,12 @@ This provides information on what symbols have been renamed, and to what, along 
 
 ![Auto Analyse Result](screenshots/auto-analysis-results.png)
 
-### Function Explaination
-
-You can also use the plugin to generate a function comment that can be useful for explaining what the function is doing.
-
-Select the function you are interested in, and from the `decompiler` view select `Explain This Function` from the right-click menu.
-
-> You will need to have the `FunctionExplanationPlugin` enabled
-
-![Explain Function Menu Item](screenshots/explain-function-option.png)
-
-If we call this on a function for which we cannot recover symbols, in this example `FUN_00102c9c`, we get the following:
-
-![Result of calling explain function](screenshots/explain-function-result.png)
-
 ## Contributing
 
 We welcome pull requests from the community.
+
+The plugin is still undergoing active development currently, and we are looking for feedback on how to improve the plugin.
+
 
 ### Code Overview
 
@@ -152,7 +148,7 @@ We have tried to decompose the plugin into a series of individual plugins depend
 
 The **CorePlugin** provides services that are shared across all parts of the toolkit, namely configuration and API Services.
 
-You should therefore group related features into a Feature Plugin, and then aquire services from the CorePlugin as required. This gives users the flexiblity to enable / disable features based on their use-case and/or preferences.
+You should therefore group related features into a Feature Plugin, and then acquire services from the CorePlugin as required. This gives users the flexiblity to enable / disable features based on their use-case and/or preferences.
 
 ### Building
 
