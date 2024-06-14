@@ -53,6 +53,7 @@ import docking.options.OptionsService;
 import docking.widgets.filechooser.GhidraFileChooser;
 import docking.widgets.filechooser.GhidraFileChooserMode;
 import ghidra.framework.plugintool.util.PluginStatus;
+import ghidra.program.model.listing.Program;
 import ghidra.util.Msg;
 import ghidra.util.task.MonitoredRunnable;
 import ghidra.util.task.RunManager;
@@ -204,11 +205,19 @@ public class CorePlugin extends ProgramPlugin {
 	private void connectToAnalysis(BinaryID binID) {
 		revengService.addBinaryIDforProgram(currentProgram, binID);
 		Msg.showInfo(this,null, "", "Connected to binary id: " + binID.toString());
-
-
 	}
 
+	@Override
+	protected void programActivated(Program program) {
+		super.programActivated(program);
 
+		if (!revengService.isKnownProgram(program)){
+			revengService.getBinaryIDFor(program).ifPresentOrElse(
+					binID -> Msg.info(this, "Program has saved binary ID: " + binID),
+					() -> Msg.info(this, "Program has no saved binary ID")
+			);
+		}
+	}
 
 	@Override
 	public void init() {
