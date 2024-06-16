@@ -84,6 +84,7 @@ public class CorePlugin extends ProgramPlugin {
 	private ReaiLoggingService loggingService;
 
 	private PluginTool tool;
+	private ApiInfo apiInfo;
 
 	public CorePlugin(PluginTool tool) {
 		super(tool);
@@ -96,30 +97,13 @@ public class CorePlugin extends ProgramPlugin {
 		registerServiceProvided(ReaiLoggingService.class, loggingService);
 
 
-		ApiInfo apiInfo;
 
-//		if (!hasSetupWizardRun()) {
-//			runSetupWizard();
-//			setWizardRun();
-//
-//			apiInfo = getApiInfoFromToolOptions();
-//			apikey = tool.getOptions("Preferences").getString(ReaiPluginPackage.OPTION_KEY_APIKEY, "invalid");
-//			hostname = tool.getOptions("Preferences").getString(ReaiPluginPackage.OPTION_KEY_HOSTNAME, "unknown");
-//			modelname = tool.getOptions("Preferences").getString(ReaiPluginPackage.OPTION_KEY_MODEL, "unknown");
-//		} else {
-//			Msg.showError(tool, null, "Load config", "Unable to load a config file, or start the wizard");
-//		}
+		// Try to get the API info from the local config, if it's not there, run the setup wizard
+		getApiInfoFromConfig().ifPresentOrElse(
+				info -> apiInfo = info,
+				() -> { runSetupWizard(); apiInfo = getApiInfoFromConfig().orElseThrow();}
+		);
 
-		apiInfo = getApiInfoFromToolOptions().or(this::getApiInfoFromConfig).orElseThrow();
-
-//		try {
-//			apiInfo.checkValidity();
-//		} catch (IllegalArgumentException e) {
-//			loggingService.error(e.getMessage());
-//			Msg.showError(this, null, "API Info", e.getMessage());
-//		}
-
-//		apiInfo.checkValidity();
 		revengService = new GhidraRevengService(apiInfo);
 		registerServiceProvided(GhidraRevengService.class, revengService);
 
@@ -152,7 +136,7 @@ public class CorePlugin extends ProgramPlugin {
             return Optional.of(ApiInfo.fromConfig());
         } catch (FileNotFoundException e) {
 			loggingService.error(e.getMessage());
-			Msg.showError(this, null, "Load Config", "Unable to find config file");
+			Msg.showError(this, null, "Load Config", "Unable to find RevEng config file");
             return Optional.empty();
         }
 
