@@ -16,7 +16,7 @@ import ghidra.framework.plugintool.PluginTool;
 import ghidra.framework.plugintool.util.PluginStatus;
 
 @PluginInfo(
-	status = PluginStatus.STABLE,
+	status = PluginStatus.HIDDEN,
 	packageName = ReaiPluginPackage.NAME,
 	category = PluginCategoryNames.COMMON,
 	shortDescription = "Provide Function Explanation using AI",
