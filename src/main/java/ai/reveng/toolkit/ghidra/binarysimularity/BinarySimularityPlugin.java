@@ -57,6 +57,8 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 	public ReaiLoggingService loggingService;
 	private RunManager runMgr;
 
+	public final static String REVENG_AI_NAMESPACE = "RevEng.ai";
+
 	/**
 	 * Plugin constructor.
 	 * 
