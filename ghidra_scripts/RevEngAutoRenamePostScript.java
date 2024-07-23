@@ -9,6 +9,8 @@ import ghidra.program.model.symbol.SourceType;
 import ghidra.util.exception.DuplicateNameException;
 import ghidra.util.exception.InvalidInputException;
 
+import static ai.reveng.toolkit.ghidra.binarysimularity.BinarySimularityPlugin.REVENG_AI_NAMESPACE;
+
 public class RevEngAutoRenamePostScript extends GhidraScript {
     @Override
     protected void run() throws Exception {
@@ -21,7 +23,7 @@ public class RevEngAutoRenamePostScript extends GhidraScript {
 
         var revengMatchNamespace = currentProgram.getSymbolTable().getOrCreateNameSpace(
                 currentProgram.getGlobalNamespace(),
-                "RevEng",
+                REVENG_AI_NAMESPACE,
                 SourceType.ANALYSIS
         );
         // Fetch Function matches

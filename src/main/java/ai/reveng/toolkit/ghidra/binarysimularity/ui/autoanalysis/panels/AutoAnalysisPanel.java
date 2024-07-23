@@ -49,6 +49,8 @@ import javax.swing.BoxLayout;
 import javax.swing.SwingConstants;
 import java.awt.Component;
 
+import static ai.reveng.toolkit.ghidra.binarysimularity.BinarySimularityPlugin.REVENG_AI_NAMESPACE;
+
 /**
  * Panel for configuring auto analysis options
  */
@@ -266,7 +268,7 @@ public class AutoAnalysisPanel extends JPanel {
         try {
             revengMatchNamespace = currentProgram.getSymbolTable().getOrCreateNameSpace(
                     currentProgram.getGlobalNamespace(),
-                    "RevEng",
+                    REVENG_AI_NAMESPACE,
                     SourceType.ANALYSIS
             );
         } catch (DuplicateNameException e) {
