@@ -42,14 +42,17 @@ public class GhidraRevengService {
     private Map<BinaryID, AnalysisStatus> statusCache = new HashMap<>();
 
     private TypedApiInterface api;
-
-    public GhidraRevengService(String baseUrl, String apiKey) {
-        this.api = new TypedApiImplementation(baseUrl, apiKey);
-    }
+    private ApiInfo apiInfo;
 
     public GhidraRevengService(ApiInfo apiInfo){
+        this.apiInfo = apiInfo;
         this.api = new TypedApiImplementation(apiInfo);
     }
+
+    public GhidraRevengService(String baseUrl, String apiKey){
+        this(new ApiInfo(baseUrl, apiKey));
+    }
+
 
     public GhidraRevengService(){
         this.api = new MockApi();
@@ -79,20 +82,45 @@ public class GhidraRevengService {
      * @param program
      * @return
      */
-    public Optional<BinaryID> getBinaryIDFor(Program program){
+    public Optional<BinaryID> getBinaryIDFor(Program program) {
         if (programMap.containsKey(program)){
             return Optional.of(programMap.get(program));
         }
 
+
+        Optional<BinaryID> binID;
+        try {
+            binID = getBinaryIDfromOptions(program);
+        } catch (InvalidBinaryID e) {
+            Msg.error(this, "Invalid Binary ID found in program options: %s".formatted(e.getMessage()));
+            return Optional.empty();
+        }
+        binID.ifPresentOrElse(
+                id -> addBinaryIDforProgram(program, id),
+                () -> Msg.info(this, "No Binary ID found in program options")
+        );
+        return binID;
+
+    }
+
+    public Optional<BinaryID> getBinaryIDfromOptions(
+            Program program
+    ) throws InvalidBinaryID {
         long bid = program.getOptions(
                 "Preferences").getLong(ReaiPluginPackage.OPTION_KEY_BINID,
                 ReaiPluginPackage.INVALID_BINARY_ID);
-        if (bid != ReaiPluginPackage.INVALID_BINARY_ID){
-            var binID = new BinaryID((int) bid);
-            addBinaryIDforProgram(program, binID);
-            return Optional.of(binID);
+        if (bid == ReaiPluginPackage.INVALID_BINARY_ID) {
+            return Optional.empty();
         }
-        return Optional.empty();
+        var binID = new BinaryID((int) bid);
+        // Check that it's really valid in the context of the currently configured API
+        try {
+            api.status(binID);
+        } catch (APIAuthenticationException e){
+            throw new InvalidBinaryID(binID, this.apiInfo);
+        }
+        // Now it's certain that it is a valid binary ID
+        return Optional.of(binID);
     }
 
     public List<FunctionInfo> getFunctionInfo(Program program){
