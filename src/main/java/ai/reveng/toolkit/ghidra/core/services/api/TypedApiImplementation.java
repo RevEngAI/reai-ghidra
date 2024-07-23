@@ -160,7 +160,7 @@ public class TypedApiImplementation implements TypedApiInterface {
         return result;
     }
 
-    private JSONObject sendRequest(HttpRequest request) {
+    private JSONObject sendRequest(HttpRequest request) throws APIAuthenticationException {
         HttpResponse<String> response = null;
 
         try {
@@ -175,6 +175,8 @@ public class TypedApiImplementation implements TypedApiInterface {
             case 200:
             case 201:
                 return new JSONObject(response.body());
+            case 401:
+                throw new APIAuthenticationException(response.body());
             default:
                 throw new RuntimeException("Request failed with status code: " + response.statusCode() + " and message: " + response.body());
         }
