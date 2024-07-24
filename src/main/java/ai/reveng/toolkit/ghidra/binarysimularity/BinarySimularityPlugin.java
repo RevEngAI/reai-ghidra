@@ -111,6 +111,7 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 					Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Create new Analysis for Binary",
 							"Analysis is running for binary with ID: " + binID.value() + "\n"
 					+ "You will be notified when the analysis is complete.");
+					apiService.addBinaryIDtoProgramOptions(context.getProgram(), binID);
 					spawnAnalysisStatusChecker(binID);
 					// Trigger a context refresh so the UI status of the actions gets updated
 					// because now other actions are available

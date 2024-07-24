@@ -62,11 +62,14 @@ public class GhidraRevengService {
         }
         programMap.put(program, binID);
         loadFunctionInfo(program);
+        addBinaryIDtoProgramOptions(program, binID);
+    }
+
+    public void addBinaryIDtoProgramOptions(Program program, BinaryID binID){
         var transactionId = program.startTransaction("Associate Binary ID with Program");
         program.getOptions("Preferences")
                 .setLong(ReaiPluginPackage.OPTION_KEY_BINID, binID.value());
         program.endTransaction(transactionId, true);
-
     }
 
     /**
