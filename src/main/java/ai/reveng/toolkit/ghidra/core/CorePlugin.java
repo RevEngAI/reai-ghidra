@@ -17,10 +17,6 @@ package ai.reveng.toolkit.ghidra.core;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Optional;
 
@@ -29,10 +25,8 @@ import ai.reveng.toolkit.ghidra.core.services.api.types.AnalysisResult;
 import ai.reveng.toolkit.ghidra.core.services.api.types.AnalysisStatus;
 import ai.reveng.toolkit.ghidra.core.services.api.types.ApiInfo;
 import ai.reveng.toolkit.ghidra.core.services.api.types.BinaryID;
-import com.google.gson.Gson;
 
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
-import ai.reveng.toolkit.ghidra.core.models.ReaiConfig;
 import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoundariesService;
 import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoundariesServiceImpl;
 import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
@@ -40,8 +34,6 @@ import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingServiceImpl;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardManager;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardStateKey;
 import docking.ActionContext;
-import docking.action.DockingAction;
-import docking.action.MenuData;
 import docking.action.builder.ActionBuilder;
 import docking.wizard.WizardManager;
 import docking.wizard.WizardState;
@@ -55,9 +47,7 @@ import docking.widgets.filechooser.GhidraFileChooserMode;
 import ghidra.framework.plugintool.util.PluginStatus;
 import ghidra.program.model.listing.Program;
 import ghidra.util.Msg;
-import ghidra.util.task.MonitoredRunnable;
 import ghidra.util.task.RunManager;
-import ghidra.util.task.TaskMonitor;
 
 /**
  * CorePlugin for accessing the RevEng.AI Platform
