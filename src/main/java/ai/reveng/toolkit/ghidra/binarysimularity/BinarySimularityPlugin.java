@@ -125,10 +125,11 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 				.withContext(ProgramActionContext.class)
 				.enabledWhen(context -> context.getProgram() != null && apiService.isKnownProgram(context.getProgram()))
 				.onAction(context -> {
-					AnalysisStatus status = apiService.status(context.getProgram());
+					var binID = apiService.getBinaryIDFor(context.getProgram()).orElseThrow();
+					AnalysisStatus status = apiService.status(binID);
 					loggingService.info("Check Status: " + status);
 					Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Check Analysis Status",
-							"Status: " + status);
+							"Status of " + binID + ": " + status);
 				})
 				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Check Analysis Status" })
 //				.popupMenuPath(new String[] { "Check Analysis Status" })
