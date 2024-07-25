@@ -22,7 +22,7 @@ public record FunctionMatch(
         String nearest_neighbor_binary_name,
         BinaryHash nearest_neighbor_sha_256_hash,
         BinaryID nearest_neighbor_binary_id,
-        boolean nearest_neighbor_debug,
+        Boolean nearest_neighbor_debug,
         double confidence
 ) {
     public static FunctionMatch fromJSONObject(JSONObject json) {
@@ -33,7 +33,7 @@ public record FunctionMatch(
                 json.getString("nearest_neighbor_binary_name"),
                 new BinaryHash(json.getString("nearest_neighbor_sha_256_hash")),
                 new BinaryID(json.getInt("nearest_neighbor_binary_id")),
-                json.getBoolean("nearest_neighbor_debug"),
+                json.has("nearest_neighbor_debug") ? json.getBoolean("nearest_neighbor_debug") : null,
                 json.getDouble("confidence")
         );
     }
