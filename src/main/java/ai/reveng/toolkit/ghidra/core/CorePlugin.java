@@ -77,6 +77,7 @@ import ghidra.util.task.TaskMonitor;
 //@formatter:on
 public class CorePlugin extends ProgramPlugin {
 	public static final String REAI_WIZARD_RUN_PREF = "REAISetupWizardRun";
+	public static final String REAI_OPTIONS_CATEGORY = "RevEng.AI Options";
 	private final RunManager runMgr;
 
 	private GhidraRevengService revengService;
@@ -92,7 +93,7 @@ public class CorePlugin extends ProgramPlugin {
 		this.tool = tool;
 
 		var toolOptions =  tool;
-		tool.getOptions("Preferences").registerOption(REAI_WIZARD_RUN_PREF, "false", null, "If the setup wizard has been run");
+		tool.getOptions(REAI_OPTIONS_CATEGORY).registerOption(REAI_WIZARD_RUN_PREF, "false", null, "If the setup wizard has been run");
 		loggingService = new ReaiLoggingServiceImpl();
 		registerServiceProvided(ReaiLoggingService.class, loggingService);
 
@@ -117,8 +118,8 @@ public class CorePlugin extends ProgramPlugin {
 	}
 
 	private Optional<ApiInfo> getApiInfoFromToolOptions(){
-		var apikey = tool.getOptions("Preferences").getString(ReaiPluginPackage.OPTION_KEY_APIKEY, "invalid");
-		var hostname = tool.getOptions("Preferences").getString(ReaiPluginPackage.OPTION_KEY_HOSTNAME, "unknown");
+		var apikey = tool.getOptions(REAI_OPTIONS_CATEGORY).getString(ReaiPluginPackage.OPTION_KEY_APIKEY, "invalid");
+		var hostname = tool.getOptions(REAI_OPTIONS_CATEGORY).getString(ReaiPluginPackage.OPTION_KEY_HOSTNAME, "unknown");
 		if (apikey.equals("invalid") || hostname.equals("unknown")) {
 			return Optional.empty();
 		}
@@ -210,12 +211,12 @@ public class CorePlugin extends ProgramPlugin {
 	}
 
 	private boolean hasSetupWizardRun() {
-		String value = tool.getOptions("Preferences").getString(REAI_WIZARD_RUN_PREF, "false");
+		String value = tool.getOptions(REAI_OPTIONS_CATEGORY).getString(REAI_WIZARD_RUN_PREF, "false");
 		return Boolean.parseBoolean(value);
 	}
 
 	private void setWizardRun() {
-		tool.getOptions("Preferences").setString(REAI_WIZARD_RUN_PREF, "true");
+		tool.getOptions(REAI_OPTIONS_CATEGORY).setString(REAI_WIZARD_RUN_PREF, "true");
 	}
 
 	private void runSetupWizard() {

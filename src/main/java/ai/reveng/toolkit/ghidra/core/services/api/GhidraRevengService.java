@@ -20,6 +20,8 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static ai.reveng.toolkit.ghidra.core.CorePlugin.REAI_OPTIONS_CATEGORY;
+
 
 /**
  * Implements a Ghidra compatible interface on top of the RevEngAI REST API
@@ -70,7 +72,7 @@ public class GhidraRevengService {
 
     public void addBinaryIDtoProgramOptions(Program program, BinaryID binID){
         var transactionId = program.startTransaction("Associate Binary ID with Program");
-        program.getOptions("Preferences")
+        program.getOptions(REAI_OPTIONS_CATEGORY)
                 .setLong(ReaiPluginPackage.OPTION_KEY_BINID, binID.value());
         program.endTransaction(transactionId, true);
     }
@@ -107,7 +109,7 @@ public class GhidraRevengService {
             Program program
     ) throws InvalidBinaryID {
         long bid = program.getOptions(
-                "Preferences").getLong(ReaiPluginPackage.OPTION_KEY_BINID,
+                REAI_OPTIONS_CATEGORY).getLong(ReaiPluginPackage.OPTION_KEY_BINID,
                 ReaiPluginPackage.INVALID_BINARY_ID);
         if (bid == ReaiPluginPackage.INVALID_BINARY_ID) {
             return Optional.empty();
