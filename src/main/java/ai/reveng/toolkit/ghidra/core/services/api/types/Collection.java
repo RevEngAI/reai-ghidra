@@ -16,8 +16,8 @@ public record Collection(
     public static Collection fromJSONObject(JSONObject json){
         return new Collection(
                 json.getInt("collection_id"),
-                json.getString("collection_scope"),
-                json.getString("collection_name"),
+                json.getString("scope"),
+                json.getString("name"),
                 json.getString("last_updated"),
                 json.getString("model_name"),
                 json.getJSONArray("tags").toList().stream().map(Object::toString).toList()
@@ -27,8 +27,8 @@ public record Collection(
     public static Collection fromSmallJSONObject(JSONObject json, ModelName modelName){
         return new Collection(
                 -1,
-                json.getString("collection_scope"),
-                json.getString("collection_name"),
+                json.getString("scope"),
+                json.getString("name"),
                 "",
                 modelName.modelName(),
                 List.of()
