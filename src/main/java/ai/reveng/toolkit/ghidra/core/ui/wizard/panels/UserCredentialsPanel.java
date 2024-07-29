@@ -71,7 +71,7 @@ public class UserCredentialsPanel extends AbstractMageJPanel<SetupWizardStateKey
 
 		tfHostname = new JTextField();
 		tfHostname.getDocument().addDocumentListener(documentListener);
-		tfHostname.setToolTipText("URL hosting the RevEng.ai Server");
+		tfHostname.setToolTipText("URL hosting the RevEng.AI Server");
 		tfHostname.setText("https://api.reveng.ai");
 		hostnamePanel.add(tfHostname);
 		tfHostname.setColumns(10);
