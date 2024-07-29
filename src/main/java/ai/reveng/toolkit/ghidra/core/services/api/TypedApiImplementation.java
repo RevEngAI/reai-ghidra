@@ -312,6 +312,18 @@ public class TypedApiImplementation implements TypedApiInterface {
         return result;
     }
 
+    @Override
+    public List<Collection> collectionQuickSearch(String searchTerm) {
+        var request = requestBuilderForEndpoint("collections/quick/search?search_term=" + searchTerm)
+                .build();
+        var response = sendRequest(request);
+        var result = new ArrayList<Collection>();
+        response.getJSONArray("collections").forEach(
+                o -> result.add(Collection.fromSmallJSONObject((JSONObject) o, new ModelName("Unknown")))
+        );
+        return result;
+    }
+
     public JSONObject health(){
         // The health check has no version prefix
         URI uri;

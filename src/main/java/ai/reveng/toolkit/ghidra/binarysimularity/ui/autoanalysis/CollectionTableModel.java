@@ -1,11 +1,5 @@
 package ai.reveng.toolkit.ghidra.binarysimularity.ui.autoanalysis;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
-import ai.reveng.toolkit.ghidra.core.services.api.types.Collection;
-
 import docking.widgets.table.AbstractDynamicTableColumn;
 import docking.widgets.table.TableColumnDescriptor;
 import docking.widgets.table.threaded.ThreadedTableModelStub;
@@ -13,8 +7,10 @@ import ghidra.docking.settings.Settings;
 import ghidra.framework.plugintool.PluginTool;
 import ghidra.framework.plugintool.ServiceProvider;
 import ghidra.util.datastruct.Accumulator;
-import ghidra.util.exception.CancelledException;
 import ghidra.util.task.TaskMonitor;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class CollectionTableModel extends ThreadedTableModelStub<CollectionRowObject> {
 	// column indexes
@@ -29,14 +25,12 @@ public class CollectionTableModel extends ThreadedTableModelStub<CollectionRowOb
 	}
 
 	@Override
-	protected void doLoad(Accumulator<CollectionRowObject> accumulator, TaskMonitor monitor) throws CancelledException {
-		GhidraRevengService apiService = plugin.getService(GhidraRevengService.class);
-		List<Collection> res = apiService.collections();
-		res.forEach(
-				collection -> accumulator.add(new CollectionRowObject(collection.collectionName(), false))
-		);
+	protected void doLoad(Accumulator<CollectionRowObject> accumulator, TaskMonitor monitor){
+	}
 
-		
+	@Override
+	public void clearData() {
+		super.clearData();
 	}
 
 	@Override

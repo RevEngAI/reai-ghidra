@@ -13,7 +13,8 @@ public record GhidraFunctionMatch(
         Function function,
         String nearest_neighbor_function_name,
         String nearest_neighbor_binary_name,
-        double confidence
+        double confidence,
+        FunctionMatch functionMatch
 ) {
 //    public GhidraFunctionMatch {
 //        Objects.requireNonNull(function);
@@ -23,8 +24,8 @@ public record GhidraFunctionMatch(
                 function,
                 functionMatch.nearest_neighbor_function_name(),
                 functionMatch.nearest_neighbor_binary_name(),
-                functionMatch.confidence()
-
+                functionMatch.confidence(),
+                functionMatch
         );
     }
 }

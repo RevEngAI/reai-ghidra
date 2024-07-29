@@ -120,20 +120,47 @@ You can then click `Refresh` to update the returned functions based on updated p
 
 You can also batch analyse the binary to rename functions using the `Auto Analyse` tool.
 
-![Auto Analyse Tool](screenshots/auto-analysis-gui.png)
+[//]: # (![Auto Analyse Tool]&#40;screenshots/auto-analysis-gui.png&#41;)
 
 [//]: # (This tool pull the list of collections you have access to on your account, and allows you to specify which collections you want to be included in your auto analysis by clicking on the checkbox. Selecting no collections will enable all the available collections in your search.)
 
 Move the slider to determine the confidence level you want to use for batch renaming. Any function returned that is higher than this value will automatically be renamed in the listing view. Clicking the `start` button will kick off the analysis, which you can track in the blue progress bar
 
-![Auto Analysis Progress](screenshots/auto-analysis-gui-run.png)
+[//]: # (![Auto Analysis Progress]&#40;screenshots/auto-analysis-gui-run.png&#41;)
 
-Once the analysis is complete, the results panel is enabled.
-This provides information on what symbols have been renamed, and to what, along with a message explaining why the change occured.
+Use `Fetch Similar Functions` to load matches from the API above the confidence threshold.
 
-> Skipped analyses refer to external functions that are not defined in the current binary, and therefore we cannot access the function representation from within the current binary.
+![Auto Analysis before loading matches](screenshots/empty_aa_dialog.png)
 
-![Auto Analyse Result](screenshots/auto-analysis-results.png)
+Once the results are retrieved, you can look at them more closely.
+Each match is represented by a row in the table, and comes with various associated information
+in each column. Not all of them are shown by default,
+you can configure the displayed columns via the `Add/Remove Columns` entry in the context menu of a column.
+
+You can now simply accept all displayed results via the `Apply Filtered Results` button,
+or you can investigate them more closely yourself.
+
+Ghidra comes with a powerful table including filtering and we integrate with this feature.
+Double-clicking a table entry will open the corresponding function in the listing view.
+
+You can search by strings in all matches,
+or you can access the advanced filter options via the `Create Column Filter` button:
+
+![Filter Options](screenshots/filter_options_button.png)
+
+[//]: # (![Auto Analyse Result]&#40;screenshots/auto-analysis-results.png&#41;)
+
+Here you can now set up more complex filters,
+e.g. if you only want to apply matches that satisfy certain criteria.
+
+![Complex Filter Example](screenshots/complex_filter.png)
+
+After you apply the filter, the `Apply Filtered Results` button will only apply the matches that satisfy the filter.
+
+![Complex Filter Result](screenshots/complex_filter_result.png)
+
+Alternatively, you can select individual entries via `Ctrl+Click` and `Shift+Click` and apply only those via the
+`Apply Selected Results` button.
 
 ## Contributing
 

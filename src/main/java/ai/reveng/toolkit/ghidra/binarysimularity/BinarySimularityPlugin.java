@@ -53,6 +53,7 @@ import ghidra.util.task.TaskMonitor;
 )
 //@formatter:on
 public class BinarySimularityPlugin extends ProgramPlugin {
+	private final AutoAnalysisDockableDialog autoAnalyse;
 	private GhidraRevengService apiService;
 	public ReaiLoggingService loggingService;
 	private RunManager runMgr;
@@ -72,6 +73,9 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 		if (loggingService == null) {
 			Msg.error(this, "Unable to access logging service");
 		}
+
+		autoAnalyse = new AutoAnalysisDockableDialog(tool);
+		tool.addComponentProvider(autoAnalyse, false);
 
 		setupActions();
 	}
@@ -173,8 +177,7 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 								"Analysis must have completed before running name import");
 						return;
 					}
-					AutoAnalysisDockableDialog autoAnalyse = new AutoAnalysisDockableDialog(tool);
-					tool.showDialog(autoAnalyse);
+					tool.showComponentProvider(autoAnalyse, true);
 				})
 //				.keyBinding()autoAnalysisAction.setKeyBindingData( new KeyBindingData(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
 				.buildAndInstall(tool);

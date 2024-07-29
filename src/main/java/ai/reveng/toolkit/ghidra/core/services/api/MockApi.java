@@ -197,6 +197,11 @@ public class MockApi implements TypedApiInterface{
     }
 
     @Override
+    public List<Collection> collectionQuickSearch(String searchTerm) {
+        return List.of();
+    }
+
+    @Override
     public List<ModelInfo> models() {
         return null;
     }
