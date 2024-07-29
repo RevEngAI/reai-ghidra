@@ -92,5 +92,7 @@ public interface TypedApiInterface {
     List<Collection> collectionQuickSearch(ModelName modelName);
 
     List<ModelInfo> models();
+
+    List<Collection> collectionQuickSearch(String searchTerm);
 }
 

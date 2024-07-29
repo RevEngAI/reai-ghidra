@@ -46,6 +46,10 @@ public class GhidraRevengService {
     private TypedApiInterface api;
     private ApiInfo apiInfo;
 
+    public TypedApiInterface getApi() {
+        return api;
+    }
+
     public GhidraRevengService(ApiInfo apiInfo){
         this.apiInfo = apiInfo;
         this.api = new TypedApiImplementation(apiInfo);
@@ -125,12 +129,20 @@ public class GhidraRevengService {
         return Optional.of(binID);
     }
 
-    public List<FunctionInfo> getFunctionInfo(Program program){
+    public List<GhidraFunctionInfo> getFunctionInfo(Program program){
         var binID = getBinaryIDFor(program);
         if (binID.isEmpty()){
             throw new RuntimeException("No binary ID found for program");
         }
-        return api.getFunctionInfo(binID.get());
+        return api.getFunctionInfo(binID.get()).stream()
+                .map(
+                        info -> new GhidraFunctionInfo(
+                                info,
+                                getFunctionFor(info, program).orElse(null)
+                        ))
+                // Work around the incorrect function vaddr bug
+                .filter(ghidraFunctionInfo -> ghidraFunctionInfo.function() != null)
+                .toList();
     }
 
     private void loadFunctionInfo(Program program){
@@ -178,12 +190,13 @@ public class GhidraRevengService {
         program.endTransaction(transactionID, true);
     }
 
-    private Optional<Function> getFunctionFor(FunctionInfo functionInfo, Program program){
+    public Optional<Function> getFunctionFor(FunctionInfo functionInfo, Program program){
         var funcAddress = program.getImageBase().add(functionInfo.functionVirtualAddress());
-        return Optional.ofNullable(program.getFunctionManager().getFunctionAt(funcAddress));
+        var func = program.getFunctionManager().getFunctionAt(funcAddress);
+        return Optional.ofNullable(func);
     }
 
-    private FunctionID getFunctionIDFor(Function function){
+    public FunctionID getFunctionIDFor(Function function){
         if (!programMap.containsKey(function.getProgram()))
             throw new RuntimeException("Program not known to the service yet, this method shouldn't have been called");
         if (!functionMap.containsKey(function)){
@@ -230,6 +243,7 @@ public class GhidraRevengService {
                 )
         ).toList();
     }
+
     public List<GhidraFunctionMatch> getSimilarFunctions(Function function, Double distance, int results) {
         return getSimilarFunctions(List.of(function), results, distance);
     }
@@ -239,8 +253,14 @@ public class GhidraRevengService {
         var r = api.annSymbolsForBinary(binID, results, distance)
                 .stream()
                 .map(
+                        // Augment each match returned by the API with the associated Ghidra Function
                         match -> new GhidraFunctionMatch( functionMap.inverse().get(match.origin_function_id()), match)
+                )
+                .filter(
+                        // Filter out matches where the function is null due to some bug
+                        ghidraFunctionMatch -> ghidraFunctionMatch.function() != null
                 ).collect(
+                        // Group the matches by the Ghidra Function, so we have the matches per local function
                         Collectors.groupingBy(GhidraFunctionMatch::function)
                 );
         return r;
@@ -256,6 +276,8 @@ public class GhidraRevengService {
      * @return
      */
     public List<GhidraFunctionMatch> getSimilarFunctions(Function function) {
+        // TODO: This could maybe be made configureable
+        // Problem is that the API should also work without a tool, so we can't rely on the tool options being available
         return getSimilarFunctions(function, 0.1, 5);
     }
 
