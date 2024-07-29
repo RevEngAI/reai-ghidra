@@ -59,7 +59,7 @@ import ghidra.util.task.RunManager;
 	status = PluginStatus.STABLE,
 	packageName = ReaiPluginPackage.NAME,
 	category = PluginCategoryNames.COMMON,
-	shortDescription = "Toolkit for using RevEngAI API",
+	shortDescription = "Toolkit for using the RevEng.AI API",
 	description = "Toolkit for using RevEng.AI API",
 	servicesRequired = { OptionsService.class },
 	servicesProvided = { GhidraRevengService.class, ExportFunctionBoundariesService.class, ReaiLoggingService.class }
@@ -67,7 +67,7 @@ import ghidra.util.task.RunManager;
 //@formatter:on
 public class CorePlugin extends ProgramPlugin {
 	public static final String REAI_WIZARD_RUN_PREF = "REAISetupWizardRun";
-	public static final String REAI_OPTIONS_CATEGORY = "RevEng.AI Options";
+	public static final String REAI_OPTIONS_CATEGORY = "RevEngAI Options";
 	private final RunManager runMgr;
 
 	private GhidraRevengService revengService;
@@ -168,7 +168,7 @@ public class CorePlugin extends ProgramPlugin {
 			BinaryID binID = a.binary_id();
 			connectToAnalysis(binID);
 		} else if (finishedResults.isEmpty()){
-			Msg.showInfo(this, null, "Connectint to existing analysis failed", "No results found for program");
+			Msg.showInfo(this, null, "Connecting to existing analysis failed", "No results found for program");
 		} else {
 			// TODO: Implement UI choice dialog here
 			Msg.info(this, "Multiple results found for program. Defaulting to most recent one");

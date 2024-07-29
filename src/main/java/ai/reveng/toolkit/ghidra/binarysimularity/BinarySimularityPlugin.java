@@ -57,7 +57,7 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 	public ReaiLoggingService loggingService;
 	private RunManager runMgr;
 
-	public final static String REVENG_AI_NAMESPACE = "RevEng.ai";
+	public final static String REVENG_AI_NAMESPACE = "RevEng.AI";
 
 	/**
 	 * Plugin constructor.
@@ -147,7 +147,7 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 					var func = context.getProgram().getFunctionManager().getFunctionContaining(context.getAddress());
 					if (!apiService.isKnownFunction(func)){
 						Msg.showError(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Rename From Similar Functions",
-								"Function is not known to the RevEng API." +
+								"Function is not known to the RevEng.AI API." +
 										"This can happen if the function boundaries do not match.\n" +
 								"You can create a new analysis based on the current analysis state to fix this.");
 						return;
