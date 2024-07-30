@@ -36,6 +36,7 @@ import ghidra.framework.plugintool.util.PluginStatus;
 import ghidra.util.Msg;
 import ghidra.util.task.MonitoredRunnable;
 import ghidra.util.task.RunManager;
+import ghidra.util.task.TaskLauncher;
 import ghidra.util.task.TaskMonitor;
 
 /**
@@ -98,9 +99,12 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 				.withContext(ProgramActionContext.class)
 				.enabledWhen(context -> context.getProgram() != null)
 				.onAction(context -> {
-					BinaryHash hash = apiService.upload(context.getProgram());
-					Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Upload Binary",
-							"Binary uploaded with hash: " + hash.sha256());
+					TaskLauncher.launchModal("Upload Binary", monitor -> {
+						monitor.setMessage("Uploading binary...");
+						BinaryHash hash = apiService.upload(context.getProgram());
+						Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Upload Binary",
+								"Binary uploaded with hash: " + hash.sha256());
+					});
 				})
 				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Upload Binary" })
 //				.popupMenuPath(new String[] { "Upload Binary" })
@@ -110,16 +114,21 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 				.withContext(ProgramActionContext.class)
 				.enabledWhen(context -> context.getProgram() != null && !apiService.isKnownProgram(context.getProgram()))
 				.onAction(context -> {
-					apiService.upload(context.getProgram());
-					var binID = apiService.analyse(context.getProgram());
-					Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Create new Analysis for Binary",
-							"Analysis is running for binary with ID: " + binID.value() + "\n"
-					+ "You will be notified when the analysis is complete.");
-					apiService.addBinaryIDtoProgramOptions(context.getProgram(), binID);
-					spawnAnalysisStatusChecker(binID);
-					// Trigger a context refresh so the UI status of the actions gets updated
-					// because now other actions are available
-					tool.contextChanged(null);
+					TaskLauncher.launchModal("Create new Analysis for Binary", monitor -> {
+						monitor.setMessage("Uploading binary...");
+						apiService.upload(context.getProgram());
+						monitor.setMessage("Launching Analysis");
+						BinaryID binID = apiService.analyse(context.getProgram());
+						Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Create new Analysis for Binary",
+								"Analysis is running for binary with ID: " + binID.value() + "\n"
+										+ "You will be notified when the analysis is complete.");
+						apiService.addBinaryIDtoProgramOptions(context.getProgram(), binID);
+						spawnAnalysisStatusChecker(binID);
+						// Trigger a context refresh so the UI status of the actions gets updated
+						// because now other actions are available
+						tool.contextChanged(null);
+					});
+
 				})
 				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Create new Analysis for Binary" })
 				.buildAndInstall(tool);
