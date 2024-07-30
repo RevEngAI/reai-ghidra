@@ -25,6 +25,7 @@ import ghidra.util.Msg;
 import ghidra.util.exception.DuplicateNameException;
 import ghidra.util.exception.InvalidInputException;
 import ghidra.util.table.GhidraFilterTable;
+import ghidra.util.task.TaskLauncher;
 
 import java.util.List;
 import java.util.Map;
@@ -134,22 +135,17 @@ public class AutoAnalysisPanel extends JPanel {
 			if (!btnFetchFunctions.isEnabled()) {
 				return;
 			}
-			SwingWorker<Void, Void> worker = new SwingWorker<>() {
-                @Override
-                protected Void doInBackground() {
-                    try {
-                        loadAutoRenameResults();
-                    } catch (Exception exc) {
-                        Msg.showError(this, btnFetchFunctions,
-                                ReaiPluginPackage.WINDOW_PREFIX + "Auto Analysis Error", exc.getMessage(), exc);
-                        loggingService.error(exc.getMessage());
-                    }
-                    btnApplyAllFilteredResults.setEnabled(true);
-					btnApplySelectedResults.setEnabled(true);
-                    return null;
-                }
-            };
-			worker.execute();
+			TaskLauncher.launchModal("Fetch Similar Functions", () -> {
+				try {
+					loadAutoRenameResults();
+				} catch (Exception exc) {
+					Msg.showError(this, btnFetchFunctions,
+							ReaiPluginPackage.WINDOW_PREFIX + "Auto Analysis Error", exc.getMessage(), exc);
+					loggingService.error(exc.getMessage());
+				}
+				btnApplyAllFilteredResults.setEnabled(true);
+				btnApplySelectedResults.setEnabled(true);
+			});
 		});
 
 		btnApplySelectedResults = new JButton("Apply Selected Results");
