@@ -202,6 +202,11 @@ public class MockApi implements TypedApiInterface{
     }
 
     @Override
+    public String getAnalysisLogs(BinaryID binID) {
+        return null;
+    }
+
+    @Override
     public List<ModelInfo> models() {
         return null;
     }
