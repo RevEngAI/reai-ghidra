@@ -1,6 +1,7 @@
 package ai.reveng.toolkit.ghidra.core.services.api;
 
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
+import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisStatusChanged;
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
 import ai.reveng.toolkit.ghidra.core.services.api.types.Collection;
 import com.google.common.collect.BiMap;
@@ -65,7 +66,15 @@ public class GhidraRevengService {
         this.api = new MockApi();
     }
 
-    public void addBinaryIDforProgram(Program program, BinaryID binID){
+    public void handleAnalysisCompletion(RevEngAIAnalysisStatusChanged event){
+        if (event.getStatus() != AnalysisStatus.Complete){
+            throw new RuntimeException("Method should only be called when analysis is complete");
+        }
+        statusCache.put(event.getProgramWithBinaryID().binaryID(), AnalysisStatus.Complete);
+        addBinaryIDforProgram(event.getProgram(), event.getBinaryID());
+    }
+
+    private void addBinaryIDforProgram(Program program, BinaryID binID){
         // TODO: Handle the case where the program already has _different_ binary ID
         if (programMap.containsKey(program) && !programMap.get(program).equals(binID)){
             throw new RuntimeException("Program already has different binary ID associated with it: %s".formatted(programMap.get(program)));
@@ -94,7 +103,6 @@ public class GhidraRevengService {
             return Optional.of(programMap.get(program));
         }
 
-
         Optional<BinaryID> binID;
         try {
             binID = getBinaryIDfromOptions(program);
@@ -102,10 +110,6 @@ public class GhidraRevengService {
             Msg.error(this, "Invalid Binary ID found in program options: %s".formatted(e.getMessage()));
             return Optional.empty();
         }
-        binID.ifPresentOrElse(
-                id -> addBinaryIDforProgram(program, id),
-                () -> Msg.info(this, "No Binary ID found in program options")
-        );
         return binID;
 
     }
@@ -204,7 +208,7 @@ public class GhidraRevengService {
         
         return functionMap.get(function);
     }
-    private List<AnalysisResult> searchForHash(BinaryHash hash){
+    public List<AnalysisResult> searchForHash(BinaryHash hash){
         return api.search(hash);
     }
     public List<AnalysisResult> searchForProgram(Program program) {
@@ -276,10 +280,11 @@ public class GhidraRevengService {
         return api.collectionQuickSearch(new ModelName("binnet-0.3-x86-linux"));
     }
 
-    public BinaryID analyse(Program program) {
-        return analyse(program,
+    public ProgramWithBinaryID analyse(Program program) {
+        var binID = analyse(program,
                 getModelNameForProgram(program).orElseThrow()
         );
+        return new ProgramWithBinaryID(program, binID);
     }
 
     public BinaryID analyse(Program program, ModelName modelName){
@@ -376,12 +381,6 @@ public class GhidraRevengService {
             return statusCache.get(bid);
         }
         var status = api.status(bid);
-        if (status == AnalysisStatus.Complete){
-            // The analysis is complete, but it's the first time we get this info
-            // so we should load the function info
-            loadFunctionInfo(programMap.inverse().get(bid), bid);
-            statusCache.put(bid, status);
-        }
         return status;
     }
 
