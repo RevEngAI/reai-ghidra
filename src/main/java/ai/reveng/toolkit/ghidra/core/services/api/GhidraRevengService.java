@@ -328,10 +328,22 @@ public class GhidraRevengService {
     }
 
     public BinaryHash upload(Program program) {
-        // TODO: Check that the file at the path is actually the same as the program (via hash)
+        // TODO: Check if the program is already uploaded on the server
+        // But this requires a dedicated API to do cleanly
+
 
         try {
-            return api.upload(Path.of(program.getExecutablePath()));
+            var hash = api.upload(Path.of(program.getExecutablePath()));
+            if (hash.equals(hashOfProgram(program))){
+                // TODO: Save the information that this program has been uploaded
+//                program.getOptions(REAI_OPTIONS_CATEGORY).setBoolean(ReaiPluginPackage.OPTION_KEY_BINID, hash.value());
+                return hash;
+            } else {
+                // This means the file on disk has
+                throw new RuntimeException(
+                        "Hash of uploaded file %s from path %s doesn't match the hash of the program loaded in Ghidra %s"
+                                .formatted(hash, program.getExecutablePath(), hashOfProgram(program)));
+            }
         } catch (FileNotFoundException e) {
             throw new RuntimeException(e);
         }
