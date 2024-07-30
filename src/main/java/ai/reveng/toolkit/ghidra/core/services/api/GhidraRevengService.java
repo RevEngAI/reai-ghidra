@@ -70,7 +70,7 @@ public class GhidraRevengService {
             throw new RuntimeException("Program already has different binary ID associated with it: %s".formatted(programMap.get(program)));
         }
         programMap.put(program, binID);
-        loadFunctionInfo(program);
+        loadFunctionInfo(program, binID);
         addBinaryIDtoProgramOptions(program, binID);
     }
 
@@ -145,12 +145,8 @@ public class GhidraRevengService {
                 .toList();
     }
 
-    private void loadFunctionInfo(Program program){
-        var binID = getBinaryIDFor(program);
-        if (binID.isEmpty()){
-            throw new RuntimeException("No binary ID found for program");
-        }
-        List<FunctionInfo> functionInfo = api.getFunctionInfo(binID.get());
+    private void loadFunctionInfo(Program program, BinaryID binID){
+        List<FunctionInfo> functionInfo = api.getFunctionInfo(binID);
         var transactionID = program.startTransaction("Load Function Info");
         functionInfo.forEach(
                 info -> {
@@ -197,20 +193,14 @@ public class GhidraRevengService {
     }
 
     public FunctionID getFunctionIDFor(Function function){
-        if (!programMap.containsKey(function.getProgram()))
+        var binID = Optional.ofNullable(programMap.get(function.getProgram()));
+        if (binID.isEmpty()){
             throw new RuntimeException("Program not known to the service yet, this method shouldn't have been called");
-        if (!functionMap.containsKey(function)){
-            loadFunctionInfo(function.getProgram());
-//
-//            var program = function.getProgram();
-//            var functionInfo = getFunctionInfo(program);
-//            functionInfo.forEach(
-//                    info -> {
-//                        functionMap.put(getFunctionFor(info, program), info.functionID());
-//
-//                    }
-//            );
         }
+        if (!functionMap.containsKey(function)){
+            loadFunctionInfo(function.getProgram(), binID.get());
+        }
+        
         return functionMap.get(function);
     }
     private List<AnalysisResult> searchForHash(BinaryHash hash){
@@ -368,7 +358,7 @@ public class GhidraRevengService {
         if (status == AnalysisStatus.Complete){
             // The analysis is complete, but it's the first time we get this info
             // so we should load the function info
-            loadFunctionInfo(programMap.inverse().get(bid));
+            loadFunctionInfo(programMap.inverse().get(bid), bid);
             statusCache.put(bid, status);
         }
         return status;
