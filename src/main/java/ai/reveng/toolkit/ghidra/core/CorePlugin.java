@@ -17,14 +17,11 @@ package ai.reveng.toolkit.ghidra.core;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.List;
 import java.util.Optional;
 
+import ai.reveng.toolkit.ghidra.binarysimularity.ui.recentanalyses.RecentAnalysisDialog;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
-import ai.reveng.toolkit.ghidra.core.services.api.types.AnalysisResult;
-import ai.reveng.toolkit.ghidra.core.services.api.types.AnalysisStatus;
-import ai.reveng.toolkit.ghidra.core.services.api.types.ApiInfo;
-import ai.reveng.toolkit.ghidra.core.services.api.types.BinaryID;
+import ai.reveng.toolkit.ghidra.core.services.api.types.*;
 
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoundariesService;
@@ -49,6 +46,8 @@ import ghidra.program.model.listing.Program;
 import ghidra.util.Msg;
 import ghidra.util.task.RunManager;
 
+import static ai.reveng.toolkit.ghidra.ReaiPluginPackage.INVALID_BINARY_ID;
+
 /**
  * CorePlugin for accessing the RevEng.AI Platform
  * It provides the {@link GhidraRevengService}
@@ -62,7 +61,8 @@ import ghidra.util.task.RunManager;
 	shortDescription = "Toolkit for using the RevEng.AI API",
 	description = "Toolkit for using RevEng.AI API",
 	servicesRequired = { OptionsService.class },
-	servicesProvided = { GhidraRevengService.class, ExportFunctionBoundariesService.class, ReaiLoggingService.class }
+	servicesProvided = { GhidraRevengService.class, ExportFunctionBoundariesService.class, ReaiLoggingService.class },
+	eventsConsumed = { RevEngAIAnalysisStatusChanged.class}
 )
 //@formatter:on
 public class CorePlugin extends ProgramPlugin {
@@ -105,6 +105,17 @@ public class CorePlugin extends ProgramPlugin {
 
 		setupActions();
 
+	}
+
+	@Override
+	public void processEvent(PluginEvent event) {
+		super.processEvent(event);
+		if (event instanceof RevEngAIAnalysisStatusChanged pickedEvent) {
+			if (pickedEvent.getStatus() == AnalysisStatus.Complete) {
+				Msg.info(this, "Finished analysis became available for: " + pickedEvent.getProgramWithBinaryID());
+				revengService.handleAnalysisCompletion(pickedEvent);
+			}
+		}
 	}
 
 	private Optional<ApiInfo> getApiInfoFromToolOptions(){
@@ -151,35 +162,13 @@ public class CorePlugin extends ProgramPlugin {
 		new ActionBuilder("Connect to existing analysis", this.toString())
 				.withContext(ProgramActionContext.class)
 				.enabledWhen(c -> !revengService.isKnownProgram(c.getProgram()))
-				.onAction(this::connectToExistingAnalysis)
+				.onAction(context -> {
+					RecentAnalysisDialog dialog = new RecentAnalysisDialog(tool, context.getProgram());
+					tool.showDialog(dialog);
+				})
 				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Connect to existing analysis" })
 				.buildAndInstall(tool);
 
-	}
-
-	private void connectToExistingAnalysis(ProgramActionContext context) {
-        List<AnalysisResult> results = revengService.searchForProgram(context.getProgram());
-		var finishedResults = results.stream()
-				.filter(r -> r.status() == AnalysisStatus.Complete)
-				.sorted((a,b ) -> b.binary_id().compareTo(a.binary_id())) // sort by highest binary ID first
-				.toList();
-		if (finishedResults.size() == 1){
-			AnalysisResult a = finishedResults.get(0);
-			BinaryID binID = a.binary_id();
-			connectToAnalysis(binID);
-		} else if (finishedResults.isEmpty()){
-			Msg.showInfo(this, null, "Connecting to existing analysis failed", "No results found for program");
-		} else {
-			// TODO: Implement UI choice dialog here
-			Msg.info(this, "Multiple results found for program. Defaulting to most recent one");
-			AnalysisResult a = finishedResults.get(0);
-			connectToAnalysis(a.binary_id());
-		}
-	}
-
-	private void connectToAnalysis(BinaryID binID) {
-		revengService.addBinaryIDforProgram(currentProgram, binID);
-		Msg.showInfo(this,null, "", "Connected to binary id: " + binID.toString());
 	}
 
 	@Override
@@ -187,10 +176,18 @@ public class CorePlugin extends ProgramPlugin {
 		super.programActivated(program);
 
 		if (!revengService.isKnownProgram(program)){
-			revengService.getBinaryIDFor(program).ifPresentOrElse(
-					binID -> Msg.info(this, "Program has saved binary ID: " + binID),
-					() -> Msg.info(this, "Program has no saved binary ID")
-			);
+			var maybeBinID = revengService.getBinaryIDFor(program);
+			if (maybeBinID.isEmpty()){
+				Msg.info(this, "Program has no saved binary ID");
+				return;
+			}
+			var binID = maybeBinID.get();
+			AnalysisStatus status = revengService.status(binID);
+			tool.firePluginEvent(
+					new RevEngAIAnalysisStatusChanged(
+					"programActivated",
+							new ProgramWithBinaryID(program, binID),
+							status));
 		}
 	}
 

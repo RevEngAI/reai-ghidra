@@ -18,10 +18,12 @@ package ai.reveng.toolkit.ghidra.binarysimularity;
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.binarysimularity.ui.autoanalysis.AutoAnalysisDockableDialog;
 import ai.reveng.toolkit.ghidra.binarysimularity.ui.functionsimularity.FunctionSimularityDockableDialog;
+import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisStatusChanged;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.api.types.AnalysisStatus;
 import ai.reveng.toolkit.ghidra.core.services.api.types.BinaryHash;
 import ai.reveng.toolkit.ghidra.core.services.api.types.BinaryID;
+import ai.reveng.toolkit.ghidra.core.services.api.types.ProgramWithBinaryID;
 import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoundariesService;
 import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
 import docking.action.builder.ActionBuilder;
@@ -121,11 +123,11 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 						apiService.upload(context.getProgram());
 						monitor.setProgress(99);
 						monitor.setMessage("Launching Analysis");
-						BinaryID binID = apiService.analyse(context.getProgram());
+						ProgramWithBinaryID binID = apiService.analyse(context.getProgram());
 						Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Create new Analysis for Binary",
-								"Analysis is running for binary with ID: " + binID.value() + "\n"
+								"Analysis is running for: " + binID + "\n"
 										+ "You will be notified when the analysis is complete.");
-						apiService.addBinaryIDtoProgramOptions(context.getProgram(), binID);
+//						apiService.addBinaryIDtoProgramOptions(context.getProgram(), binID);
 						spawnAnalysisStatusChecker(binID);
 						// Trigger a context refresh so the UI status of the actions gets updated
 						// because now other actions are available
@@ -202,39 +204,30 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 		apiService = tool.getService(GhidraRevengService.class);
 	}
 
-	private void spawnAnalysisStatusChecker(BinaryID binID){
-		runMgr.runNext(new MonitoredRunnable() {
-			@Override
-			public void monitoredRun(TaskMonitor monitor) {
-				monitor.setMessage("Checking analysis status");
+	private void spawnAnalysisStatusChecker(ProgramWithBinaryID programWithBinaryID){
+		runMgr.runNext(monitor -> {
+            monitor.setMessage("Checking analysis status");
+			var binID = programWithBinaryID.binaryID();
+            // Check the status of the analysis every 5 seconds
+            AnalysisStatus lastStatus = null;
+            while (true) {
+                AnalysisStatus currentStatus = apiService.status(programWithBinaryID.binaryID());
+                if (currentStatus != lastStatus) {
+                    tool.firePluginEvent(new RevEngAIAnalysisStatusChanged("Checker", programWithBinaryID, currentStatus));
+                    lastStatus = currentStatus;
+                }
 
-				// Check the status of the analysis every 5 seconds
-				while (true) {
-					AnalysisStatus result = apiService.status(binID);
-					if (result == AnalysisStatus.Complete) {
-						Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Analysis Status",
-								"Analysis is complete for binary with ID: " + binID.value());
-						break;
-					} else if (result == AnalysisStatus.Error) {
-						// Load analysis logs
-						String logs = apiService.getApi().getAnalysisLogs(binID);
-						Msg.showError(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Analysis Status",
-								"Analysis failed for binary with ID %s.\nAnalysis Logs:%s.".formatted(binID.value(), logs));
-						// Clear the binary ID from the program options
-						currentProgram.withTransaction("Clear errored Binary ID from Program Options", () -> {
-							apiService.addBinaryIDtoProgramOptions(currentProgram, new BinaryID(INVALID_BINARY_ID));
-						});
-						break;
-
-					}
-					try {
-						Thread.sleep(5000);
-					} catch (InterruptedException e) {
-						loggingService.error(e.getMessage());
-					}
+				if (lastStatus == AnalysisStatus.Complete || lastStatus == AnalysisStatus.Error) {
+					break;
 				}
-			}
-		}, "Checking analysis status", 0);
+
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException e) {
+                    loggingService.error(e.getMessage());
+                }
+            }
+        }, "Checking analysis status", 0);
 	}
 
 }
