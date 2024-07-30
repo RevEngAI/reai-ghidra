@@ -324,6 +324,14 @@ public class TypedApiImplementation implements TypedApiInterface {
         return result;
     }
 
+    @Override
+    public String getAnalysisLogs(BinaryID binID) {
+        var request = requestBuilderForEndpoint("logs/" + binID.value())
+                .build();
+        var response = sendRequest(request);
+        return response.getString("logs");
+    }
+
     public JSONObject health(){
         // The health check has no version prefix
         URI uri;

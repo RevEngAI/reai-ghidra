@@ -39,6 +39,8 @@ import ghidra.util.task.RunManager;
 import ghidra.util.task.TaskLauncher;
 import ghidra.util.task.TaskMonitor;
 
+import static ai.reveng.toolkit.ghidra.ReaiPluginPackage.INVALID_BINARY_ID;
+
 /**
  * This plugin provides features for performing binary code similarity using the
  * RevEng.AI API
@@ -117,6 +119,7 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 					TaskLauncher.launchModal("Create new Analysis for Binary", monitor -> {
 						monitor.setMessage("Uploading binary...");
 						apiService.upload(context.getProgram());
+						monitor.setProgress(99);
 						monitor.setMessage("Launching Analysis");
 						BinaryID binID = apiService.analyse(context.getProgram());
 						Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Create new Analysis for Binary",
@@ -212,6 +215,17 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 						Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Analysis Status",
 								"Analysis is complete for binary with ID: " + binID.value());
 						break;
+					} else if (result == AnalysisStatus.Error) {
+						// Load analysis logs
+						String logs = apiService.getApi().getAnalysisLogs(binID);
+						Msg.showError(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Analysis Status",
+								"Analysis failed for binary with ID %s.\nAnalysis Logs:%s.".formatted(binID.value(), logs));
+						// Clear the binary ID from the program options
+						currentProgram.withTransaction("Clear errored Binary ID from Program Options", () -> {
+							apiService.addBinaryIDtoProgramOptions(currentProgram, new BinaryID(INVALID_BINARY_ID));
+						});
+						break;
+
 					}
 					try {
 						Thread.sleep(5000);

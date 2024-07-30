@@ -94,5 +94,8 @@ public interface TypedApiInterface {
     List<ModelInfo> models();
 
     List<Collection> collectionQuickSearch(String searchTerm);
+
+    String getAnalysisLogs(BinaryID binID);
+
 }
 
