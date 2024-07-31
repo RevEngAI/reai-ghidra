@@ -73,6 +73,20 @@ public class AutoAnalysisResultsTableModel extends ThreadedTableModelStub<Ghidra
 			}
 		});
 
+		descriptor.addHiddenColumn(new AbstractDynamicTableColumn<GhidraFunctionMatch, Long, Object>(){
+
+			@Override
+			public String getColumnName() {
+				return "Destination Function Size";
+			}
+
+			@Override
+			public Long getValue(GhidraFunctionMatch rowObject, Settings settings, Object data, ServiceProvider serviceProvider) throws IllegalArgumentException {
+				return rowObject.function().getBody().getNumAddresses();
+			}
+		});
+
+
 
 		descriptor.addVisibleColumn(new AutoanalysisResultSrcSymbolTableColumn());
 		descriptor.addVisibleColumn(new AutoanalysisResultSrcBinaryTableColumn());
