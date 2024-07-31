@@ -327,6 +327,7 @@ public class AutoAnalysisPanel extends JPanel {
 		);
 
 		currentProgram.endTransaction(transactionID, true);
+		autoanalysisResultsModel.refresh();
 	}
 
 	protected JSlider getConfidenceSlider() {
