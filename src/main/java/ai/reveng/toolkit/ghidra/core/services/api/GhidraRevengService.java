@@ -16,6 +16,7 @@ import ghidra.util.exception.DuplicateNameException;
 import ghidra.util.exception.InvalidInputException;
 
 import java.io.FileNotFoundException;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -331,9 +332,17 @@ public class GhidraRevengService {
         // TODO: Check if the program is already uploaded on the server
         // But this requires a dedicated API to do cleanly
 
-
+        Path filePath;
         try {
-            var hash = api.upload(Path.of(program.getExecutablePath()));
+            filePath = Path.of(program.getExecutablePath());
+        } catch (InvalidPathException e) {
+            // For windows the returned String isn't a valid input to Path.of
+            //  because they look like "/C:/vfcompat.dll"
+            // we have to drop the first "/" for the path to be valid
+            filePath = Path.of(program.getExecutablePath().substring(1));
+        }
+        try {
+            var hash = api.upload(filePath);
             if (hash.equals(hashOfProgram(program))){
                 // TODO: Save the information that this program has been uploaded
 //                program.getOptions(REAI_OPTIONS_CATEGORY).setBoolean(ReaiPluginPackage.OPTION_KEY_BINID, hash.value());
