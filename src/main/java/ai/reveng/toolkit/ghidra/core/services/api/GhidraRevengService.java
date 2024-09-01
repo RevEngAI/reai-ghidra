@@ -219,6 +219,17 @@ public class GhidraRevengService {
         return programMap.containsKey(program);
     }
 
+    public void removeProgramAssociation(Program program){
+        var binID = getBinaryIDFor(program);
+        if (binID.isEmpty()){
+            throw new RuntimeException("Program has no binary ID associated with it");
+        }
+        programMap.remove(program);
+        functionMap.entrySet().removeIf(entry -> entry.getKey().getProgram().equals(program));
+        statusCache.remove(binID.get());
+        program.getOptions(REAI_OPTIONS_CATEGORY).setLong(ReaiPluginPackage.OPTION_KEY_BINID, ReaiPluginPackage.INVALID_BINARY_ID);
+    }
+
     public boolean isProgramAnalysed(Program program){
         return status(program) == AnalysisStatus.Complete;
     }

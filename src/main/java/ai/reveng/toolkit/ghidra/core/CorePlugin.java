@@ -32,6 +32,7 @@ import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardManager;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardStateKey;
 import docking.ActionContext;
 import docking.action.builder.ActionBuilder;
+import docking.widgets.OptionDialog;
 import docking.wizard.WizardManager;
 import docking.wizard.WizardState;
 import ghidra.app.context.ProgramActionContext;
@@ -77,7 +78,6 @@ import static ai.reveng.toolkit.ghidra.ReaiPluginPackage.INVALID_BINARY_ID;
 public class CorePlugin extends ProgramPlugin {
 	public static final String REAI_WIZARD_RUN_PREF = "REAISetupWizardRun";
 	public static final String REAI_OPTIONS_CATEGORY = "RevEngAI Options";
-	private final RunManager runMgr;
 
 	private GhidraRevengService revengService;
 	private ExportFunctionBoundariesService exportFunctionBoundariesService;
@@ -109,8 +109,6 @@ public class CorePlugin extends ProgramPlugin {
 
 		exportFunctionBoundariesService = new ExportFunctionBoundariesServiceImpl(tool);
 		registerServiceProvided(ExportFunctionBoundariesService.class, exportFunctionBoundariesService);
-
-		runMgr = new RunManager();
 
 		setupActions();
 
@@ -176,6 +174,28 @@ public class CorePlugin extends ProgramPlugin {
 					tool.showDialog(dialog);
 				})
 				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Connect to existing analysis" })
+				.buildAndInstall(tool);
+
+		new ActionBuilder("Remove analysis association", this.toString())
+				.withContext(ProgramActionContext.class)
+				.enabledWhen(c -> revengService.isKnownProgram(c.getProgram()))
+				.onAction(context -> {
+					var result = OptionDialog.showOptionDialogWithCancelAsDefaultButton(
+							tool.getToolFrame(),
+							"Remove analysis association",
+							"Are you sure you want to remove the association with the analysis?",
+							"Remove",
+							OptionDialog.QUESTION_MESSAGE);
+					if (result == OptionDialog.YES_OPTION) {
+						// For now this is the only place to trigger the removal of the association
+						// If this changes, the RevEngAIAnalysisStatusChanged event should be changed to accommodate
+						// this kind of event
+						var program = context.getProgram();
+						program.withTransaction("Undo binary association", () -> revengService.removeProgramAssociation(program));
+					}
+
+				})
+				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Remove analysis association" })
 				.buildAndInstall(tool);
 
 	}
