@@ -51,7 +51,16 @@ import static ai.reveng.toolkit.ghidra.ReaiPluginPackage.INVALID_BINARY_ID;
 /**
  * CorePlugin for accessing the RevEng.AI Platform
  * It provides the {@link GhidraRevengService}
- * This is then used by other plugins to implement funcionalities
+ * This is then used by other plugins to implement functionalities
+ *
+ * The UI components provided by this plugin are those for managing the basic actions such as
+ * - running the setup wizard
+ * - uploading a binary to the platform
+ *
+ * Other concepts such as creating a new analysis for a binary are still blurred between this and the
+ * {@link ai.reveng.toolkit.ghidra.binarysimularity.BinarySimularityPlugin}
+ *
+ * This distinction will be made clearer in future versions, when more features are available on the platform
  */
 //@formatter:off
 @PluginInfo(
