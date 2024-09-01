@@ -35,6 +35,8 @@ import ghidra.app.services.ProgramManager;
 import ghidra.framework.plugintool.PluginInfo;
 import ghidra.framework.plugintool.PluginTool;
 import ghidra.framework.plugintool.util.PluginStatus;
+import ghidra.program.model.listing.Program;
+import ghidra.program.util.GhidraProgramUtilities;
 import ghidra.util.Msg;
 import ghidra.util.task.MonitoredRunnable;
 import ghidra.util.task.RunManager;
@@ -46,14 +48,17 @@ import static ai.reveng.toolkit.ghidra.ReaiPluginPackage.INVALID_BINARY_ID;
 /**
  * This plugin provides features for performing binary code similarity using the
  * RevEng.AI API
+ *
+ * This depend on an Analysis ID being associated with a program
+ *
  */
 //@formatter:off
 @PluginInfo(
 	status = PluginStatus.STABLE,
 	packageName = ReaiPluginPackage.NAME,
 	category = PluginCategoryNames.COMMON,
-	shortDescription = "Support for Binary Simularity Featrues of RevEng.AI Toolkit.",
-	description = "Enable features that support binary simlularity operations, including binary upload, and auto-renaming",
+	shortDescription = "Support for Binary Similarity Featrues of RevEng.AI Toolkit.",
+	description = "Enable features that support binary similarity operations, including binary upload, and auto-renaming",
 	servicesRequired = { GhidraRevengService.class, ProgramManager.class, ExportFunctionBoundariesService.class, ReaiLoggingService.class }
 )
 //@formatter:on
@@ -114,11 +119,18 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 //				.popupMenuPath(new String[] { "Upload Binary" })
 				.buildAndInstall(tool);
 
-		new ActionBuilder("Create new Analysis for Binary", this.getName())
+		new ActionBuilder("Create new RevEng.AI Analysis for Binary", this.getName())
 				.withContext(ProgramActionContext.class)
 				.enabledWhen(context -> context.getProgram() != null && !apiService.isKnownProgram(context.getProgram()))
 				.onAction(context -> {
 					TaskLauncher.launchModal("Create new Analysis for Binary", monitor -> {
+						// Check if the program has been analyzed already
+//						isAnalyzed = options.getBoolean(Program.ANALYZED_OPTION_NAME, false);
+						if (!GhidraProgramUtilities.isAnalyzed(context.getProgram())) {
+							Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Create new Analysis for Binary",
+									"Program has not been auto-analyzed by Ghidra yet. Please run auto-analysis first.");
+							return;
+						}
 						monitor.setMessage("Uploading binary...");
 						apiService.upload(context.getProgram());
 						monitor.setProgress(99);
