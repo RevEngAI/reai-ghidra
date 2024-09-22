@@ -333,10 +333,9 @@ public class TypedApiImplementation implements TypedApiInterface {
     }
 
     public JSONObject health(){
-        // The health check has no version prefix
         URI uri;
         try {
-            uri = new URI(baseUrl);
+            uri = new URI(baseUrl + apiVersion);
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }

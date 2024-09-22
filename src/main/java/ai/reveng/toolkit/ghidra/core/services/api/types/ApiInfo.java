@@ -3,8 +3,6 @@ package ai.reveng.toolkit.ghidra.core.services.api.types;
 import ai.reveng.toolkit.ghidra.core.models.ReaiConfig;
 import ai.reveng.toolkit.ghidra.core.services.api.TypedApiImplementation;
 import com.google.gson.Gson;
-import ghidra.util.Msg;
-import org.checkerframework.checker.units.qual.A;
 import org.json.JSONException;
 
 import java.io.FileNotFoundException;
@@ -23,10 +21,6 @@ public record ApiInfo(
         this(URI.create(hostURI), apiKey);
     }
 
-
-    public boolean check(){
-        return checkServer() && checkCredentials();
-    }
     public boolean checkServer(){
         var api = new TypedApiImplementation(this);
         try {
@@ -36,20 +30,29 @@ public record ApiInfo(
             return false;
         }
     }
-    public boolean checkCredentials(){
+    public void checkCredentials() throws InvalidAPIInfoException {
         if (hostURI == null || apiKey == null){
-            throw new IllegalArgumentException("hostURI and apiKey must not be null");
+            throw new InvalidAPIInfoException("hostURI and apiKey must not be null");
         }
+        var api = new TypedApiImplementation(this);
 
         // Send quick health request
+        var health = api.health();
+        if (!health.getBoolean("success")){
+            throw new InvalidAPIInfoException("Server health check failed: " + health.getString("message"));
+        }
 
-        var api = new TypedApiImplementation(this);
+        Boolean credentialsValid = null;
         try {
-            return api.checkCredentials();
+            credentialsValid = api.checkCredentials();
+
         } catch (JSONException e) {
-            throw new IllegalArgumentException("Invalid JSON response from server " + hostURI);
+            throw new InvalidAPIInfoException("Invalid JSON response from server " + hostURI, e);
         } catch (Exception e) {
-            throw new IllegalArgumentException("Failed to validate credentials", e);
+            throw new InvalidAPIInfoException("Failed to validate credentials", e);
+        }
+        if (!credentialsValid){
+            throw new InvalidAPIInfoException("Invalid API key");
         }
 
     }
