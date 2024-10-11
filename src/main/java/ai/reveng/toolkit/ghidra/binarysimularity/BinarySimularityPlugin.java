@@ -20,6 +20,7 @@ import ai.reveng.toolkit.ghidra.binarysimularity.ui.autoanalysis.AutoAnalysisDoc
 import ai.reveng.toolkit.ghidra.binarysimularity.ui.functionsimularity.FunctionSimularityDockableDialog;
 import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisStatusChanged;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
+import ai.reveng.toolkit.ghidra.core.services.api.ModelName;
 import ai.reveng.toolkit.ghidra.core.services.api.types.AnalysisStatus;
 import ai.reveng.toolkit.ghidra.core.services.api.types.BinaryHash;
 import ai.reveng.toolkit.ghidra.core.services.api.types.BinaryID;
@@ -27,6 +28,7 @@ import ai.reveng.toolkit.ghidra.core.services.api.types.ProgramWithBinaryID;
 import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoundariesService;
 import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
 import docking.action.builder.ActionBuilder;
+import docking.widgets.OptionDialog;
 import ghidra.app.context.ProgramActionContext;
 import ghidra.app.context.ProgramLocationActionContext;
 import ghidra.app.plugin.PluginCategoryNames;
@@ -131,11 +133,28 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 									"Program has not been auto-analyzed by Ghidra yet. Please run auto-analysis first.");
 							return;
 						}
+						// Get the available models
+						monitor.setMessage("Getting available models...");
+						var models = apiService.getAvailableModels();
+						var suggestedModel = apiService.getModelNameForProgram(context.getProgram(), models);
+						// Show user a dropdown menu to pick the model
+						var selectedModel = OptionDialog.showInputChoiceDialog(
+								null,
+								ReaiPluginPackage.WINDOW_PREFIX + "Create new Analysis for Binary",
+								"Select a model to use for analysis",
+								models.stream().map(ModelName::modelName).toArray(String[]::new),
+								suggestedModel.modelName(),
+								OptionDialog.QUESTION_MESSAGE);
+
+						if (selectedModel == null) {
+							// User canceled the model choice dialog, so we cancel the analysis task
+							return;
+						}
 						monitor.setMessage("Uploading binary...");
 						apiService.upload(context.getProgram());
 						monitor.setProgress(99);
 						monitor.setMessage("Launching Analysis");
-						ProgramWithBinaryID binID = apiService.analyse(context.getProgram());
+						ProgramWithBinaryID binID = apiService.analyse(context.getProgram(), new ModelName(selectedModel));
 						Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Create new Analysis for Binary",
 								"Analysis is running for: " + binID + "\n"
 										+ "You will be notified when the analysis is complete.");

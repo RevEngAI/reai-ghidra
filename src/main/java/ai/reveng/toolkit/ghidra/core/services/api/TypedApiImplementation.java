@@ -362,11 +362,12 @@ public class TypedApiImplementation implements TypedApiInterface {
         return requestBuilder;
     }
     @Override
-    public List<ModelInfo> models(){
+    public List<ModelName> models(){
         JSONObject jsonResponse = sendRequest(requestBuilderForEndpoint("models").GET().build());
-        List<ModelInfo> result = new ArrayList<>();
+        List<ModelName> result = new ArrayList<>();
         jsonResponse.getJSONArray("models").forEach((Object o) -> {
-            result.add(ModelInfo.fromJSONObject((JSONObject) o));
+            JSONObject obj = (JSONObject) o;
+            result.add(new ModelName(obj.getString("model_name")));
         });
         return result;
     }
