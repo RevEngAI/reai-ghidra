@@ -292,15 +292,12 @@ public class GhidraRevengService {
     }
 
     public ProgramWithBinaryID analyse(Program program) {
-        var binID = analyse(program,
-                getModelNameForProgram(program).orElseThrow()
-        );
-        return new ProgramWithBinaryID(program, binID);
+        return analyse(program, getModelNameForProgram(program));
     }
 
-    public BinaryID analyse(Program program, ModelName modelName){
+    public ProgramWithBinaryID analyse(Program program, ModelName modelName){
         if (programMap.containsKey(program)){
-            return programMap.get(program);
+            return new ProgramWithBinaryID(program, programMap.get(program));
         }
 
         AnalysisOptionsBuilder builder = new AnalysisOptionsBuilder();
@@ -311,19 +308,22 @@ public class GhidraRevengService {
 
         var binID = api.analyse(builder);
         programMap.put(program, binID);
-        return binID;
+        return new ProgramWithBinaryID(program, binID);
     }
 
-    private Optional<ModelName> getModelNameForProgram(Program program){
-        // TODO: Model name choice will be removed from the client API in the future
+    private ModelName getModelNameForProgram(Program program){
+        return getModelNameForProgram(program, this.api.models());
+    }
+
+    public ModelName getModelNameForProgram(Program program, List<ModelName> models){
+        var s = models.stream().map (ModelName::modelName);
         var format = program.getOptions("Program Information").getString("Executable Format", null);
         if (format.equals(ElfLoader.ELF_NAME)){
-            return Optional.of(new ModelName("binnet-0.3-x86-linux"));
+            s = s.filter(modelName -> modelName.contains("linux"));
         } else if (format.equals(PeLoader.PE_NAME)) {
-            return Optional.of(new ModelName("binnet-0.3-x86-windows"));
+            s = s.filter(modelName -> modelName.contains("windows"));
         }
-        return Optional.empty();
-
+        return new ModelName(s.sorted(Collections.reverseOrder()).toList().get(0));
     }
 
     private List<FunctionBoundary> exportFunctionBoundaries(Program program){
@@ -397,6 +397,10 @@ public class GhidraRevengService {
 
     public String health(){
         return api.healthMessage();
+    }
+
+    public List<ModelName> getAvailableModels(){
+        return api.models();
     }
 
 

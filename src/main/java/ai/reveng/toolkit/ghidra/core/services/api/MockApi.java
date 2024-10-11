@@ -207,7 +207,7 @@ public class MockApi implements TypedApiInterface{
     }
 
     @Override
-    public List<ModelInfo> models() {
+    public List<ModelName> models() {
         return null;
     }
 
