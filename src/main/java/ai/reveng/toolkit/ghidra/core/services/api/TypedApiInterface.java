@@ -5,6 +5,8 @@ import java.nio.file.Path;
 import java.util.List;
 
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
+import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.APIAuthenticationException;
+import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.InvalidAPIInfoException;
 
 
 /**
@@ -107,5 +109,6 @@ public interface TypedApiInterface {
 
     String getAnalysisLogs(BinaryID binID);
 
+    void authenticate() throws InvalidAPIInfoException;
 }
 

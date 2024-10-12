@@ -1,6 +1,7 @@
 package ai.reveng.toolkit.ghidra.core.services.api;
 
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
+import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.APIAuthenticationException;
 import org.json.JSONObject;
 
 import java.io.FileNotFoundException;
@@ -204,6 +205,10 @@ public class MockApi implements TypedApiInterface{
     @Override
     public String getAnalysisLogs(BinaryID binID) {
         return null;
+    }
+
+    @Override
+    public void authenticate() throws APIAuthenticationException {
     }
 
     @Override
