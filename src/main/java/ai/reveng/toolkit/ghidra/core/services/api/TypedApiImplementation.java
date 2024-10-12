@@ -225,11 +225,21 @@ public class TypedApiImplementation implements TypedApiInterface {
     }
 
     @Override
-    public List<FunctionMatch> annSymbolsForBinary(BinaryID binID, int resultsPerFunction, double distance) {
+    public List<FunctionMatch> annSymbolsForBinary(BinaryID binID,
+                                                   int resultsPerFunction,
+                                                   double distance,
+                                                   boolean debugMode,
+                                                   List<Collection> collections
+    ) {
         var params = new JSONObject();
         params.put("result_per_function", resultsPerFunction);
         params.put("distance", distance);
         params.put("debug_mode", false);
+
+        if (collections != null){
+            params.put("collection", collections.stream().map(Collection::collectionName).toList());
+        }
+
 
         var request = requestBuilderForEndpoint("ann/symbol/" + binID.value())
                 .POST(HttpRequest.BodyPublishers.ofString(params.toString()))

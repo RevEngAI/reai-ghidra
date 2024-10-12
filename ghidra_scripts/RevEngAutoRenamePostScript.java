@@ -27,7 +27,7 @@ public class RevEngAutoRenamePostScript extends GhidraScript {
                 SourceType.ANALYSIS
         );
         // Fetch Function matches
-        ghidraRevengService.getSimilarFunctions(currentProgram, 1, 0.05).forEach(
+        ghidraRevengService.getSimilarFunctions(currentProgram, 1, 0.05, true).forEach(
                 (function, matches) -> {
                     var bestMatch = matches.get(0);
                     Namespace libraryNamespace = null;

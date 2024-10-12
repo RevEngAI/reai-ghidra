@@ -254,9 +254,15 @@ public class GhidraRevengService {
         return getSimilarFunctions(List.of(function), results, distance);
     }
 
-    public Map<Function, List<GhidraFunctionMatch>> getSimilarFunctions(Program program, int results, double distance){
+    public Map<Function, List<GhidraFunctionMatch>> getSimilarFunctions(
+            Program program,
+            int results,
+            double distance,
+            boolean debugMode,
+            List<Collection> collections
+    ){
         BinaryID binID = getBinaryIDFor(program).orElseThrow();
-        var r = api.annSymbolsForBinary(binID, results, distance)
+        var r = api.annSymbolsForBinary(binID, results, distance, debugMode, collections)
                 .stream()
                 .map(
                         // Augment each match returned by the API with the associated Ghidra Function
@@ -271,6 +277,10 @@ public class GhidraRevengService {
                 );
         return r;
 
+    }
+
+    public Map<Function, List<GhidraFunctionMatch>> getSimilarFunctions(Program program, int results, Double distance, Boolean debugMode) {
+        return getSimilarFunctions(program, results, distance, debugMode, List.of());
     }
 
 

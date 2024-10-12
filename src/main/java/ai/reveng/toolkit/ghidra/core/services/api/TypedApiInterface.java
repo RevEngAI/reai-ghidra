@@ -77,7 +77,17 @@ public interface TypedApiInterface {
                                                int resultsPerFunction,
                                                double distance);
 
-    List<FunctionMatch> annSymbolsForBinary(BinaryID binID, int resultsPerFunction, double distance);
+    default List<FunctionMatch> annSymbolsForBinary(BinaryID binID, int resultsPerFunction, double distance, boolean debugMode){
+        return this.annSymbolsForBinary(binID, resultsPerFunction, distance, debugMode, null);
+    }
+
+    List<FunctionMatch> annSymbolsForBinary(
+            BinaryID binID,
+            int resultsPerFunction,
+            double distance,
+            boolean debugMode,
+            List<Collection> collections
+    );
 
 
 //    public default Object explain(String decompiledFunction){
