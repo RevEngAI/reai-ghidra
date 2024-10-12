@@ -20,6 +20,10 @@ public class CollectionRowObject {
 		return collection.collectionName();
 	}
 
+	public Collection getCollection() {
+		return collection;
+	}
+
 	public boolean isInclude() {
 		return include;
 	}

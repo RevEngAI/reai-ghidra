@@ -124,7 +124,7 @@ public class MockApi implements TypedApiInterface{
     }
 
     @Override
-    public List<FunctionMatch> annSymbolsForBinary(BinaryID binID, int resultsPerFunction, double distance) {
+    public List<FunctionMatch> annSymbolsForBinary(BinaryID binID, int resultsPerFunction, double distance, boolean debugMode, List<Collection> collections) {
         var r = """
                 {
                   "success": true,

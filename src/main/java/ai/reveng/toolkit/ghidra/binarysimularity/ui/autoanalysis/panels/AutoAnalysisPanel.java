@@ -10,6 +10,7 @@ import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.binarysimularity.ui.autoanalysis.AutoAnalysisResultsTableModel;
 import ai.reveng.toolkit.ghidra.binarysimularity.ui.autoanalysis.CollectionTableModel;
+import ai.reveng.toolkit.ghidra.core.services.api.types.Collection;
 import ai.reveng.toolkit.ghidra.core.services.api.types.GhidraFunctionMatch;
 import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
 import docking.widgets.table.GFilterTable;
@@ -65,6 +66,7 @@ public class AutoAnalysisPanel extends JPanel {
 	
 	private ReaiLoggingService loggingService;
 	private JButton btnApplySelectedResults;
+	private JCheckBox chckbxOnlyShowNamed;
 
 	/**
 	 * Create the panel.
@@ -92,8 +94,8 @@ public class AutoAnalysisPanel extends JPanel {
 		tabbedPanel.addTab("Results", null, resultsPanel, null);
 
 		// TODO: Collections panel works in principle, but the API is not really available yet
-//		JPanel collectionsPanel = this.buildCollectionsPanel();
-//		tabbedPanel.addTab("Collections", null, collectionsPanel, null);
+		JPanel collectionsPanel = this.buildCollectionsPanel();
+		tabbedPanel.addTab("Collections", null, collectionsPanel, null);
 	}
 
 	private JSlider buildConfidenceSlider(JLabel lblConfidenceValue) {
@@ -130,6 +132,14 @@ public class AutoAnalysisPanel extends JPanel {
 //		add(actionPanel, BorderLayout.SOUTH);
 //		actionPanel.setLayout(new BorderLayout(0, 0));
 
+		// Checkbox for limiting to results with names
+		chckbxOnlyShowNamed = new JCheckBox("Only Search for Matches with Names", true);
+		chckbxOnlyShowNamed.addChangeListener(e -> {
+			if (btnFetchFunctions != null){
+				btnFetchFunctions.setEnabled(true);
+			}
+		});
+
 		btnFetchFunctions = new JButton("Fetch Similar Functions");
 		btnFetchFunctions.addActionListener(e -> {
 			if (!btnFetchFunctions.isEnabled()) {
@@ -164,6 +174,7 @@ public class AutoAnalysisPanel extends JPanel {
 
 
 		JPanel resultBtnPnl = new JPanel(new FlowLayout(FlowLayout.CENTER));
+		resultBtnPnl.add(chckbxOnlyShowNamed);
 		resultBtnPnl.add(btnFetchFunctions);
 		resultBtnPnl.add(btnApplySelectedResults);
 		resultBtnPnl.add(btnApplyAllFilteredResults);
@@ -262,7 +273,18 @@ public class AutoAnalysisPanel extends JPanel {
 		var thresholdConfidence = (double) getConfidenceSlider().getValue() / 100;
 
 
-		Map<Function, List<GhidraFunctionMatch>> r = apiService.getSimilarFunctions(currentProgram, 1, 1 - thresholdConfidence);
+        List<Collection> collections = collectionsModel.getModelData().stream()
+				.filter(CollectionRowObject::isInclude)
+				.map(CollectionRowObject::getCollection)
+				.toList();
+
+		Map<Function, List<GhidraFunctionMatch>> r = apiService.getSimilarFunctions(
+				currentProgram,
+				1,
+				1 - thresholdConfidence,
+				chckbxOnlyShowNamed.isSelected(),
+				collections
+		);
 
 		r.values().stream()
 				// Filter out functions that have no matches
