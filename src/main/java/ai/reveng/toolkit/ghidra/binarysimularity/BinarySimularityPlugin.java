@@ -249,6 +249,9 @@ public class BinarySimularityPlugin extends ProgramPlugin {
                 }
 
 				if (lastStatus == AnalysisStatus.Complete || lastStatus == AnalysisStatus.Error) {
+					// Show the UI message for the completion
+					Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Analysis Complete",
+							"Analysis for " + binID + " is complete with status: " + lastStatus);
 					break;
 				}
 
