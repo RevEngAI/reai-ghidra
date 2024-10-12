@@ -2,6 +2,8 @@ package ai.reveng.toolkit.ghidra.core.services.api;
 
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
 import ai.reveng.toolkit.ghidra.core.services.api.types.Collection;
+import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.APIAuthenticationException;
+import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.InvalidAPIInfoException;
 import com.google.common.primitives.Bytes;
 import org.json.JSONObject;
 
@@ -382,28 +384,16 @@ public class TypedApiImplementation implements TypedApiInterface {
         return result;
     }
 
-    public boolean checkCredentials(){
+    @Override
+    public void authenticate() throws InvalidAPIInfoException {
         var request = requestBuilderForEndpoint("authenticate")
-                .GET()
                 .build();
-        HttpResponse<String> response  = null;
         try {
-            response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-
-        switch (response.statusCode()){
-            case 200:
-
-                return true;
-            case 401:
-                return false;
-            default:
-                throw new RuntimeException("Request with unexpected status code: " + response.statusCode() + " and message: " + response.body());
+            sendRequest(request);
+        } catch (APIAuthenticationException e) {
+            throw new InvalidAPIInfoException("Invalid API key", e);
         }
     }
+
 }
 

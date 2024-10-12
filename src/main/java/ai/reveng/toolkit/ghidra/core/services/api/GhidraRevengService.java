@@ -4,6 +4,7 @@ import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisStatusChanged;
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
 import ai.reveng.toolkit.ghidra.core.services.api.types.Collection;
+import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.APIAuthenticationException;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import ghidra.app.util.opinion.ElfLoader;

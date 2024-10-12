@@ -2,16 +2,15 @@ package ai.reveng.toolkit.ghidra.core.services.api.types;
 
 import ai.reveng.toolkit.ghidra.core.models.ReaiConfig;
 import ai.reveng.toolkit.ghidra.core.services.api.TypedApiImplementation;
+import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.InvalidAPIInfoException;
 import com.google.gson.Gson;
 import org.json.JSONException;
 
 import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Optional;
 
 public record ApiInfo(
         URI hostURI,
@@ -42,18 +41,8 @@ public record ApiInfo(
             throw new InvalidAPIInfoException("Server health check failed: " + health.getString("message"));
         }
 
-        Boolean credentialsValid = null;
-        try {
-            credentialsValid = api.checkCredentials();
-
-        } catch (JSONException e) {
-            throw new InvalidAPIInfoException("Invalid JSON response from server " + hostURI, e);
-        } catch (Exception e) {
-            throw new InvalidAPIInfoException("Failed to validate credentials", e);
-        }
-        if (!credentialsValid){
-            throw new InvalidAPIInfoException("Invalid API key");
-        }
+        // Throws InvalidAPIInfoException if authentication fails
+        api.authenticate();
 
     }
 
@@ -78,5 +67,4 @@ public record ApiInfo(
         return fromConfig(configFilePath);
 
     }
-
 }

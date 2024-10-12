@@ -3,7 +3,7 @@ package ai.reveng.toolkit.ghidra.core.ui.wizard.panels;
 import javax.swing.*;
 
 import ai.reveng.toolkit.ghidra.core.services.api.types.ApiInfo;
-import ai.reveng.toolkit.ghidra.core.services.api.types.InvalidAPIInfoException;
+import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.InvalidAPIInfoException;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardStateKey;
 import docking.wizard.AbstractMageJPanel;
 import docking.wizard.IllegalPanelStateException;

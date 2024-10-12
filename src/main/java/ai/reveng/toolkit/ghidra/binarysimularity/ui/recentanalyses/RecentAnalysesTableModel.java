@@ -1,8 +1,8 @@
 package ai.reveng.toolkit.ghidra.binarysimularity.ui.recentanalyses;
 
-import ai.reveng.toolkit.ghidra.binarysimularity.ui.autoanalysis.AutoAnalysisResultsTableModel;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
+import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.APIAuthenticationException;
 import docking.widgets.table.AbstractDynamicTableColumn;
 import docking.widgets.table.TableColumnDescriptor;
 import docking.widgets.table.threaded.ThreadedTableModelStub;
