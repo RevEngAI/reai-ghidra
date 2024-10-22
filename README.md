@@ -79,11 +79,9 @@ When you load the plugin for the first time, or by selecting `RevEngAI -> Run Se
 
 ![Config Window](screenshots/config-wizard.png)
 
-> Enter your API Key from the [RevEng.AI Portal](https://portal.reveng.ai/settings) into the API Key field which will enable the next button.
-> This will contact the API and display a list of models available to your account.
-> Select the model that you want to use and click finish
+> Enter your API Key from the [RevEng.AI Portal](https://portal.reveng.ai/settings) into the API Key field
+> where they will be validated and saved for future use.
 
-![Config Window Complete](screenshots/plugin-config-models.png)
 
 
 ### Running an Analysis
