@@ -19,6 +19,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.*;
 
+import static ai.reveng.toolkit.ghidra.core.services.api.Utils.mapJSONArray;
 import static java.net.http.HttpClient.Version.HTTP_1_1;
 
 /**
@@ -73,11 +74,9 @@ public class TypedApiImplementation implements TypedApiInterface {
 
         HttpRequest request = requestBuilder.build();
         var jsonResponse = sendRequest(request);
-        List<AnalysisResult> result = new ArrayList<>();
-        jsonResponse.getJSONArray("analysis").forEach((Object o) -> {
-            result.add(AnalysisResult.fromJSONObject((JSONObject) o));
-        });
-        return result;
+
+        return mapJSONArray(jsonResponse.getJSONArray("analysis"), AnalysisResult::fromJSONObject);
+
     }
 
     public BinaryHash upload(Path binPath) throws FileNotFoundException {
@@ -155,11 +154,7 @@ public class TypedApiImplementation implements TypedApiInterface {
                         .header("Content-Type", "application/json" )
                         .build());
 
-        var result = new ArrayList<AnalysisResult>();
-        json.getJSONArray("query_results").forEach((Object o) -> {
-            result.add(AnalysisResult.fromJSONObject((JSONObject) o));
-        });
-        return result;
+        return mapJSONArray(json.getJSONArray("query_results"), AnalysisResult::fromJSONObject);
     }
 
     private JSONObject sendRequest(HttpRequest request) throws APIAuthenticationException {
@@ -248,11 +243,7 @@ public class TypedApiImplementation implements TypedApiInterface {
                 .header("Content-Type", "application/json" )
                 .build();
         JSONObject jsonObject = sendRequest(request);
-        var result = new ArrayList<FunctionMatch>();
-        jsonObject.getJSONArray("function_matches").forEach((Object o) -> {
-            result.add(FunctionMatch.fromJSONObject((JSONObject) o));
-        });
-        return result;
+        return mapJSONArray(jsonObject.getJSONArray("function_matches"), FunctionMatch::fromJSONObject);
     }
 
     @Override
@@ -272,11 +263,7 @@ public class TypedApiImplementation implements TypedApiInterface {
                 .header("Content-Type", "application/json" )
                 .build();
         JSONObject jsonObject = sendRequest(request);
-        var result = new ArrayList<FunctionMatch>();
-        jsonObject.getJSONArray("function_matches").forEach((Object o) -> {
-            result.add(FunctionMatch.fromJSONObject((JSONObject) o));
-        });
-        return result;
+        return mapJSONArray(jsonObject.getJSONArray("function_matches"), FunctionMatch::fromJSONObject);
     }
 
     @Override
@@ -294,12 +281,9 @@ public class TypedApiImplementation implements TypedApiInterface {
                 .GET()
                 .build();
 
-        List<FunctionInfo> result = new ArrayList<>();
-        sendRequest(request).getJSONArray("functions").forEach(
-                o -> result.add(FunctionInfo.fromJSONObject((JSONObject) o))
-        );
-        return result;
-
+        return mapJSONArray(
+                sendRequest(request).getJSONArray("functions"),
+                FunctionInfo::fromJSONObject);
     }
 
     @Override
@@ -317,11 +301,7 @@ public class TypedApiImplementation implements TypedApiInterface {
         var request = requestBuilderForEndpoint("collections/quick/search?model_name=" + modelName.modelName())
                 .build();
         var response = sendRequest(request);
-        var result = new ArrayList<Collection>();
-        response.getJSONArray("collections").forEach(
-                o -> result.add(Collection.fromSmallJSONObject((JSONObject) o, modelName))
-        );
-        return result;
+        return mapJSONArray(response.getJSONArray("collections"), o -> Collection.fromSmallJSONObject((JSONObject) o, modelName));
     }
 
     @Override
@@ -329,11 +309,9 @@ public class TypedApiImplementation implements TypedApiInterface {
         var request = requestBuilderForEndpoint("collections/quick/search?search_term=" + searchTerm)
                 .build();
         var response = sendRequest(request);
-        var result = new ArrayList<Collection>();
-        response.getJSONArray("collections").forEach(
-                o -> result.add(Collection.fromSmallJSONObject((JSONObject) o, new ModelName("Unknown")))
-        );
-        return result;
+        return mapJSONArray(
+                response.getJSONArray("collections"),
+                o -> Collection.fromSmallJSONObject(o, new ModelName("Unknown")));
     }
 
     @Override
@@ -376,12 +354,8 @@ public class TypedApiImplementation implements TypedApiInterface {
     @Override
     public List<ModelName> models(){
         JSONObject jsonResponse = sendRequest(requestBuilderForEndpoint("models").GET().build());
-        List<ModelName> result = new ArrayList<>();
-        jsonResponse.getJSONArray("models").forEach((Object o) -> {
-            JSONObject obj = (JSONObject) o;
-            result.add(new ModelName(obj.getString("model_name")));
-        });
-        return result;
+
+        return mapJSONArray(jsonResponse.getJSONArray("models"), o -> new ModelName(o.getString("model_name")));
     }
 
     @Override
