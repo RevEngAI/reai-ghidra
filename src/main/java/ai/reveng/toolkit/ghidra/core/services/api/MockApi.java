@@ -115,11 +115,6 @@ public class MockApi implements TypedApiInterface{
     }
 
     @Override
-    public BinaryID analyse(BinaryHash binHash, Long baseAddress, List<FunctionBoundary> functionBounds, ModelName modelName) {
-        return new BinaryID(17920);
-    }
-
-    @Override
     public BinaryID analyse(AnalysisOptionsBuilder binHash) {
         return new BinaryID(17920);
     }
