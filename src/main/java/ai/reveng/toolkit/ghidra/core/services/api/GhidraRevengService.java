@@ -1,6 +1,7 @@
 package ai.reveng.toolkit.ghidra.core.services.api;
 
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
+import ai.reveng.toolkit.ghidra.binarysimularity.ui.aidecompiler.AIDecompiledWindow;
 import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisStatusChanged;
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
 import ai.reveng.toolkit.ghidra.core.services.api.types.Collection;
@@ -14,8 +15,10 @@ import ghidra.program.model.listing.Function;
 import ghidra.program.model.listing.Program;
 import ghidra.program.model.symbol.SourceType;
 import ghidra.util.Msg;
+import ghidra.util.exception.CancelledException;
 import ghidra.util.exception.DuplicateNameException;
 import ghidra.util.exception.InvalidInputException;
+import ghidra.util.task.TaskMonitor;
 
 import java.io.FileNotFoundException;
 import java.nio.file.InvalidPathException;
@@ -24,6 +27,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static ai.reveng.toolkit.ghidra.core.CorePlugin.REAI_OPTIONS_CATEGORY;
+import static java.lang.Thread.sleep;
 
 
 /**
@@ -415,4 +419,47 @@ public class GhidraRevengService {
     }
 
 
+    public String decompileFunctionViaAI(Function function, TaskMonitor monitor, AIDecompiledWindow window) {
+        monitor.setMaximum(100 * 50);
+        var fID = getFunctionIDFor(function);
+        // Check if there is an existing process already, because the trigger API will fail with 400 if there is
+        if (api.pollAIDecompileStatus(fID).status().equals("uninitialised")){
+            // Trigger the decompilation
+            api.triggerAIDecompilationForFunctionID(fID);
+        }
+
+
+        while (true) {
+            if (monitor.isCancelled()) {
+                return "Decompilation cancelled";
+            }
+            var status = api.pollAIDecompileStatus(fID);
+            window.setStatus(status.status());
+
+            switch (status.status()) {
+                case "pending":
+                case "uninitialised":
+                case "queued":
+                case "running":
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+//                    monitor.incrementProgress(100);
+                    break;
+                case "success":
+                    monitor.setProgress(monitor.getMaximum());
+                    window.setCode(status.decompilation());
+                    return status.decompilation();
+                case "error":
+                    return "Decompilation failed: %s".formatted(status.decompilation());
+                default:
+                    throw new RuntimeException("Unknown status: %s".formatted(status.status()));
+            }
+
+
+
+        }
+    }
 }

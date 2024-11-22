@@ -61,6 +61,7 @@ dependencies {
 	implementation 'com.moandjiezana.toml:toml4j:0.7.2'
   	implementation 'org.json:json:20230618'
 	implementation "com.google.guava:guava:33.2.0-jre"
+	implementation group: 'com.fifesoft', name: 'rsyntaxtextarea', version: '3.5.2'
 }
 
 // Exclude additional files from the built extension

@@ -15,10 +15,12 @@ import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.net.http.HttpTimeoutException;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.*;
 
+import static ai.reveng.toolkit.ghidra.core.services.api.Utils.mapJSONArray;
 import static java.net.http.HttpClient.Version.HTTP_1_1;
 
 /**
@@ -35,7 +37,6 @@ public class TypedApiImplementation implements TypedApiInterface {
 
     private final HttpClient httpClient;
     private String baseUrl;
-    private String apiVersion;
     private String apiKey;
     Map<String, String> headers;
 
@@ -46,7 +47,6 @@ public class TypedApiImplementation implements TypedApiInterface {
                 .connectTimeout(Duration.ofSeconds(5))
                 .version(HTTP_1_1) // by default the client would attempt HTTP2.0 which leads to weird issues
                 .build();
-        this.apiVersion = "v1";
         headers = new HashMap<>();
         headers.put("Authorization", this.apiKey);
         headers.put("User-Agent", "REAIT Java Proxy");
@@ -66,18 +66,16 @@ public class TypedApiImplementation implements TypedApiInterface {
         parameters.put("scope", scope.name());
         parameters.put("n", number);
 
-        HttpRequest.Builder requestBuilder = requestBuilderForEndpoint("analyse/recent");
+        HttpRequest.Builder requestBuilder = requestBuilderForEndpoint(APIVersion.V1, "analyse/recent");
         requestBuilder
                 .method("GET",HttpRequest.BodyPublishers.ofString(parameters.toString()))
                 .header("Content-Type", "application/json");
 
         HttpRequest request = requestBuilder.build();
         var jsonResponse = sendRequest(request);
-        List<AnalysisResult> result = new ArrayList<>();
-        jsonResponse.getJSONArray("analysis").forEach((Object o) -> {
-            result.add(AnalysisResult.fromJSONObject((JSONObject) o));
-        });
-        return result;
+
+        return mapJSONArray(jsonResponse.getJSONArray("analysis"), AnalysisResult::fromJSONObject);
+
     }
 
     public BinaryHash upload(Path binPath) throws FileNotFoundException {
@@ -107,7 +105,7 @@ public class TypedApiImplementation implements TypedApiInterface {
         byte[] requestBody = Bytes.concat(bodyStart.getBytes(), fileBytes, bodyEnd.getBytes());
 
         // Create HttpRequest
-        var request = requestBuilderForEndpoint("upload")
+        var request = requestBuilderForEndpoint(APIVersion.V1, "upload")
                 .POST(HttpRequest.BodyPublishers.ofByteArray(requestBody))
                 .header("Content-Type", "multipart/form-data; boundary=" + boundary)
                 .build();
@@ -150,16 +148,16 @@ public class TypedApiImplementation implements TypedApiInterface {
 
 
         JSONObject json = sendRequest(
-                requestBuilderForEndpoint("search")
+                requestBuilderForEndpoint(APIVersion.V1, "search")
                         .method("GET", HttpRequest.BodyPublishers.ofString(parameters.toString()))
                         .header("Content-Type", "application/json" )
                         .build());
 
-        var result = new ArrayList<AnalysisResult>();
-        json.getJSONArray("query_results").forEach((Object o) -> {
-            result.add(AnalysisResult.fromJSONObject((JSONObject) o));
-        });
-        return result;
+        return mapJSONArray(json.getJSONArray("query_results"), AnalysisResult::fromJSONObject);
+    }
+
+    private V2Response sendVersion2Request(HttpRequest request){
+        return V2Response.fromJSONObject(sendRequest(request));
     }
 
     private JSONObject sendRequest(HttpRequest request) throws APIAuthenticationException {
@@ -184,41 +182,9 @@ public class TypedApiImplementation implements TypedApiInterface {
         }
     }
 
-
-    @Override
-    public BinaryID analyse(BinaryHash binHash,
-                            Long baseAddress,
-                            List<FunctionBoundary> functionBounds, ModelName modelName) {
-        JSONObject parameters = new JSONObject();
-        // Probably no point making this configurable for now
-        parameters.put("model_name", modelName.modelName());
-//        parameters.put("platform_options", "Auto");
-//        parameters.put("isa_options", "Auto");
-//        parameters.put("file_options", "Auto");
-//        parameters.put("dynamic_execution", false);
-//        parameters.put("command_line_args", "");
-//        parameters.put("priority", 0);
-
-        // Make configurable later
-//        parameters.put("tags", new JSONArray());
-//        parameters.put("binary_scope", AnalysisScope.PRIVATE.name());
-
-        // Actual arguments
-        parameters.put("sha_256_hash", binHash.sha256());
-//        parameters.put("debug_hash", ""); // ???
-
-
-        var request = requestBuilderForEndpoint("analyse/")
-                .POST(HttpRequest.BodyPublishers.ofString(parameters.toString()))
-                .header("Content-Type", "application/json" )
-                .build();
-        var jsonResponse = sendRequest(request);
-        return new BinaryID(jsonResponse.getInt("binary_id"));
-    }
-
     @Override
     public BinaryID analyse(AnalysisOptionsBuilder builder) {
-        var request = requestBuilderForEndpoint("analyse/")
+        var request = requestBuilderForEndpoint(APIVersion.V1, "analyse/")
                 .POST(HttpRequest.BodyPublishers.ofString(builder.toJSON().toString()))
                 .header("Content-Type", "application/json" )
                 .build();
@@ -243,16 +209,12 @@ public class TypedApiImplementation implements TypedApiInterface {
         }
 
 
-        var request = requestBuilderForEndpoint("ann/symbol/" + binID.value())
+        var request = requestBuilderForEndpoint(APIVersion.V1, "ann/symbol/" + binID.value())
                 .POST(HttpRequest.BodyPublishers.ofString(params.toString()))
                 .header("Content-Type", "application/json" )
                 .build();
         JSONObject jsonObject = sendRequest(request);
-        var result = new ArrayList<FunctionMatch>();
-        jsonObject.getJSONArray("function_matches").forEach((Object o) -> {
-            result.add(FunctionMatch.fromJSONObject((JSONObject) o));
-        });
-        return result;
+        return mapJSONArray(jsonObject.getJSONArray("function_matches"), FunctionMatch::fromJSONObject);
     }
 
     @Override
@@ -267,22 +229,18 @@ public class TypedApiImplementation implements TypedApiInterface {
         params.put("debug_mode", false);
         params.put("function_id_list", fID.stream().map(FunctionID::value).toList());
 
-        var request = requestBuilderForEndpoint("ann/symbol/batch")
+        var request = requestBuilderForEndpoint(APIVersion.V1, "ann/symbol/batch")
                 .POST(HttpRequest.BodyPublishers.ofString(params.toString()))
                 .header("Content-Type", "application/json" )
                 .build();
         JSONObject jsonObject = sendRequest(request);
-        var result = new ArrayList<FunctionMatch>();
-        jsonObject.getJSONArray("function_matches").forEach((Object o) -> {
-            result.add(FunctionMatch.fromJSONObject((JSONObject) o));
-        });
-        return result;
+        return mapJSONArray(jsonObject.getJSONArray("function_matches"), FunctionMatch::fromJSONObject);
     }
 
     @Override
     public AnalysisStatus status(BinaryID binaryID) {
 
-        var request = requestBuilderForEndpoint("analyse/status/" + binaryID.value())
+        var request = requestBuilderForEndpoint(APIVersion.V1, "analyse/status/" + binaryID.value())
                 .GET()
                 .build();
         return AnalysisStatus.valueOf(sendRequest(request).getString("status"));
@@ -290,16 +248,16 @@ public class TypedApiImplementation implements TypedApiInterface {
 
     @Override
     public List<FunctionInfo> getFunctionInfo(BinaryID binaryID) {
-        var request = requestBuilderForEndpoint("analyse/functions/" + binaryID.value())
+        var request = requestBuilderForEndpoint(APIVersion.V1, "analyse/functions/" + binaryID.value())
                 .GET()
                 .build();
 
         List<FunctionInfo> result = new ArrayList<>();
-        sendRequest(request).getJSONArray("functions").forEach(
-                o -> result.add(FunctionInfo.fromJSONObject((JSONObject) o))
-        );
-        return result;
 
+
+        return mapJSONArray(
+                sendRequest(request).getJSONArray("functions"),
+                FunctionInfo::fromJSONObject);
     }
 
     @Override
@@ -314,31 +272,26 @@ public class TypedApiImplementation implements TypedApiInterface {
 
     @Override
     public List<Collection> collectionQuickSearch(ModelName modelName) {
-        var request = requestBuilderForEndpoint("collections/quick/search?model_name=" + modelName.modelName())
+        var request = requestBuilderForEndpoint(APIVersion.V1, "collections/quick/search?model_name=" + modelName.modelName())
                 .build();
         var response = sendRequest(request);
         var result = new ArrayList<Collection>();
-        response.getJSONArray("collections").forEach(
-                o -> result.add(Collection.fromSmallJSONObject((JSONObject) o, modelName))
-        );
-        return result;
+        return mapJSONArray(response.getJSONArray("collections"), o -> Collection.fromSmallJSONObject((JSONObject) o, modelName));
     }
 
     @Override
     public List<Collection> collectionQuickSearch(String searchTerm) {
-        var request = requestBuilderForEndpoint("collections/quick/search?search_term=" + searchTerm)
+        var request = requestBuilderForEndpoint(APIVersion.V1, "collections/quick/search?search_term=" + searchTerm)
                 .build();
         var response = sendRequest(request);
-        var result = new ArrayList<Collection>();
-        response.getJSONArray("collections").forEach(
-                o -> result.add(Collection.fromSmallJSONObject((JSONObject) o, new ModelName("Unknown")))
-        );
-        return result;
+        return mapJSONArray(
+                response.getJSONArray("collections"),
+                o -> Collection.fromSmallJSONObject(o, new ModelName("Unknown")));
     }
 
     @Override
     public String getAnalysisLogs(BinaryID binID) {
-        var request = requestBuilderForEndpoint("logs/" + binID.value())
+        var request = requestBuilderForEndpoint(APIVersion.V1, "logs/" + binID.value())
                 .build();
         var response = sendRequest(request);
         return response.getString("logs");
@@ -347,7 +300,7 @@ public class TypedApiImplementation implements TypedApiInterface {
     public JSONObject health(){
         URI uri;
         try {
-            uri = new URI(baseUrl + apiVersion);
+            uri = new URI(baseUrl + "v1");
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
@@ -362,31 +315,37 @@ public class TypedApiImplementation implements TypedApiInterface {
         }
     }
 
-    private HttpRequest.Builder requestBuilderForEndpoint(String endpoint){
+    private HttpRequest.Builder requestBuilderForEndpoint(APIVersion version, String endpoint){
         URI uri;
+        String apiVersionPath;
+        if (version == APIVersion.V1){
+            apiVersionPath = "v1";
+        } else if (version == APIVersion.V2){
+            apiVersionPath = "v2";
+        } else {
+            throw new RuntimeException("Unknown API version");
+        }
+
         try {
-            uri = new URI(baseUrl + apiVersion + "/" + endpoint);
+            uri = new URI(baseUrl + apiVersionPath + "/" + endpoint);
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
         var requestBuilder = HttpRequest.newBuilder(uri);
         headers.forEach(requestBuilder::header);
+        requestBuilder.timeout(Duration.ofSeconds(1));
         return requestBuilder;
     }
     @Override
     public List<ModelName> models(){
-        JSONObject jsonResponse = sendRequest(requestBuilderForEndpoint("models").GET().build());
-        List<ModelName> result = new ArrayList<>();
-        jsonResponse.getJSONArray("models").forEach((Object o) -> {
-            JSONObject obj = (JSONObject) o;
-            result.add(new ModelName(obj.getString("model_name")));
-        });
-        return result;
+        JSONObject jsonResponse = sendRequest(requestBuilderForEndpoint(APIVersion.V1, "models").GET().build());
+
+        return mapJSONArray(jsonResponse.getJSONArray("models"), o -> new ModelName(o.getString("model_name")));
     }
 
     @Override
     public void authenticate() throws InvalidAPIInfoException {
-        var request = requestBuilderForEndpoint("authenticate")
+        var request = requestBuilderForEndpoint(APIVersion.V1, "authenticate")
                 .build();
         try {
             sendRequest(request);
@@ -395,5 +354,24 @@ public class TypedApiImplementation implements TypedApiInterface {
         }
     }
 
+    @Override
+    public boolean triggerAIDecompilationForFunctionID(FunctionID functionID) {
+        JSONObject params = new JSONObject().put("function_id", functionID.value());
+        HttpRequest request = requestBuilderForEndpoint(APIVersion.V2, "ai-decompilation")
+                .POST(HttpRequest.BodyPublishers.ofString(params.toString()))
+                .header("Content-Type", "application/json" )
+                .build();
+        return sendVersion2Request(request).status();
+    }
+
+    @Override
+    public AIDecompilationStatus pollAIDecompileStatus(FunctionID functionID) {
+
+        HttpRequest request = requestBuilderForEndpoint(APIVersion.V2, "ai-decompilation/" + functionID.value())
+                .GET()
+                .build();
+        return AIDecompilationStatus.fromJSONObject(sendVersion2Request(request).data());
+
+    }
 }
 
