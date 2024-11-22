@@ -16,6 +16,7 @@
 package ai.reveng.toolkit.ghidra.binarysimularity;
 
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
+import ai.reveng.toolkit.ghidra.binarysimularity.ui.aidecompiler.AIDecompiledWindow;
 import ai.reveng.toolkit.ghidra.binarysimularity.ui.autoanalysis.AutoAnalysisDockableDialog;
 import ai.reveng.toolkit.ghidra.binarysimularity.ui.functionsimularity.FunctionSimularityDockableDialog;
 import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisStatusChanged;
@@ -66,6 +67,7 @@ import static ai.reveng.toolkit.ghidra.ReaiPluginPackage.INVALID_BINARY_ID;
 //@formatter:on
 public class BinarySimularityPlugin extends ProgramPlugin {
 	private final AutoAnalysisDockableDialog autoAnalyse;
+	private final AIDecompiledWindow decompiledWindow;
 	private GhidraRevengService apiService;
 	public ReaiLoggingService loggingService;
 	private RunManager runMgr;
@@ -90,6 +92,12 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 		tool.addComponentProvider(autoAnalyse, false);
 
 		setupActions();
+
+		// Setup windows
+
+		decompiledWindow = new AIDecompiledWindow(tool, REVENG_AI_NAMESPACE);
+		decompiledWindow.addToTool();
+
 	}
 
 	@Override
@@ -226,6 +234,34 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 				})
 //				.keyBinding()autoAnalysisAction.setKeyBindingData( new KeyBindingData(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
 				.buildAndInstall(tool);
+
+		new ActionBuilder("Decompile via RevEng.AI", this.getName())
+				.withContext(ProgramLocationActionContext.class)
+				.enabledWhen(context -> {
+					var func = context.getProgram().getFunctionManager().getFunctionContaining(context.getAddress());
+					return func != null
+							&& apiService.isKnownProgram(context.getProgram())
+							&& apiService.isProgramAnalysed(context.getProgram());
+				})
+				.onAction(context -> {
+					var func = context.getProgram().getFunctionManager().getFunctionContaining(context.getAddress());
+					if (!apiService.isKnownFunction(func)) {
+						Msg.showError(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Decompile via RevEng.AI",
+								"Function is not known to the RevEng.AI API." +
+										"This can happen if the function boundaries do not match.\n" +
+										"You can create a new analysis based on the current analysis state to fix this.");
+						return;
+					}
+					// Spawn Task to decompile the function
+					TaskLauncher.launchNonModal("Decompile via RevEng.AI", monitor -> {
+						monitor.setMessage("Decompiling function...");
+						var result = apiService.decompileFunctionViaAI(func, monitor, decompiledWindow);
+					});
+				})
+				.popupMenuPath(new String[] { "Decompile via RevEng.AI" })
+				.popupMenuGroup(ReaiPluginPackage.NAME)
+				.buildAndInstall(tool);
+
 	}
 
 	@Override

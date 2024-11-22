@@ -113,5 +113,13 @@ public interface TypedApiInterface {
     String getAnalysisLogs(BinaryID binID);
 
     void authenticate() throws InvalidAPIInfoException;
+    default boolean triggerAIDecompilationForFunctionID(FunctionID functionID) {
+        throw new UnsupportedOperationException("triggerAIDecompilationForFunctionID not implemented yet");
+    }
+
+    default AIDecompilationStatus pollAIDecompileStatus(FunctionID functionID) {
+        throw new UnsupportedOperationException("pollAIDecompileStatus not implemented yet");
+    }
+
 }
 
