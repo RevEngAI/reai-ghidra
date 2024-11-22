@@ -354,5 +354,24 @@ public class TypedApiImplementation implements TypedApiInterface {
         }
     }
 
+    @Override
+    public boolean triggerAIDecompilationForFunctionID(FunctionID functionID) {
+        JSONObject params = new JSONObject().put("function_id", functionID.value());
+        HttpRequest request = requestBuilderForEndpoint(APIVersion.V2, "ai-decompilation")
+                .POST(HttpRequest.BodyPublishers.ofString(params.toString()))
+                .header("Content-Type", "application/json" )
+                .build();
+        return sendVersion2Request(request).status();
+    }
+
+    @Override
+    public AIDecompilationStatus pollAIDecompileStatus(FunctionID functionID) {
+
+        HttpRequest request = requestBuilderForEndpoint(APIVersion.V2, "ai-decompilation/" + functionID.value())
+                .GET()
+                .build();
+        return AIDecompilationStatus.fromJSONObject(sendVersion2Request(request).data());
+
+    }
 }
 
