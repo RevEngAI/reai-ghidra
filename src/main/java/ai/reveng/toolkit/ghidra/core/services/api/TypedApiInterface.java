@@ -12,6 +12,13 @@ import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.InvalidAPIInf
 /**
  * Service for interacting with the RevEngAi API
  * This is a generic Java Interface and should not use any Ghidra specific classes
+ *
+ * It aims to stick close to the API functions themselves.
+ * E.g. if a feature is implemented via two API calls, it should be implemented as two methods here.
+ *
+ * Wrapping this feature into one conceptual method should then happen inside the {@link ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService}
+ *
+ *
  */
 public interface TypedApiInterface {
     // Analysis
@@ -20,10 +27,6 @@ public interface TypedApiInterface {
             String binaryName,
             Collection collection,
             AnalysisStatus state);
-
-    BinaryID analyse(BinaryHash binHash,
-                     Long baseAddress,
-                     List<FunctionBoundary> functionBounds, ModelName modelName);
 
     BinaryID analyse(AnalysisOptionsBuilder binHash);
 
