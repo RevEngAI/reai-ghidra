@@ -4,14 +4,17 @@ import javax.swing.JComponent;
 
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.binarysimularity.ui.functionsimularity.panels.RenameFunctionFromSimilarFunctionsPanel;
+import docking.ActionContext;
 import docking.DialogComponentProvider;
+import docking.action.DockingAction;
+import ghidra.framework.plugintool.ComponentProviderAdapter;
 import ghidra.framework.plugintool.PluginTool;
 import ghidra.program.model.listing.Function;
 
 /**
  * GUI component for renaming a function from a selection of candidate functions
  */
-public class FunctionSimularityDockableDialog extends DialogComponentProvider {
+public class FunctionSimularityDockableDialog extends ComponentProviderAdapter {
 	private RenameFunctionFromSimilarFunctionsPanel panel;
 
 	/**
@@ -20,9 +23,15 @@ public class FunctionSimularityDockableDialog extends DialogComponentProvider {
 	 * @param tool
 	 */
 	public FunctionSimularityDockableDialog(Function func, PluginTool tool) {
-		super(ReaiPluginPackage.WINDOW_PREFIX + "Function Rename", true);
+		super(tool, ReaiPluginPackage.WINDOW_PREFIX + "Function Rename", ReaiPluginPackage.NAME);
 
 		buildPanel(func, tool);
+		tool.addLocalAction(this, new DockingAction("Test action", getOwner()) {
+			@Override
+			public void actionPerformed(ActionContext context) {
+				return;
+			}
+		});
 	}
 
 	private void buildPanel(Function func, PluginTool tool) {
