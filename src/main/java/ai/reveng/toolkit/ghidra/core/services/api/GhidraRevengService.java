@@ -14,10 +14,12 @@ import ghidra.program.model.address.Address;
 import ghidra.program.model.listing.Function;
 import ghidra.program.model.listing.Program;
 import ghidra.program.model.symbol.SourceType;
+import ghidra.program.model.util.LongPropertyMap;
 import ghidra.util.Msg;
 import ghidra.util.exception.CancelledException;
 import ghidra.util.exception.DuplicateNameException;
 import ghidra.util.exception.InvalidInputException;
+import ghidra.util.exception.NoValueException;
 import ghidra.util.task.TaskMonitor;
 
 import java.io.FileNotFoundException;
@@ -44,10 +46,7 @@ import static java.lang.Thread.sleep;
  *
  */
 public class GhidraRevengService {
-    private BiMap<Function, FunctionID> functionMap = HashBiMap.create();
-    private BiMap<Program, BinaryID> programMap = HashBiMap.create();
-
-    private Map<BinaryID, List<GhidraFunctionMatch>> functionMatchCache = new HashMap<>();
+    private static final String REAI_FUNCTION_PROP_MAP = "RevEngAI_FunctionID_Map";
     private Map<BinaryID, AnalysisStatus> statusCache = new HashMap<>();
 
     private TypedApiInterface api;
@@ -76,15 +75,9 @@ public class GhidraRevengService {
             throw new RuntimeException("Method should only be called when analysis is complete");
         }
         statusCache.put(event.getProgramWithBinaryID().binaryID(), AnalysisStatus.Complete);
-        addBinaryIDforProgram(event.getProgram(), event.getBinaryID());
-    }
+        Program program = event.getProgram();
+        BinaryID binID = event.getBinaryID();
 
-    private void addBinaryIDforProgram(Program program, BinaryID binID){
-        // TODO: Handle the case where the program already has _different_ binary ID
-        if (programMap.containsKey(program) && !programMap.get(program).equals(binID)){
-            throw new RuntimeException("Program already has different binary ID associated with it: %s".formatted(programMap.get(program)));
-        }
-        programMap.put(program, binID);
         loadFunctionInfo(program, binID);
         addBinaryIDtoProgramOptions(program, binID);
     }
@@ -104,10 +97,6 @@ public class GhidraRevengService {
      * @return
      */
     public Optional<BinaryID> getBinaryIDFor(Program program) {
-        if (programMap.containsKey(program)){
-            return Optional.of(programMap.get(program));
-        }
-
         Optional<BinaryID> binID;
         try {
             binID = getBinaryIDfromOptions(program);
@@ -158,6 +147,16 @@ public class GhidraRevengService {
     private void loadFunctionInfo(Program program, BinaryID binID){
         List<FunctionInfo> functionInfo = api.getFunctionInfo(binID);
         var transactionID = program.startTransaction("Load Function Info");
+
+        // Create the FunctionID map
+        LongPropertyMap functionIDMap;
+        try {
+            functionIDMap = program.getUsrPropertyManager().createLongPropertyMap(REAI_FUNCTION_PROP_MAP);
+        } catch (DuplicateNameException e) {
+            throw new RuntimeException("Previous function property map still exists",e);
+        }
+
+        LongPropertyMap finalFunctionIDMap = functionIDMap;
         functionInfo.forEach(
                 info -> {
                     var oFunc = getFunctionFor(info, program);
@@ -183,17 +182,46 @@ public class GhidraRevengService {
 
                     }
 
-                    functionMap.put(func, info.functionID());
+                    finalFunctionIDMap.add(func.getEntryPoint(), info.functionID().value());
                 }
         );
         program.getFunctionManager().getFunctions(true).forEach(
                 func -> {
-                    if (!func.isExternal() && !func.isThunk() && !functionMap.containsKey(func)){
+                    if (!func.isExternal() && !func.isThunk() && getFunctionIDFor(func).isEmpty()){
                         Msg.info(this, "Function %s not found in function info".formatted(func.getName()));
                     }
                 }
         );
         program.endTransaction(transactionID, true);
+    }
+
+    private Optional<FunctionID> getFunctionIDFor(Function function){
+        return Optional.ofNullable(
+                getFunctionIDMap(function.getProgram())
+                        .get(function.getEntryPoint())
+        ).map(FunctionID::new);
+    }
+
+    private LongPropertyMap getFunctionIDMap(Program program){
+        return program.getUsrPropertyManager().getLongPropertyMap(REAI_FUNCTION_PROP_MAP);
+    }
+
+    public BiMap<FunctionID, Function> getFunctionMap(Program program){
+        var propMap = program.getUsrPropertyManager().getLongPropertyMap(REAI_FUNCTION_PROP_MAP);
+        BiMap<FunctionID, Function> functionMap = HashBiMap.create();
+        propMap.getPropertyIterator().forEachRemaining(
+                addr -> {
+                    var func = program.getFunctionManager().getFunctionAt(addr);
+
+                    try {
+                        functionMap.put(new FunctionID(propMap.getLong(addr)), func);
+                    } catch (NoValueException e) {
+                        // This should never happen, because we're iterating over the keys
+                        throw new RuntimeException(e);
+                    }
+                }
+        );
+        return functionMap;
     }
 
     public Optional<Function> getFunctionFor(FunctionInfo functionInfo, Program program){
@@ -202,17 +230,6 @@ public class GhidraRevengService {
         return Optional.ofNullable(func);
     }
 
-    public FunctionID getFunctionIDFor(Function function){
-        var binID = Optional.ofNullable(programMap.get(function.getProgram()));
-        if (binID.isEmpty()){
-            throw new RuntimeException("Program not known to the service yet, this method shouldn't have been called");
-        }
-        if (!functionMap.containsKey(function)){
-            loadFunctionInfo(function.getProgram(), binID.get());
-        }
-        
-        return functionMap.get(function);
-    }
     public List<AnalysisResult> searchForHash(BinaryHash hash){
         return api.search(hash);
     }
@@ -221,7 +238,8 @@ public class GhidraRevengService {
     }
 
     public boolean isKnownProgram(Program program){
-        return programMap.containsKey(program);
+        var storedBinID = program.getOptions(REAI_OPTIONS_CATEGORY).getLong(ReaiPluginPackage.OPTION_KEY_BINID, ReaiPluginPackage.INVALID_BINARY_ID);
+        return storedBinID != ReaiPluginPackage.INVALID_BINARY_ID;
     }
 
     public void removeProgramAssociation(Program program){
@@ -229,8 +247,8 @@ public class GhidraRevengService {
         if (binID.isEmpty()){
             throw new RuntimeException("Program has no binary ID associated with it");
         }
-        programMap.remove(program);
-        functionMap.entrySet().removeIf(entry -> entry.getKey().getProgram().equals(program));
+        // Clear all function ID data
+        program.getUsrPropertyManager().removePropertyMap(REAI_FUNCTION_PROP_MAP);
         statusCache.remove(binID.get());
         program.getOptions(REAI_OPTIONS_CATEGORY).setLong(ReaiPluginPackage.OPTION_KEY_BINID, ReaiPluginPackage.INVALID_BINARY_ID);
     }
@@ -240,16 +258,23 @@ public class GhidraRevengService {
     }
 
     public boolean isKnownFunction(Function function){
-        return functionMap.containsKey(function);
+        return getFunctionIDFor(function).isPresent();
     }
 
     public List<GhidraFunctionMatch> getSimilarFunctions(List<Function> functions, int results, double distance){
-        List<FunctionID> functionIDs = functions.stream().map(this::getFunctionIDFor).toList();
+
+        // Get the FunctionIDs for all the functions
+        List<FunctionID> functionIDs = functions.stream().map(this::getFunctionIDFor).map(Optional::orElseThrow).toList();
+        // Look up the matches via the API
         List<FunctionMatch> matches = api.annSymbolsForFunctions(functionIDs, results, distance);
 
+        // Prepare the map from FunctionID -> Ghidra Function
+        BiMap<FunctionID, Function> functionMap = getFunctionMap(functions.get(0).getProgram());
+
+        // Return the matches as GhidraFunctionMatches
         return matches.stream().map(
                 match -> new GhidraFunctionMatch(
-                        functionMap.inverse().get(match.origin_function_id()),
+                        functionMap.get(match.origin_function_id()),
                         match
                 )
         ).toList();
@@ -267,11 +292,12 @@ public class GhidraRevengService {
             List<Collection> collections
     ){
         BinaryID binID = getBinaryIDFor(program).orElseThrow();
+        var functionMap = getFunctionMap(program);
         var r = api.annSymbolsForBinary(binID, results, distance, debugMode, collections)
                 .stream()
                 .map(
                         // Augment each match returned by the API with the associated Ghidra Function
-                        match -> new GhidraFunctionMatch( functionMap.inverse().get(match.origin_function_id()), match)
+                        match -> new GhidraFunctionMatch( functionMap.get(match.origin_function_id()), match)
                 )
                 .filter(
                         // Filter out matches where the function is null due to some bug
@@ -311,8 +337,8 @@ public class GhidraRevengService {
     }
 
     public ProgramWithBinaryID analyse(Program program, ModelName modelName){
-        if (programMap.containsKey(program)){
-            return new ProgramWithBinaryID(program, programMap.get(program));
+        if (isKnownProgram(program)){
+            return new ProgramWithBinaryID(program, getBinaryIDFor(program).orElseThrow());
         }
 
         AnalysisOptionsBuilder builder = new AnalysisOptionsBuilder();
@@ -322,7 +348,7 @@ public class GhidraRevengService {
                 .fileName(program.getName());
 
         var binID = api.analyse(builder);
-        programMap.put(program, binID);
+        statusCache.put(binID, AnalysisStatus.Queued);
         return new ProgramWithBinaryID(program, binID);
     }
 
@@ -421,7 +447,8 @@ public class GhidraRevengService {
 
     public String decompileFunctionViaAI(Function function, TaskMonitor monitor, AIDecompiledWindow window) {
         monitor.setMaximum(100 * 50);
-        var fID = getFunctionIDFor(function);
+        var fID = getFunctionIDFor(function)
+                .orElseThrow(() -> new RuntimeException("Function has no associated FunctionID"));
         // Check if there is an existing process already, because the trigger API will fail with 400 if there is
         if (api.pollAIDecompileStatus(fID).status().equals("uninitialised")){
             // Trigger the decompilation

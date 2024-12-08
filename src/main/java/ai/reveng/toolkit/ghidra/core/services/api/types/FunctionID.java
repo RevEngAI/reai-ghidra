@@ -1,4 +1,4 @@
 package ai.reveng.toolkit.ghidra.core.services.api.types;
 
-public record FunctionID(Integer value) {
+public record FunctionID(long value) {
 }
