@@ -7,6 +7,12 @@ package ai.reveng.toolkit.ghidra.core.services.api.types;
  * for a single binary (identified by hash), there can be multiple analyses, which are distinguished by this ID
  */
 public record BinaryID(int value) implements Comparable<BinaryID> {
+    public BinaryID {
+        if (value < 0) {
+            throw new IllegalArgumentException("BinaryID must be positive");
+        }
+    }
+
     @Override
     public int compareTo(BinaryID binaryID) {
         return Integer.compare(value, binaryID.value);

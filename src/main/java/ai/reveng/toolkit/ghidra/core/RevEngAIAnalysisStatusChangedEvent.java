@@ -2,7 +2,7 @@ package ai.reveng.toolkit.ghidra.core;
 
 import ai.reveng.toolkit.ghidra.core.services.api.types.AnalysisStatus;
 import ai.reveng.toolkit.ghidra.core.services.api.types.BinaryID;
-import ai.reveng.toolkit.ghidra.core.services.api.types.ProgramWithBinaryID;
+import ai.reveng.toolkit.ghidra.core.types.ProgramWithBinaryID;
 import ghidra.framework.plugintool.PluginEvent;
 import ghidra.program.model.listing.Program;
 
@@ -13,11 +13,11 @@ import ghidra.program.model.listing.Program;
  * - A analysis has just been associated with the program
  * - The plugin was just loaded, and it contained a stored binary ID pointing to an existing analysis
  */
-public class RevEngAIAnalysisStatusChanged extends PluginEvent {
+public class RevEngAIAnalysisStatusChangedEvent extends PluginEvent {
     private final AnalysisStatus status;
     private final ProgramWithBinaryID programWithBinaryID;
 
-    public RevEngAIAnalysisStatusChanged(String sourceName, ProgramWithBinaryID programWithBinaryID, AnalysisStatus status) {
+    public RevEngAIAnalysisStatusChangedEvent(String sourceName, ProgramWithBinaryID programWithBinaryID, AnalysisStatus status) {
         super(sourceName, "RevEngAI Analysis Finished");
         this.status = status;
         this.programWithBinaryID = programWithBinaryID;

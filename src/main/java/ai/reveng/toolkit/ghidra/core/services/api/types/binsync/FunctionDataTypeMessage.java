@@ -243,4 +243,8 @@ public record FunctionDataTypeMessage(
         return func_deps != null;
     }
 
+    public String functionName() {
+        return func_types.header().name();
+    }
+
 }

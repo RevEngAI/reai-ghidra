@@ -3,6 +3,8 @@ package ai.reveng.toolkit.ghidra.core.services.api.types.binsync;
 import org.json.JSONArray;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Optional;
 
 /**
  *    Describes the dependencies of a function.
@@ -41,4 +43,16 @@ public record FunctionDependencies(
                 structs.toArray(new Struct[0])
         );
     }
+
+    public Optional<Typedef> findTypeDef(String name) {
+        return Arrays.stream(typedefs)
+                .filter(t -> t.name().equals(name))
+                .findFirst();
+    }
+    public Optional<Struct> findStruct(String name) {
+        return Arrays.stream(structs)
+                .filter(t -> t.name().equals(name))
+                .findFirst();
+    }
+
 }

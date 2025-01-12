@@ -3,9 +3,9 @@ package ai.reveng.toolkit.ghidra.core.services.api;
 import java.io.FileNotFoundException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
-import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.APIAuthenticationException;
 import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.InvalidAPIInfoException;
 
 
@@ -113,6 +113,20 @@ public interface TypedApiInterface {
     String getAnalysisLogs(BinaryID binID);
 
     void authenticate() throws InvalidAPIInfoException;
+
+    default Object generateFunctionDataTypes(AnalysisID analysisID, List<FunctionID> functionIDS) {
+        throw new UnsupportedOperationException("generateFunctionDataTypes not implemented yet");
+    }
+
+    default Optional<FunctionDataTypeStatus> getFunctionDataTypes(AnalysisID analysisID, FunctionID functionID) {
+        throw new UnsupportedOperationException("getFunctionDataTypes not implemented yet");
+    }
+
+
+    default AnalysisID getAnalysisIDfromBinaryID(BinaryID binaryID) {
+        throw new UnsupportedOperationException("getAnalysisIDfromBinaryID not implemented yet");
+    }
+
     default boolean triggerAIDecompilationForFunctionID(FunctionID functionID) {
         throw new UnsupportedOperationException("triggerAIDecompilationForFunctionID not implemented yet");
     }

@@ -14,7 +14,7 @@ import ghidra.program.model.listing.Function;
 /**
  * GUI component for renaming a function from a selection of candidate functions
  */
-public class FunctionSimularityDockableDialog extends ComponentProviderAdapter {
+public class FunctionSimularityDockableDialog extends DialogComponentProvider {
 	private RenameFunctionFromSimilarFunctionsPanel panel;
 
 	/**
@@ -23,15 +23,9 @@ public class FunctionSimularityDockableDialog extends ComponentProviderAdapter {
 	 * @param tool
 	 */
 	public FunctionSimularityDockableDialog(Function func, PluginTool tool) {
-		super(tool, ReaiPluginPackage.WINDOW_PREFIX + "Function Rename", ReaiPluginPackage.NAME);
+		super(ReaiPluginPackage.WINDOW_PREFIX + "Function Rename", true);
 
 		buildPanel(func, tool);
-		tool.addLocalAction(this, new DockingAction("Test action", getOwner()) {
-			@Override
-			public void actionPerformed(ActionContext context) {
-				return;
-			}
-		});
 	}
 
 	private void buildPanel(Function func, PluginTool tool) {

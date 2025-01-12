@@ -2,6 +2,8 @@ package ai.reveng.toolkit.ghidra.core.services.api.types.binsync;
 
 import org.json.JSONObject;
 
+import java.util.Set;
+
 /**
  * Based on the Typedef artifact from BinSync.
  */
@@ -21,6 +23,7 @@ public record Typedef(
 
 
         public static boolean matches(JSONObject obj) {
-            return obj.has("type") && obj.has("name");
+            return obj.keySet().equals(Set.of("last_change", "name", "type"));
+//            return obj.has("type") && obj.has("name");
         }
 }

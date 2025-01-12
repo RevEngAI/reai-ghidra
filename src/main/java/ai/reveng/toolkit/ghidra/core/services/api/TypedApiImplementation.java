@@ -3,8 +3,10 @@ package ai.reveng.toolkit.ghidra.core.services.api;
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
 import ai.reveng.toolkit.ghidra.core.services.api.types.Collection;
 import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.APIAuthenticationException;
+import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.APIConflictException;
 import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.InvalidAPIInfoException;
 import com.google.common.primitives.Bytes;
+import ghidra.util.Msg;
 import org.json.JSONObject;
 
 import java.io.File;
@@ -15,7 +17,6 @@ import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.net.http.HttpTimeoutException;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.*;
@@ -161,6 +162,7 @@ public class TypedApiImplementation implements TypedApiInterface {
     }
 
     private JSONObject sendRequest(HttpRequest request) throws APIAuthenticationException {
+        Msg.info(this, "Sending request to: " + request.uri());
         HttpResponse<String> response = null;
 
         try {
@@ -174,9 +176,12 @@ public class TypedApiImplementation implements TypedApiInterface {
         switch (response.statusCode()){
             case 200:
             case 201:
+            case 404:
                 return new JSONObject(response.body());
             case 401:
                 throw new APIAuthenticationException(response.body());
+            case 409:
+                throw new APIConflictException(response.body());
             default:
                 throw new RuntimeException("Request failed with status code: " + response.statusCode() + " and message: " + response.body());
         }
@@ -337,6 +342,56 @@ public class TypedApiImplementation implements TypedApiInterface {
         JSONObject jsonResponse = sendRequest(requestBuilderForEndpoint(APIVersion.V1, "models").GET().build());
 
         return mapJSONArray(jsonResponse.getJSONArray("models"), o -> new ModelName(o.getString("model_name")));
+    }
+
+    /**
+     * <a href="https://api.reveng.ai/v2/docs#tag/Analysis-Management/operation/get_analysis_id_v2_analyses_lookup__binary_id__get">...</a>
+     *
+     * @param binaryID the binary id to look up
+     * @return the analysis id
+     */
+    @Override
+    public AnalysisID getAnalysisIDfromBinaryID(BinaryID binaryID){
+        JSONObject response = sendRequest(requestBuilderForEndpoint(APIVersion.V2, "analyses/lookup/" + binaryID.value())
+                .GET()
+                .build());
+
+        return new AnalysisID(response.getInt("analysis_id"));
+    }
+
+    /**
+     * Triggers the generation of function data types for a provided list of functions
+     * <a href="https://api.reveng.ai/v2/docs#tag/Function-Overview/operation/generate_function_datatypes_v2_analyses__analysis_id__info_functions_data_types_post">...</a>
+     * https://api.reveng.ai/v2/analyses/{analysis_id}/info/functions/data_types
+     * @param functionIDS
+     * @return
+     */
+    @Override
+    public Object generateFunctionDataTypes(AnalysisID analysisID, List<FunctionID> functionIDS) throws APIConflictException{
+        JSONObject params = new JSONObject();
+        params.put("function_ids", functionIDS.stream().map(FunctionID::value).toList());
+
+        var request = requestBuilderForEndpoint(APIVersion.V2, "analyses/%s/info/functions/data_types".formatted(analysisID.id()))
+                .POST(HttpRequest.BodyPublishers.ofString(params.toString()))
+                .header("Content-Type", "application/json" )
+                .build();
+
+        return sendVersion2Request(request).data();
+    }
+
+    @Override
+    public Optional<FunctionDataTypeStatus> getFunctionDataTypes(AnalysisID analysisID, FunctionID functionID) {
+        // https://api.reveng.ai/v2/analyses/{analysis_id}/info/functions/{function_id}/data_types
+        var request = requestBuilderForEndpoint(APIVersion.V2, "analyses/%s/info/functions/%s/data_types".formatted(analysisID.id(), functionID.value()))
+                .GET()
+                .header("Content-Type", "application/json" )
+                .build();
+        var response = sendVersion2Request(request);
+        if (response.errors() == null){
+            return Optional.of(FunctionDataTypeStatus.fromJson(response.data()));
+        } else {
+            return Optional.empty();
+        }
     }
 
     @Override

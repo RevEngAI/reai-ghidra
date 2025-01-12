@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
-class Utils {
+public class Utils {
 
     public static <T> List<T> mapJSONArray(JSONArray jsonArray, Function<JSONObject, T> mapper) {
         var result = new ArrayList<T>();
