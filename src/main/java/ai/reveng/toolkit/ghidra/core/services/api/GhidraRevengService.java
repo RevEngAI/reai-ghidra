@@ -2,20 +2,25 @@ package ai.reveng.toolkit.ghidra.core.services.api;
 
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.binarysimularity.ui.aidecompiler.AIDecompiledWindow;
-import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisStatusChanged;
+import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisStatusChangedEvent;
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
 import ai.reveng.toolkit.ghidra.core.services.api.types.Collection;
+import ai.reveng.toolkit.ghidra.core.services.api.types.binsync.*;
 import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.APIAuthenticationException;
+import ai.reveng.toolkit.ghidra.core.types.ProgramWithBinaryID;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import ghidra.app.util.opinion.ElfLoader;
 import ghidra.app.util.opinion.PeLoader;
 import ghidra.program.model.address.Address;
+import ghidra.program.model.data.*;
 import ghidra.program.model.listing.Function;
 import ghidra.program.model.listing.Program;
 import ghidra.program.model.symbol.SourceType;
 import ghidra.program.model.util.LongPropertyMap;
+import ghidra.util.InvalidNameException;
 import ghidra.util.Msg;
+import ghidra.util.data.DataTypeParser;
 import ghidra.util.exception.CancelledException;
 import ghidra.util.exception.DuplicateNameException;
 import ghidra.util.exception.InvalidInputException;
@@ -29,7 +34,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static ai.reveng.toolkit.ghidra.core.CorePlugin.REAI_OPTIONS_CATEGORY;
-import static java.lang.Thread.sleep;
 
 
 /**
@@ -70,7 +74,7 @@ public class GhidraRevengService {
         this.api = new MockApi();
     }
 
-    public void handleAnalysisCompletion(RevEngAIAnalysisStatusChanged event){
+    public void handleAnalysisCompletion(RevEngAIAnalysisStatusChangedEvent event){
         if (event.getStatus() != AnalysisStatus.Complete){
             throw new RuntimeException("Method should only be called when analysis is complete");
         }
@@ -92,7 +96,7 @@ public class GhidraRevengService {
     /**
      * Tries to find a BinaryID for a given program
      * If the program already has a BinaryID associated with it, it will return that
-
+     * If we don't have a BinaryID it will return an empty Optional
      * @param program
      * @return
      */
@@ -108,6 +112,11 @@ public class GhidraRevengService {
 
     }
 
+    public Optional<AnalysisID> getAnalysisIDFor(Program program){
+        return getBinaryIDFor(program).map(binID -> api.getAnalysisIDfromBinaryID(binID));
+    }
+
+
     public Optional<BinaryID> getBinaryIDfromOptions(
             Program program
     ) throws InvalidBinaryID {
@@ -118,14 +127,19 @@ public class GhidraRevengService {
             return Optional.empty();
         }
         var binID = new BinaryID((int) bid);
-        // Check that it's really valid in the context of the currently configured API
-        try {
-            api.status(binID);
-        } catch (APIAuthenticationException e){
-            throw new InvalidBinaryID(binID, this.apiInfo);
+        if (!statusCache.containsKey(binID)) {
+            // Check that it's really valid in the context of the currently configured API
+            try {
+                var status = api.status(binID);
+                statusCache.put(binID, status);
+            } catch (APIAuthenticationException e) {
+                throw new InvalidBinaryID(binID, this.apiInfo);
+            }
+            // Now it's certain that it is a valid binary ID
         }
-        // Now it's certain that it is a valid binary ID
         return Optional.of(binID);
+
+
     }
 
     public List<GhidraFunctionInfo> getFunctionInfo(Program program){
@@ -181,7 +195,6 @@ public class GhidraRevengService {
                         }
 
                     }
-
                     finalFunctionIDMap.add(func.getEntryPoint(), info.functionID().value());
                 }
         );
@@ -195,15 +208,32 @@ public class GhidraRevengService {
         program.endTransaction(transactionID, true);
     }
 
-    private Optional<FunctionID> getFunctionIDFor(Function function){
-        return Optional.ofNullable(
-                getFunctionIDMap(function.getProgram())
-                        .get(function.getEntryPoint())
-        ).map(FunctionID::new);
+    /**
+     * Get the FunctionID for a Ghidra Function, if there is one
+     *
+     * There are two cases where a function ID is missing:
+     * 1. Either the whole program has not been analyzed
+     * 2. Or the function was not found as part of the analysis on the server
+     * (because its bounds were not included when the analysis was triggered)
+     */
+    public Optional<FunctionID> getFunctionIDFor(Function function){
+        return getKnownProgram(function.getProgram())
+                .flatMap(knownProgram -> getFunctionIDFor(knownProgram, function));
     }
 
-    private LongPropertyMap getFunctionIDMap(Program program){
-        return program.getUsrPropertyManager().getLongPropertyMap(REAI_FUNCTION_PROP_MAP);
+    public Optional<FunctionID> getFunctionIDFor(ProgramWithBinaryID knownProgram, Function function){
+        var functionIDMap = getFunctionIDMap(knownProgram);
+        return Optional.ofNullable(functionIDMap.get(function.getEntryPoint())).map(FunctionID::new);
+    }
+
+    private LongPropertyMap getFunctionIDMap(ProgramWithBinaryID program){
+        var propMap = program.program().getUsrPropertyManager().getLongPropertyMap(REAI_FUNCTION_PROP_MAP);
+        if (propMap == null){
+            // This should only happen for programs that got their binary ID associated with the program
+            // but never got the function ID map loaded
+            throw new RuntimeException("Function ID map not found in program: %s".formatted(program));
+        }
+        return propMap;
     }
 
     public BiMap<FunctionID, Function> getFunctionMap(Program program){
@@ -488,5 +518,159 @@ public class GhidraRevengService {
 
 
         }
+    }
+
+    public Optional<ProgramWithBinaryID> getKnownProgram(Program program) {
+        return getBinaryIDFor(program).map(binID -> new ProgramWithBinaryID(program, binID));
+    }
+
+    public Optional<FunctionDataTypeMessage> getFunctionSignatureArtifact(BinaryID binID, FunctionID functionID) {
+        var analysisID = api.getAnalysisIDfromBinaryID(binID);
+        return api.getFunctionDataTypes(analysisID, functionID).map(FunctionDataTypeStatus::data_types);
+    }
+
+    /**
+     * Create a {@link FunctionDefinitionDataType} from a @{@link FunctionDataTypeMessage} in isolation
+     *
+     * All the required dependency types should be stored in the DataTypeManager that is associated with this
+     * FunctionDefinitionDataType
+     *
+     * @param functionDataTypeMessage The message containing the function signature, received from the API
+     * @return Self-contained signature for the function
+     */
+    public static FunctionDefinitionDataType getFunctionSignature(FunctionDataTypeMessage functionDataTypeMessage){
+
+        // TODO: Do we need the program or data type manager?
+        // Or can we just create a new one with all the necessary types and then they get merged?
+
+        // Create Data Type Manager with all dependencies
+        var dtm = loadDependencyDataTypes(functionDataTypeMessage.func_deps());
+
+        FunctionDefinitionDataType f = new FunctionDefinitionDataType(functionDataTypeMessage.functionName(), dtm);
+
+        try {
+            f.setName(functionDataTypeMessage.functionName());
+        } catch (InvalidNameException e) {
+            throw new RuntimeException(e);
+        }
+
+        ParameterDefinitionImpl[] args = Arrays.stream(functionDataTypeMessage.func_types().header().args()).map(
+                arg -> {
+                    DataType ghidraType = loadDataType(dtm, arg.type(), functionDataTypeMessage.func_deps());
+                    // Add the type to the DataTypeManager
+                    return new ParameterDefinitionImpl(arg.name(), ghidraType, null);
+                }).toArray(ParameterDefinitionImpl[]::new);
+
+        f.setArguments(args);
+
+        DataType returnType = loadDataType(dtm, functionDataTypeMessage.func_types().header().type(), functionDataTypeMessage.func_deps());
+        f.setReturnType(returnType);
+
+
+        return f;
+    }
+
+    public static DataTypeManager loadDependencyDataTypes(FunctionDependencies dependencies){
+        DataTypeManager dtm = new StandAloneDataTypeManager("transient");
+
+        if (dependencies == null){
+            return dtm;
+        }
+        DataTypeParser dataTypeParser = new DataTypeParser(
+                dtm,
+                null,
+                null,
+                DataTypeParser.AllowedDataTypes.ALL);
+
+        // We do this in two passes:
+
+        // First add all types as empty placeholders
+        var transactionId = dtm.startTransaction("Load Dependencies");
+        Arrays.stream(dependencies.structs()).forEach(
+                struct -> {
+//                        CategoryPath path = new CategoryPath(CategoryPath.ROOT, struct.name().split("/"));
+                        var path = TypePathAndName.fromString(struct.name());
+
+                        StructureDataType structDataType = new StructureDataType(
+                                new CategoryPath(CategoryPath.ROOT, path.path()),
+                                path.name(),
+                                struct.size(),
+                                dtm);
+                        dtm.addDataType(structDataType, DataTypeConflictHandler.REPLACE_EMPTY_STRUCTS_OR_RENAME_AND_ADD_HANDLER);
+                }
+        );
+        // The following would be a lot nicer of BinSync could guarantee us that all dependencies are sorted
+        // As a workaround we just retry until all types are available
+        // In some cases (specifically bugs in BinSync when dependencies are missing) this will loop forever by default
+        // To work around _that_ we have a limit of 1000 retries
+        Queue<Typedef> typeDefsToAdd = Arrays.stream(dependencies.typedefs()).collect(Collectors.toCollection(LinkedList::new));
+        int retries = 0;
+        while (!typeDefsToAdd.isEmpty()){
+            if (retries > 1000){
+                throw new RuntimeException("Dependency loading failed: %s".formatted(typeDefsToAdd));
+            }
+            var typeDef = typeDefsToAdd.remove();
+            var path = TypePathAndName.fromString(typeDef.name());
+            DataType type;
+            try {
+                type = dataTypeParser.parse(typeDef.type());
+            } catch (InvalidDataTypeException e) {
+                // The type wasn't available in the DataTypeManager yet, try again later
+                typeDefsToAdd.add(typeDef);
+                retries++;
+                continue;
+            } catch (CancelledException e) {
+                throw new RuntimeException(e);
+            }
+            TypedefDataType typedefDataType = new TypedefDataType(new CategoryPath(CategoryPath.ROOT, path.path()), path.name(), type, null);
+            dtm.addDataType(typedefDataType, DataTypeConflictHandler.REPLACE_EMPTY_STRUCTS_OR_RENAME_AND_ADD_HANDLER);
+        }
+
+        // Now we have all necessary types, we can fill out the structs
+        Arrays.stream(dependencies.structs()).forEach(
+                struct -> {
+                    var path = TypePathAndName.fromString(struct.name());
+                    // Get struct type
+                    var type = dtm.getDataType(path.toCategoryPath(), path.name());
+                    if (type instanceof Structure structType) {
+                        Arrays.stream(struct.members()).forEach(
+                                binSyncStructMember -> {
+                                    var fieldType = loadDataType(dtm, binSyncStructMember.type(), dependencies);
+                                    structType.insertAtOffset(
+                                            binSyncStructMember.offset(),
+                                            fieldType,
+                                            binSyncStructMember.size(),
+                                            binSyncStructMember.name(),
+                                            null
+                                    );
+                                }
+                        );
+                    } else {
+                        throw new RuntimeException("Struct type not found: %s".formatted(struct.name()));
+                    }
+
+                }
+        );
+
+        dtm.endTransaction(transactionId, true);
+        return dtm;
+    }
+
+    private static DataType loadDataType(DataTypeManager dtm, String name, FunctionDependencies dependencies) {
+        DataTypeParser dataTypeParser = new DataTypeParser(
+                dtm,
+                null,
+                null,
+                DataTypeParser.AllowedDataTypes.ALL);
+        DataType dataType;
+        try {
+            dataType = dataTypeParser.parse(name);
+        } catch (InvalidDataTypeException e) {
+            // The type wasn't available in the DataTypeManager, so we have to find it in the dependencies
+            throw new RuntimeException("Data type not found in DataTypeManager: %s".formatted(name), e);
+        } catch (CancelledException e) {
+            throw new RuntimeException(e);
+        }
+        return dataType;
     }
 }

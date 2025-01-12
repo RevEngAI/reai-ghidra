@@ -19,13 +19,13 @@ import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.binarysimularity.ui.aidecompiler.AIDecompiledWindow;
 import ai.reveng.toolkit.ghidra.binarysimularity.ui.autoanalysis.AutoAnalysisDockableDialog;
 import ai.reveng.toolkit.ghidra.binarysimularity.ui.functionsimularity.FunctionSimularityDockableDialog;
-import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisStatusChanged;
+import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisStatusChangedEvent;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.api.ModelName;
 import ai.reveng.toolkit.ghidra.core.services.api.types.AnalysisStatus;
 import ai.reveng.toolkit.ghidra.core.services.api.types.BinaryHash;
-import ai.reveng.toolkit.ghidra.core.services.api.types.BinaryID;
-import ai.reveng.toolkit.ghidra.core.services.api.types.ProgramWithBinaryID;
+import ai.reveng.toolkit.ghidra.core.services.api.types.FunctionID;
+import ai.reveng.toolkit.ghidra.core.types.ProgramWithBinaryID;
 import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoundariesService;
 import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
 import docking.action.builder.ActionBuilder;
@@ -38,15 +38,16 @@ import ghidra.app.services.ProgramManager;
 import ghidra.framework.plugintool.PluginInfo;
 import ghidra.framework.plugintool.PluginTool;
 import ghidra.framework.plugintool.util.PluginStatus;
-import ghidra.program.model.listing.Program;
+import ghidra.program.model.listing.Function;
 import ghidra.program.util.GhidraProgramUtilities;
 import ghidra.util.Msg;
-import ghidra.util.task.MonitoredRunnable;
 import ghidra.util.task.RunManager;
 import ghidra.util.task.TaskLauncher;
-import ghidra.util.task.TaskMonitor;
 
-import static ai.reveng.toolkit.ghidra.ReaiPluginPackage.INVALID_BINARY_ID;
+import java.awt.*;
+import java.io.IOException;
+import java.net.URI;
+import java.util.Optional;
 
 /**
  * This plugin provides features for performing binary code similarity using the
@@ -262,6 +263,26 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 				.popupMenuGroup(ReaiPluginPackage.NAME)
 				.buildAndInstall(tool);
 
+		new ActionBuilder("Open Function in RevEng.AI Portal", this.getName())
+				.withContext(ProgramLocationActionContext.class)
+				.enabledWhen(context -> getFunctionFromContext(context).flatMap(apiService::getFunctionIDFor).isPresent())
+				.onAction(context -> {
+                    FunctionID fid = getFunctionFromContext(context).flatMap(apiService::getFunctionIDFor).orElseThrow();
+					openURI(URI.create("https://portal.reveng.ai/function/" + fid.value()));
+
+				})
+				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Open Function in RevEng.AI Portal" })
+				.buildAndInstall(tool);
+
+	}
+
+
+	private boolean functionHasAssociatedID(Function function){
+		return apiService.getFunctionIDFor(function).isPresent();
+	}
+
+	private Optional<Function> getFunctionFromContext(ProgramLocationActionContext context){
+		return Optional.ofNullable(context.getProgram().getFunctionManager().getFunctionContaining(context.getAddress()));
 	}
 
 	@Override
@@ -280,7 +301,7 @@ public class BinarySimularityPlugin extends ProgramPlugin {
             while (true) {
                 AnalysisStatus currentStatus = apiService.status(programWithBinaryID.binaryID());
                 if (currentStatus != lastStatus) {
-                    tool.firePluginEvent(new RevEngAIAnalysisStatusChanged("Checker", programWithBinaryID, currentStatus));
+                    tool.firePluginEvent(new RevEngAIAnalysisStatusChangedEvent("Checker", programWithBinaryID, currentStatus));
                     lastStatus = currentStatus;
                 }
 
@@ -298,6 +319,23 @@ public class BinarySimularityPlugin extends ProgramPlugin {
                 }
             }
         }, "Checking analysis status", 0);
+	}
+
+	private void openURI(URI uri){
+		if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)
+		) {
+			try {
+				Desktop.getDesktop().browse(uri);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		} else {
+			Msg.error(
+					this,
+					"URI %s couldn't be opened because the environment doesn't support opening URLs".formatted(uri)
+			);
+
+		}
 	}
 
 }

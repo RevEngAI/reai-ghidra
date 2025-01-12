@@ -28,6 +28,7 @@ import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoun
 import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoundariesServiceImpl;
 import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
 import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingServiceImpl;
+import ai.reveng.toolkit.ghidra.core.types.ProgramWithBinaryID;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardManager;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardStateKey;
 import docking.ActionContext;
@@ -45,9 +46,6 @@ import docking.widgets.filechooser.GhidraFileChooserMode;
 import ghidra.framework.plugintool.util.PluginStatus;
 import ghidra.program.model.listing.Program;
 import ghidra.util.Msg;
-import ghidra.util.task.RunManager;
-
-import static ai.reveng.toolkit.ghidra.ReaiPluginPackage.INVALID_BINARY_ID;
 
 /**
  * CorePlugin for accessing the RevEng.AI Platform
@@ -72,7 +70,7 @@ import static ai.reveng.toolkit.ghidra.ReaiPluginPackage.INVALID_BINARY_ID;
 	description = "Toolkit for using RevEng.AI API",
 	servicesRequired = { OptionsService.class },
 	servicesProvided = { GhidraRevengService.class, ExportFunctionBoundariesService.class, ReaiLoggingService.class },
-	eventsConsumed = { RevEngAIAnalysisStatusChanged.class}
+	eventsConsumed = { RevEngAIAnalysisStatusChangedEvent.class}
 )
 //@formatter:on
 public class CorePlugin extends ProgramPlugin {
@@ -117,7 +115,7 @@ public class CorePlugin extends ProgramPlugin {
 	@Override
 	public void processEvent(PluginEvent event) {
 		super.processEvent(event);
-		if (event instanceof RevEngAIAnalysisStatusChanged pickedEvent) {
+		if (event instanceof RevEngAIAnalysisStatusChangedEvent pickedEvent) {
 			if (pickedEvent.getStatus() == AnalysisStatus.Complete) {
 				Msg.info(this, "Finished analysis became available for: " + pickedEvent.getProgramWithBinaryID());
 				revengService.handleAnalysisCompletion(pickedEvent);
@@ -213,7 +211,7 @@ public class CorePlugin extends ProgramPlugin {
 			var binID = maybeBinID.get();
 			AnalysisStatus status = revengService.status(binID);
 			tool.firePluginEvent(
-					new RevEngAIAnalysisStatusChanged(
+					new RevEngAIAnalysisStatusChangedEvent(
 					"programActivated",
 							new ProgramWithBinaryID(program, binID),
 							status));

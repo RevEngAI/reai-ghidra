@@ -1,9 +1,9 @@
 package ai.reveng.toolkit.ghidra.binarysimularity.ui.recentanalyses;
 
-import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisStatusChanged;
+import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisStatusChangedEvent;
 import ai.reveng.toolkit.ghidra.core.services.api.types.AnalysisResult;
 import ai.reveng.toolkit.ghidra.core.services.api.types.BinaryHash;
-import ai.reveng.toolkit.ghidra.core.services.api.types.ProgramWithBinaryID;
+import ai.reveng.toolkit.ghidra.core.types.ProgramWithBinaryID;
 import docking.DialogComponentProvider;
 import ghidra.framework.plugintool.PluginTool;
 import ghidra.program.model.listing.Program;
@@ -55,7 +55,7 @@ public class RecentAnalysisDialog extends DialogComponentProvider {
 
     private void pickAnalysis(AnalysisResult result){
         tool.firePluginEvent(
-                new RevEngAIAnalysisStatusChanged(
+                new RevEngAIAnalysisStatusChangedEvent(
                         "Recent Analysis Dialog",
                         new ProgramWithBinaryID(program, result.binary_id()),
                         result.status()
