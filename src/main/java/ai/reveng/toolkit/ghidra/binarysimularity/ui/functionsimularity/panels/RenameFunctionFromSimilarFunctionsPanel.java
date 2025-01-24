@@ -178,10 +178,10 @@ public class RenameFunctionFromSimilarFunctionsPanel extends JPanel {
 		progressBar = new JProgressBar();
 		progressPanel.add(progressBar);
 
-		lblProgressStatusText = new JLabel("Waiting to Fetch");
-		lblProgressStatusText.setAlignmentX(Component.CENTER_ALIGNMENT);
-		lblProgressStatusText.setHorizontalAlignment(SwingConstants.CENTER);
-		progressPanel.add(lblProgressStatusText);
+//		lblProgressStatusText = new JLabel("Waiting to Fetch");
+//		lblProgressStatusText.setAlignmentX(Component.CENTER_ALIGNMENT);
+//		lblProgressStatusText.setHorizontalAlignment(SwingConstants.CENTER);
+//		progressPanel.add(lblProgressStatusText);
 
 		JSeparator separator_1 = new JSeparator();
 		actionButtonPanel.add(separator_1);
