@@ -19,8 +19,9 @@ import ghidra.program.util.ProgramLocation;
 	status = PluginStatus.STABLE,
 	packageName = ReaiPluginPackage.NAME,
 	category = PluginCategoryNames.COMMON,
-	shortDescription = "Toolkit for using the RevEng.AI API",
-	description = "Toolkit for using RevEng.AI API",
+	shortDescription = "Helper and Debug Tools for the RevEng.AI Toolkit",
+	description = "Collection of tools that are not relevant for end user use," +
+			"but are useful for developing your own scripts or debugging the RevEng.AI Toolkit",
 	servicesRequired = { OptionsService.class, GhidraRevengService.class }
 )
 //@formatter:on

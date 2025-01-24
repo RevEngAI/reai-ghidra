@@ -58,8 +58,7 @@ repositories {
 dependencies {
 	// Any external dependencies added here will automatically be copied to the lib/ directory when
 	// this extension is built.
-	implementation 'com.moandjiezana.toml:toml4j:0.7.2'
-  	implementation 'org.json:json:20230618'
+  	implementation 'org.json:json:20250107'
 	implementation "com.google.guava:guava:33.2.0-jre"
 	implementation group: 'com.fifesoft', name: 'rsyntaxtextarea', version: '3.5.2'
 }
