@@ -1,3 +1,6 @@
+plugins {
+	id 'idea'
+}
 /* ###
  * IP: GHIDRA
  *
@@ -72,5 +75,12 @@ sourceSets {
 		java {
 			srcDir 'ghidra_scripts'
 		}
+	}
+}
+
+idea {
+	module {
+		downloadSources = true
+		downloadJavadoc = true
 	}
 }
