@@ -1,6 +1,7 @@
 # misc files
 log.txt
 
+dev/
 # Compiled bytecode
 *.class
 *.jar
