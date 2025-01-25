@@ -1,4 +1,4 @@
-package ai.reveng.toolkit.ghidra.binarysimularity.ui.autoanalysis;
+package ai.reveng.toolkit.ghidra.binarysimilarity.ui.autoanalysis;
 
 import java.util.List;
 
@@ -6,7 +6,6 @@ import ai.reveng.toolkit.ghidra.core.services.api.types.GhidraFunctionMatch;
 import docking.widgets.table.AbstractDynamicTableColumn;
 import docking.widgets.table.TableColumnDescriptor;
 import docking.widgets.table.threaded.ThreadedTableModelStub;
-import ghidra.Ghidra;
 import ghidra.docking.settings.Settings;
 import ghidra.framework.plugintool.PluginTool;
 import ghidra.framework.plugintool.ServiceProvider;

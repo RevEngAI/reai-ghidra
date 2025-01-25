@@ -1,6 +1,6 @@
-package ai.reveng.toolkit.ghidra.binarysimularity.ui.functionsimularity.panels;
+package ai.reveng.toolkit.ghidra.binarysimilarity.ui.functionsimilarity.panels;
 
-import ai.reveng.toolkit.ghidra.binarysimularity.ui.functionsimularity.models.CanidateFunctionModel;
+import ai.reveng.toolkit.ghidra.binarysimilarity.ui.functionsimilarity.models.CanidateFunctionModel;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.api.types.GhidraFunctionMatchWithSignature;
 import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;

@@ -1,15 +1,15 @@
-package ai.reveng.toolkit.ghidra.binarysimularity.ui.autoanalysis.panels;
+package ai.reveng.toolkit.ghidra.binarysimilarity.ui.autoanalysis.panels;
 
 import java.awt.*;
 
 import javax.swing.*;
 
-import ai.reveng.toolkit.ghidra.binarysimularity.ui.autoanalysis.CollectionRowObject;
+import ai.reveng.toolkit.ghidra.binarysimilarity.ui.autoanalysis.CollectionRowObject;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
-import ai.reveng.toolkit.ghidra.binarysimularity.ui.autoanalysis.AutoAnalysisResultsTableModel;
-import ai.reveng.toolkit.ghidra.binarysimularity.ui.autoanalysis.CollectionTableModel;
+import ai.reveng.toolkit.ghidra.binarysimilarity.ui.autoanalysis.AutoAnalysisResultsTableModel;
+import ai.reveng.toolkit.ghidra.binarysimilarity.ui.autoanalysis.CollectionTableModel;
 import ai.reveng.toolkit.ghidra.core.services.api.types.Collection;
 import ai.reveng.toolkit.ghidra.core.services.api.types.GhidraFunctionMatch;
 import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static ai.reveng.toolkit.ghidra.binarysimularity.BinarySimularityPlugin.REVENG_AI_NAMESPACE;
+import static ai.reveng.toolkit.ghidra.binarysimilarity.BinarySimilarityPlugin.REVENG_AI_NAMESPACE;
 
 /**
  * Panel for configuring auto analysis options

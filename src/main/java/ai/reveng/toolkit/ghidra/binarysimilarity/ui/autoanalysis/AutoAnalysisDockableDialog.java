@@ -1,10 +1,9 @@
-package ai.reveng.toolkit.ghidra.binarysimularity.ui.autoanalysis;
+package ai.reveng.toolkit.ghidra.binarysimilarity.ui.autoanalysis;
 
 import javax.swing.JComponent;
 
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
-import ai.reveng.toolkit.ghidra.binarysimularity.ui.autoanalysis.panels.AutoAnalysisPanel;
-import docking.DialogComponentProvider;
+import ai.reveng.toolkit.ghidra.binarysimilarity.ui.autoanalysis.panels.AutoAnalysisPanel;
 import ghidra.framework.plugintool.ComponentProviderAdapter;
 import ghidra.framework.plugintool.PluginTool;
 

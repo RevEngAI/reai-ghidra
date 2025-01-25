@@ -1,4 +1,4 @@
-package ai.reveng.toolkit.ghidra.binarysimularity.ui.aidecompiler;
+package ai.reveng.toolkit.ghidra.binarysimilarity.ui.aidecompiler;
 
 import ghidra.framework.plugintool.ComponentProviderAdapter;
 import ghidra.framework.plugintool.PluginTool;
