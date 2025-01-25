@@ -1,10 +1,6 @@
 package ai.reveng.toolkit.ghidra.core.services.api.types;
 
-import ai.reveng.toolkit.ghidra.core.services.api.types.binsync.FunctionDataTypeMessage;
 import ghidra.program.model.listing.Function;
-
-import java.util.Objects;
-import java.util.Optional;
 
 /**
  * Extension of a {@link FunctionMatch}

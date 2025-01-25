@@ -50,6 +50,7 @@ public class CanidateFunctionModel extends ThreadedTableModelStub<GhidraFunction
 		addRowToDescriptor(descriptor, "Binary Name", String.class, (row) -> row.functionMatch().nearest_neighbor_binary_name());
 		addRowToDescriptor(descriptor, "Debug Info", Boolean.class, (row) -> row.functionMatch().nearest_neighbor_debug());
 		addRowToDescriptor(descriptor, "Function ID", Long.class, (row) -> row.functionMatch().nearest_neighbor_id().value());
+		addRowToDescriptor(descriptor, "Binary ID", Integer.class, (row) -> row.functionMatch().nearest_neighbor_binary_id().value());
 
 
 		return descriptor;

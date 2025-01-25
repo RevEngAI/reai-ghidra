@@ -554,14 +554,24 @@ public class GhidraRevengService {
 
         ParameterDefinitionImpl[] args = Arrays.stream(functionDataTypeMessage.func_types().header().args()).map(
                 arg -> {
-                    DataType ghidraType = loadDataType(dtm, arg.type(), functionDataTypeMessage.func_deps());
+                    DataType ghidraType = null;
+                    try {
+                        ghidraType = loadDataType(dtm, arg.type(), functionDataTypeMessage.func_deps());
+                    } catch (DataTypeDependencyException e) {
+                        ghidraType = Undefined.getUndefinedDataType(arg.size());
+                    }
                     // Add the type to the DataTypeManager
                     return new ParameterDefinitionImpl(arg.name(), ghidraType, null);
                 }).toArray(ParameterDefinitionImpl[]::new);
 
         f.setArguments(args);
 
-        DataType returnType = loadDataType(dtm, functionDataTypeMessage.func_types().header().type(), functionDataTypeMessage.func_deps());
+        DataType returnType = null;
+        try {
+            returnType = loadDataType(dtm, functionDataTypeMessage.func_types().header().type(), functionDataTypeMessage.func_deps());
+        } catch (DataTypeDependencyException e) {
+            throw new RuntimeException(e);
+        }
         f.setReturnType(returnType);
 
 
@@ -633,8 +643,13 @@ public class GhidraRevengService {
                     if (type instanceof Structure structType) {
                         Arrays.stream(struct.members()).forEach(
                                 binSyncStructMember -> {
-                                    var fieldType = loadDataType(dtm, binSyncStructMember.type(), dependencies);
-                                    structType.insertAtOffset(
+                                    DataType fieldType = null;
+                                    try {
+                                        fieldType = loadDataType(dtm, binSyncStructMember.type(), dependencies);
+                                    } catch (DataTypeDependencyException e) {
+                                        fieldType = Undefined.getUndefinedDataType(binSyncStructMember.size());
+                                    }
+                                    structType.replaceAtOffset(
                                             binSyncStructMember.offset(),
                                             fieldType,
                                             binSyncStructMember.size(),
@@ -654,7 +669,7 @@ public class GhidraRevengService {
         return dtm;
     }
 
-    private static DataType loadDataType(DataTypeManager dtm, String name, FunctionDependencies dependencies) {
+    private static DataType loadDataType(DataTypeManager dtm, String name, FunctionDependencies dependencies) throws DataTypeDependencyException {
         DataTypeParser dataTypeParser = new DataTypeParser(
                 dtm,
                 null,
@@ -665,7 +680,7 @@ public class GhidraRevengService {
             dataType = dataTypeParser.parse(name);
         } catch (InvalidDataTypeException e) {
             // The type wasn't available in the DataTypeManager, so we have to find it in the dependencies
-            throw new RuntimeException("Data type not found in DataTypeManager: %s".formatted(name), e);
+            throw new DataTypeDependencyException("Data type not found in DataTypeManager: %s".formatted(name), e);
         } catch (CancelledException e) {
             throw new RuntimeException(e);
         }

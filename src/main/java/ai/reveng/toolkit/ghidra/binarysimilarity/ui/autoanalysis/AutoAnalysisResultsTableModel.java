@@ -1,14 +1,13 @@
 package ai.reveng.toolkit.ghidra.binarysimilarity.ui.autoanalysis;
 
-import java.util.List;
-
+import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
+import ai.reveng.toolkit.ghidra.core.services.api.types.Collection;
 import ai.reveng.toolkit.ghidra.core.services.api.types.GhidraFunctionMatch;
-import docking.widgets.table.AbstractDynamicTableColumn;
+import ai.reveng.toolkit.ghidra.core.services.api.types.GhidraFunctionMatchWithSignature;
 import docking.widgets.table.TableColumnDescriptor;
 import docking.widgets.table.threaded.ThreadedTableModelStub;
-import ghidra.docking.settings.Settings;
+import ghidra.app.services.ProgramManager;
 import ghidra.framework.plugintool.PluginTool;
-import ghidra.framework.plugintool.ServiceProvider;
 import ghidra.program.model.address.Address;
 import ghidra.program.model.listing.Function;
 import ghidra.program.model.listing.Program;
@@ -20,19 +19,65 @@ import ghidra.util.exception.CancelledException;
 import ghidra.util.table.ProgramTableModel;
 import ghidra.util.task.TaskMonitor;
 
-public class AutoAnalysisResultsTableModel extends ThreadedTableModelStub<GhidraFunctionMatch> implements ProgramTableModel {
-	private static final long serialVersionUID = -8437395899512765590L;
-	private PluginTool plugin;
+import java.util.List;
+import java.util.Map;
 
-	
+import static ai.reveng.toolkit.ghidra.Utils.addRowToDescriptor;
+
+public class AutoAnalysisResultsTableModel extends ThreadedTableModelStub<GhidraFunctionMatchWithSignature> implements ProgramTableModel {
+	private static final long serialVersionUID = -8437395899512765590L;
+	private Program program;
+	private PluginTool tool;
+	private boolean allowReload = false;
+	private double confidenceThreshold;
+	private List<Collection> collections;
+	private boolean onlyNamed;
+	private boolean fetchSignatures;
+
+
 	public AutoAnalysisResultsTableModel(PluginTool plugin) {
 		super("Collections Table Model", plugin);
-		this.plugin = plugin;
+		this.tool = plugin;
+		this.program = null;
 	}
 
 	@Override
-	protected void doLoad(Accumulator<GhidraFunctionMatch> accumulator, TaskMonitor monitor)
+	protected void doLoad(Accumulator<GhidraFunctionMatchWithSignature> accumulator, TaskMonitor monitor)
 			throws CancelledException {
+		if (allowReload) {
+			GhidraRevengService apiService = tool.getService(GhidraRevengService.class);
+			ProgramManager programManager = tool.getService(ProgramManager.class);
+
+			this.program = programManager.getCurrentProgram();
+			Map<Function, List<GhidraFunctionMatch>> r = apiService.getSimilarFunctions(
+					program,
+					1,
+					1 - confidenceThreshold,
+					onlyNamed,
+					collections
+			);
+				r.values().stream()
+						.takeWhile(t -> !monitor.isCancelled())
+						// Filter out functions that have no matches
+						.filter(list -> !list.isEmpty())
+						// Get the best match
+						.map(List::getFirst)
+						// Filter out matches that are below the threshold
+						.filter(match -> match.confidence() >= confidenceThreshold)
+						.map((match) -> {
+									if (fetchSignatures) {
+										return GhidraFunctionMatchWithSignature.createWith(match, apiService);
+									} else {
+										return new GhidraFunctionMatchWithSignature(match, null);
+									}
+								}
+						)
+						// Add the best matches to the table
+						.forEachOrdered(accumulator::add);
+
+			// Block automatic reloads again until the user explicitly triggers it
+			allowReload = false;
+		}
 		return;
 	}
 
@@ -42,64 +87,36 @@ public class AutoAnalysisResultsTableModel extends ThreadedTableModelStub<Ghidra
 	}
 
 	@Override
-	protected TableColumnDescriptor<GhidraFunctionMatch> createTableColumnDescriptor() {
-		TableColumnDescriptor<GhidraFunctionMatch> descriptor = new TableColumnDescriptor<GhidraFunctionMatch>();
-		descriptor.addVisibleColumn(new AutoanalysisResultDstSymbolTableColumn());
-		descriptor.addHiddenColumn(new AutoanalysisResultsDestinationSymbolSourceTableColumn());
-		descriptor.addHiddenColumn(new AbstractDynamicTableColumn<GhidraFunctionMatch, Address, Object>(){
+	protected TableColumnDescriptor<GhidraFunctionMatchWithSignature> createTableColumnDescriptor() {
+		TableColumnDescriptor<GhidraFunctionMatchWithSignature> descriptor = new TableColumnDescriptor<GhidraFunctionMatchWithSignature>();
+		addRowToDescriptor(descriptor, "Destination Symbol", Function.class, GhidraFunctionMatchWithSignature::function);
 
-			@Override
-			public String getColumnName() {
-				return "Destination Address";
-			}
+		addRowToDescriptor(descriptor, "Destination Symbol SourceType", false, SourceType.class,
+				(rowObject) -> rowObject.function().getSymbol().getSource()
+		);
 
-			@Override
-			public Address getValue(GhidraFunctionMatch rowObject, Settings settings, Object data, ServiceProvider serviceProvider) throws IllegalArgumentException {
-				return rowObject.function().getEntryPoint();
-			}
-		});
+		addRowToDescriptor(descriptor, "Destination Address", false, Address.class,
+				(rowObject -> rowObject.function().getEntryPoint())
+		);
 
-		descriptor.addHiddenColumn(new AbstractDynamicTableColumn<GhidraFunctionMatch, Integer, Object>(){
+		addRowToDescriptor(descriptor, "Called Functions", false, Integer.class,
+				(rowObject -> rowObject.function().getCalledFunctions(null).size())
+		);
 
-			@Override
-			public String getColumnName() {
-				return "Called Functions";
-			}
+		addRowToDescriptor(descriptor, "Destination Function Size", false, Long.class,
+				(row) -> row.function().getBody().getNumAddresses());
 
-			@Override
-			public Integer getValue(GhidraFunctionMatch rowObject, Settings settings, Object data, ServiceProvider serviceProvider) throws IllegalArgumentException {
-				return rowObject.function().getCalledFunctions(null).size();
-			}
-		});
+		addRowToDescriptor(descriptor, "Source Symbol", String.class, (row) -> row.functionMatch().nearest_neighbor_function_name());
 
-		descriptor.addHiddenColumn(new AbstractDynamicTableColumn<GhidraFunctionMatch, Long, Object>(){
+		addRowToDescriptor(descriptor, "Signature", String.class, (row) -> row.signature().map(sig -> sig.func_types().getSignature()).orElse(null));
 
-			@Override
-			public String getColumnName() {
-				return "Destination Function Size";
-			}
+		addRowToDescriptor(descriptor, "Source Binary", String.class, (row) -> row.functionMatch().nearest_neighbor_binary_name());
 
-			@Override
-			public Long getValue(GhidraFunctionMatch rowObject, Settings settings, Object data, ServiceProvider serviceProvider) throws IllegalArgumentException {
-				return rowObject.function().getBody().getNumAddresses();
-			}
-		});
+		addRowToDescriptor(descriptor, "Confidence", Double.class, (row) -> row.functionMatch().confidence());
 
-
-
-		descriptor.addVisibleColumn(new AutoanalysisResultSrcSymbolTableColumn());
-		descriptor.addVisibleColumn(new AutoanalysisResultSrcBinaryTableColumn());
-		descriptor.addVisibleColumn(new AutoanalysisResultsConfidenceTableColumn());
-//		descriptor.addVisibleColumn(new AutoanalysisResultSuccessfulTableColumn());
-//		descriptor.addVisibleColumn(new AutoanalysisResultReasonTableColumn());
 		return descriptor;
 	}
-	
-	public void batch(List<GhidraFunctionMatch> results) {
-		for (GhidraFunctionMatch ro : results) {
-			this.addObject(ro);
-		}
-	}
+
 
 	@Override
 	public ProgramLocation getProgramLocation(int modelRow, int modelColumn) {
@@ -114,83 +131,27 @@ public class AutoAnalysisResultsTableModel extends ThreadedTableModelStub<Ghidra
 
 	@Override
 	public Program getProgram() {
-		return null;
+		return this.program;
 	}
 
-	private class AutoanalysisResultSrcSymbolTableColumn extends AbstractDynamicTableColumn<GhidraFunctionMatch, String, Object> {
 
-		@Override
-		public String getColumnName() {
-			return "Source Symbol";
-		}
-
-		@Override
-		public String getValue(GhidraFunctionMatch rowObject, Settings settings, Object data,
-								 ServiceProvider serviceProvider) throws IllegalArgumentException {
-			return rowObject.functionMatch().nearest_neighbor_function_name();
-		}
-		
+	public void enableLoad() {
+		allowReload = true;
 	}
 
-	private class AutoanalysisResultSrcBinaryTableColumn extends AbstractDynamicTableColumn<GhidraFunctionMatch, String, Object> {
-
-		@Override
-		public String getColumnName() {
-			return "Source Binary";
-		}
-
-		@Override
-		public String getValue(GhidraFunctionMatch rowObject, Settings settings, Object data,
-								 ServiceProvider serviceProvider) throws IllegalArgumentException {
-			return rowObject.functionMatch().nearest_neighbor_binary_name();
-		}
-
+	public void setConfidenceThreshold(double v) {
+		this.confidenceThreshold = v;
 	}
 
-	
-	private class AutoanalysisResultDstSymbolTableColumn extends AbstractDynamicTableColumn<GhidraFunctionMatch, Function, Object> {
-
-		@Override
-		public String getColumnName() {
-			return "Destination Symbol";
-		}
-
-		@Override
-		public Function getValue(GhidraFunctionMatch rowObject, Settings settings, Object data,
-				ServiceProvider serviceProvider) throws IllegalArgumentException {
-			return rowObject.function();
-		}
-		
+	public void setCollections(List<Collection> collections) {
+		this.collections = collections;
 	}
 
-	private class AutoanalysisResultsConfidenceTableColumn extends AbstractDynamicTableColumn<GhidraFunctionMatch, Double, Object> {
-
-		@Override
-		public String getColumnName() {
-			return "Confidence";
-		}
-
-		@Override
-		public Double getValue(GhidraFunctionMatch rowObject, Settings settings, Object data,
-								 ServiceProvider serviceProvider) throws IllegalArgumentException {
-			return rowObject.functionMatch().confidence();
-		}
-
+	public void setOnlyShowNamed(boolean selected) {
+		this.onlyNamed = selected;
 	}
 
-	private class AutoanalysisResultsDestinationSymbolSourceTableColumn extends AbstractDynamicTableColumn<GhidraFunctionMatch, SourceType, Object> {
-
-		@Override
-		public String getColumnName() {
-			return "Destination Symbol SourceType";
-		}
-
-		@Override
-		public SourceType getValue(GhidraFunctionMatch rowObject, Settings settings, Object data,
-							   ServiceProvider serviceProvider) throws IllegalArgumentException {
-			return rowObject.function().getSymbol().getSource();
-		}
-
+	public void setFetchSignatures(boolean selected) {
+		this.fetchSignatures = selected;
 	}
-
 }

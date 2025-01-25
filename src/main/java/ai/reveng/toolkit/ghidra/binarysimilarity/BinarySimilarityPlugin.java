@@ -90,7 +90,6 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 		}
 
 		autoAnalyse = new AutoAnalysisDockableDialog(tool);
-		tool.addComponentProvider(autoAnalyse, false);
 
 		setupActions();
 
@@ -309,6 +308,8 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 					// Show the UI message for the completion
 					Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Analysis Complete",
 							"Analysis for " + binID + " is complete with status: " + lastStatus);
+					// Open the auto analysis panel
+					autoAnalyse.triggerActivation();
 					break;
 				}
 
