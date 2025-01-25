@@ -327,11 +327,19 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 			try {
 				Desktop.getDesktop().browse(uri);
 			} catch (IOException e) {
-				e.printStackTrace();
+				Msg.showError(
+						this,
+						null,
+						"URI Opening Failed",
+						"Browsing to URI %s failed".formatted(uri),
+						e
+				);
 			}
 		} else {
-			Msg.error(
+			Msg.showError(
 					this,
+					null,
+					"URI Opening unsupported",
 					"URI %s couldn't be opened because the environment doesn't support opening URLs".formatted(uri)
 			);
 
