@@ -1,0 +1,13 @@
+{
+  "status": true,
+  "data": {
+    "completed": false,
+    "status": "pending",
+    "data_types": null
+  },
+  "message": null,
+  "errors": null,
+  "meta": {
+    "pagination": null
+  }
+}

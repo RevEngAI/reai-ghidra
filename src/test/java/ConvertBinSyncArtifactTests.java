@@ -33,7 +33,7 @@ public class ConvertBinSyncArtifactTests extends AbstractGhidraHeadlessIntegrati
         V2Response mockResponse = getMockResponseFromFile("main_fdupes_77846709.json");
 
         FunctionDataTypeStatus functionDataTypeStatus = FunctionDataTypeStatus.fromJson(mockResponse.data());
-        var signature = GhidraRevengService.getFunctionSignature(functionDataTypeStatus.data_types());
+        var signature = GhidraRevengService.getFunctionSignature(functionDataTypeStatus.data_types().get());
 
         assert signature.getName().equals("main");
         assert signature.getReturnType().getName().equals("int");
@@ -53,7 +53,7 @@ public class ConvertBinSyncArtifactTests extends AbstractGhidraHeadlessIntegrati
     public void testDependencyToDtm() {
         var mockResponse = getMockResponseFromFile("confirmmatch_fdupes_77846700.json");
         FunctionDataTypeStatus functionDataTypeStatus = FunctionDataTypeStatus.fromJson(mockResponse.data());
-        var dtm = GhidraRevengService.loadDependencyDataTypes(functionDataTypeStatus.data_types().func_deps());
+        var dtm = GhidraRevengService.loadDependencyDataTypes(functionDataTypeStatus.data_types().get().func_deps());
 
 
         // Print all datatypes for debugging
@@ -75,7 +75,7 @@ public class ConvertBinSyncArtifactTests extends AbstractGhidraHeadlessIntegrati
         var mockResponse = getMockResponseFromFile("confirmmatch_fdupes_77846700.json");
 
         FunctionDataTypeStatus functionDataTypeStatus = FunctionDataTypeStatus.fromJson(mockResponse.data());
-        var signature = GhidraRevengService.getFunctionSignature(functionDataTypeStatus.data_types());
+        var signature = GhidraRevengService.getFunctionSignature(functionDataTypeStatus.data_types().get());
 
         assert signature.getName().equals("confirmmatch");
         Msg.info(this, signature);
@@ -87,7 +87,7 @@ public class ConvertBinSyncArtifactTests extends AbstractGhidraHeadlessIntegrati
         var mockResponse = getMockResponseFromFile("summarizematches_fdupes.json");
 
         FunctionDataTypeStatus functionDataTypeStatus = FunctionDataTypeStatus.fromJson(mockResponse.data());
-        var signature = GhidraRevengService.getFunctionSignature(functionDataTypeStatus.data_types());
+        var signature = GhidraRevengService.getFunctionSignature(functionDataTypeStatus.data_types().get());
 
         assert signature.getName().equals("summarizematches");
         Msg.info(this, signature);
@@ -98,7 +98,7 @@ public class ConvertBinSyncArtifactTests extends AbstractGhidraHeadlessIntegrati
         var mockResponse = getMockResponseFromFile("md5_process_fdupes.json");
 
         FunctionDataTypeStatus functionDataTypeStatus = FunctionDataTypeStatus.fromJson(mockResponse.data());
-        var signature = GhidraRevengService.getFunctionSignature(functionDataTypeStatus.data_types());
+        var signature = GhidraRevengService.getFunctionSignature(functionDataTypeStatus.data_types().get());
 
         assert signature.getName().equals("md5_process");
         Msg.info(this, signature);
@@ -113,7 +113,7 @@ public class ConvertBinSyncArtifactTests extends AbstractGhidraHeadlessIntegrati
         var mockResponse = getMockResponseFromFile("errormsg.json");
 
         FunctionDataTypeStatus functionDataTypeStatus = FunctionDataTypeStatus.fromJson(mockResponse.data());
-        var signature = GhidraRevengService.getFunctionSignature(functionDataTypeStatus.data_types());
+        var signature = GhidraRevengService.getFunctionSignature(functionDataTypeStatus.data_types().get());
 
         assert signature.getName().equals("md5_process");
         Msg.info(this, signature);
@@ -128,9 +128,17 @@ public class ConvertBinSyncArtifactTests extends AbstractGhidraHeadlessIntegrati
     public void testFunctionPointerArgument() {
         var mockResponse = getMockResponseFromFile("complex_pointer.json");
         FunctionDataTypeStatus functionDataTypeStatus = FunctionDataTypeStatus.fromJson(mockResponse.data());
-        var signature = GhidraRevengService.getFunctionSignature(functionDataTypeStatus.data_types());
+        var signature = GhidraRevengService.getFunctionSignature(functionDataTypeStatus.data_types().get());
     }
 
+    @Test
+    public void testPendingStatus() {
+        var mockResponse = getMockResponseFromFile("pending.json");
+        FunctionDataTypeStatus functionDataTypeStatus = FunctionDataTypeStatus.fromJson(mockResponse.data());
+        assert !functionDataTypeStatus.completed();
+        assert functionDataTypeStatus.data_types().isEmpty();
+        assert functionDataTypeStatus.status().equals("pending");
+    }
 
 
 }
