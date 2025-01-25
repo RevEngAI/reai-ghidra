@@ -1,4 +1,4 @@
-package ai.reveng.toolkit.ghidra.binarysimularity.ui.autoanalysis;
+package ai.reveng.toolkit.ghidra.binarysimilarity.ui.autoanalysis;
 
 import ai.reveng.toolkit.ghidra.core.services.api.types.Collection;
 

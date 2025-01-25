@@ -1,4 +1,4 @@
-package ai.reveng.toolkit.ghidra.binarysimularity.ui.recentanalyses;
+package ai.reveng.toolkit.ghidra.binarysimilarity.ui.recentanalyses;
 
 import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisStatusChangedEvent;
 import ai.reveng.toolkit.ghidra.core.services.api.types.AnalysisResult;

@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.reveng.toolkit.ghidra.binarysimularity;
+package ai.reveng.toolkit.ghidra.binarysimilarity;
 
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
-import ai.reveng.toolkit.ghidra.binarysimularity.ui.aidecompiler.AIDecompiledWindow;
-import ai.reveng.toolkit.ghidra.binarysimularity.ui.autoanalysis.AutoAnalysisDockableDialog;
-import ai.reveng.toolkit.ghidra.binarysimularity.ui.functionsimularity.FunctionSimularityDockableDialog;
+import ai.reveng.toolkit.ghidra.binarysimilarity.ui.aidecompiler.AIDecompiledWindow;
+import ai.reveng.toolkit.ghidra.binarysimilarity.ui.autoanalysis.AutoAnalysisDockableDialog;
+import ai.reveng.toolkit.ghidra.binarysimilarity.ui.functionsimilarity.FunctionSimilarityDockableDialog;
 import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisStatusChangedEvent;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.api.ModelName;
@@ -66,7 +66,7 @@ import java.util.Optional;
 	servicesRequired = { GhidraRevengService.class, ProgramManager.class, ExportFunctionBoundariesService.class, ReaiLoggingService.class }
 )
 //@formatter:on
-public class BinarySimularityPlugin extends ProgramPlugin {
+public class BinarySimilarityPlugin extends ProgramPlugin {
 	private final AutoAnalysisDockableDialog autoAnalyse;
 	private final AIDecompiledWindow decompiledWindow;
 	private GhidraRevengService apiService;
@@ -80,7 +80,7 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 	 * 
 	 * @param tool The plugin tool that this plugin is added to.
 	 */
-	public BinarySimularityPlugin(PluginTool tool) {
+	public BinarySimilarityPlugin(PluginTool tool) {
 		super(tool);
 		runMgr = new RunManager();
 
@@ -211,7 +211,7 @@ public class BinarySimularityPlugin extends ProgramPlugin {
 						return;
 					}
 
-					FunctionSimularityDockableDialog renameDialogue = new FunctionSimularityDockableDialog(func, tool);
+					FunctionSimilarityDockableDialog renameDialogue = new FunctionSimilarityDockableDialog(func, tool);
 					tool.showDialog(renameDialogue);
 				})
 //				.keyBinding(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK))

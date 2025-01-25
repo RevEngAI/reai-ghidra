@@ -1,20 +1,17 @@
-package ai.reveng.toolkit.ghidra.binarysimularity.ui.functionsimularity;
+package ai.reveng.toolkit.ghidra.binarysimilarity.ui.functionsimilarity;
 
 import javax.swing.JComponent;
 
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
-import ai.reveng.toolkit.ghidra.binarysimularity.ui.functionsimularity.panels.RenameFunctionFromSimilarFunctionsPanel;
-import docking.ActionContext;
+import ai.reveng.toolkit.ghidra.binarysimilarity.ui.functionsimilarity.panels.RenameFunctionFromSimilarFunctionsPanel;
 import docking.DialogComponentProvider;
-import docking.action.DockingAction;
-import ghidra.framework.plugintool.ComponentProviderAdapter;
 import ghidra.framework.plugintool.PluginTool;
 import ghidra.program.model.listing.Function;
 
 /**
  * GUI component for renaming a function from a selection of candidate functions
  */
-public class FunctionSimularityDockableDialog extends DialogComponentProvider {
+public class FunctionSimilarityDockableDialog extends DialogComponentProvider {
 	private RenameFunctionFromSimilarFunctionsPanel panel;
 
 	/**
@@ -22,7 +19,7 @@ public class FunctionSimularityDockableDialog extends DialogComponentProvider {
 	 * @param func Function you would like to rename
 	 * @param tool
 	 */
-	public FunctionSimularityDockableDialog(Function func, PluginTool tool) {
+	public FunctionSimilarityDockableDialog(Function func, PluginTool tool) {
 		super(ReaiPluginPackage.WINDOW_PREFIX + "Function Rename", true);
 
 		buildPanel(func, tool);

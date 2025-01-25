@@ -1,16 +1,13 @@
-package ai.reveng.toolkit.ghidra.binarysimularity.ui.functionsimularity.models;
+package ai.reveng.toolkit.ghidra.binarysimilarity.ui.functionsimilarity.models;
 
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.api.types.GhidraFunctionMatch;
 import ai.reveng.toolkit.ghidra.core.services.api.types.GhidraFunctionMatchWithSignature;
 import ai.reveng.toolkit.ghidra.core.services.api.types.binsync.FunctionArtifact;
 import ai.reveng.toolkit.ghidra.core.services.api.types.binsync.FunctionDataTypeMessage;
-import docking.widgets.table.AbstractDynamicTableColumn;
 import docking.widgets.table.TableColumnDescriptor;
 import docking.widgets.table.threaded.ThreadedTableModelStub;
-import ghidra.docking.settings.Settings;
 import ghidra.framework.plugintool.PluginTool;
-import ghidra.framework.plugintool.ServiceProvider;
 import ghidra.program.model.listing.Function;
 import ghidra.util.datastruct.Accumulator;
 import ghidra.util.exception.CancelledException;

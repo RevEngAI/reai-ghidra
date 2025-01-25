@@ -1,4 +1,4 @@
-package ai.reveng.toolkit.ghidra.binarysimularity.ui.autoanalysis;
+package ai.reveng.toolkit.ghidra.binarysimilarity.ui.autoanalysis;
 
 import docking.widgets.table.AbstractDynamicTableColumn;
 import docking.widgets.table.TableColumnDescriptor;

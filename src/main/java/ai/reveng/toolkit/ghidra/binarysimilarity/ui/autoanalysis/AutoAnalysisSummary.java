@@ -1,4 +1,4 @@
-package ai.reveng.toolkit.ghidra.binarysimularity.ui.autoanalysis;
+package ai.reveng.toolkit.ghidra.binarysimilarity.ui.autoanalysis;
 
 import java.util.HashMap;
 import java.util.Map;

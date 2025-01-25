@@ -19,7 +19,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Optional;
 
-import ai.reveng.toolkit.ghidra.binarysimularity.ui.recentanalyses.RecentAnalysisDialog;
+import ai.reveng.toolkit.ghidra.binarysimilarity.BinarySimilarityPlugin;
+import ai.reveng.toolkit.ghidra.binarysimilarity.ui.recentanalyses.RecentAnalysisDialog;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
 
@@ -57,7 +58,7 @@ import ghidra.util.Msg;
  * - uploading a binary to the platform
  *
  * Other concepts such as creating a new analysis for a binary are still blurred between this and the
- * {@link ai.reveng.toolkit.ghidra.binarysimularity.BinarySimularityPlugin}
+ * {@link BinarySimilarityPlugin}
  *
  * This distinction will be made clearer in future versions, when more features are available on the platform
  */
