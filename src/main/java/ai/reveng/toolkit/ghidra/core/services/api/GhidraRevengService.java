@@ -524,7 +524,7 @@ public class GhidraRevengService {
 
     public Optional<FunctionDataTypeMessage> getFunctionSignatureArtifact(BinaryID binID, FunctionID functionID) {
         var analysisID = api.getAnalysisIDfromBinaryID(binID);
-        return api.getFunctionDataTypes(analysisID, functionID).map(FunctionDataTypeStatus::data_types);
+        return api.getFunctionDataTypes(analysisID, functionID).flatMap(FunctionDataTypeStatus::data_types);
     }
 
     /**

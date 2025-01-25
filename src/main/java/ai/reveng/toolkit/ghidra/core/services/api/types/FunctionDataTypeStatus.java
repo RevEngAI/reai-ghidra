@@ -3,6 +3,8 @@ package ai.reveng.toolkit.ghidra.core.services.api.types;
 import ai.reveng.toolkit.ghidra.core.services.api.types.binsync.FunctionDataTypeMessage;
 import org.json.JSONObject;
 
+import java.util.Optional;
+
 /**
  * {
  *   "completed": true,
@@ -44,15 +46,17 @@ import org.json.JSONObject;
  */
 public record FunctionDataTypeStatus(
         boolean completed,
-        FunctionDataTypeMessage data_types,
+        Optional<FunctionDataTypeMessage> data_types,
 //        JSONObject data_types,
         String status
 ) {
 
     public static FunctionDataTypeStatus fromJson(JSONObject json) {
+
         return new FunctionDataTypeStatus(
                 json.getBoolean("completed"),
-                FunctionDataTypeMessage.fromJsonObject(json.getJSONObject("data_types")),
+                // Can be null if the function is not completed yet
+                !json.isNull("data_types") ? Optional.of(FunctionDataTypeMessage.fromJsonObject(json.getJSONObject("data_types"))) : Optional.empty(),
                 json.getString("status")
         );
     }
