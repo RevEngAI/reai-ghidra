@@ -3,6 +3,8 @@ package ai.reveng.toolkit.ghidra;
 import ghidra.framework.plugintool.util.PluginPackage;
 import resources.ResourceManager;
 
+import javax.swing.*;
+
 /**
  * Top-level package object for RevEng.AI Ghidra Plugins
  */
@@ -21,6 +23,10 @@ public class ReaiPluginPackage extends PluginPackage {
 	public static final String OPTION_KEY_BINID = PREFIX + "Binary ID";
 
 	public static final Integer INVALID_BINARY_ID = -1;
+
+	public static final Icon REVENG_16 = ResourceManager.loadImage("images/reveng_16.png");
+	public static final Icon REVENG_32 = ResourceManager.loadImage("images/reveng_32.png");
+
 
 	/**
 	 * Create a Top Level Plugin Package that uses the RevEng.AI logo

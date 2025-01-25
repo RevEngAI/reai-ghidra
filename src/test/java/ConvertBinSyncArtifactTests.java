@@ -4,6 +4,7 @@ import ai.reveng.toolkit.ghidra.core.services.api.types.FunctionDataTypeStatus;
 
 import ghidra.program.model.data.CategoryPath;
 import ghidra.program.model.data.DataType;
+import ghidra.program.model.data.Structure;
 import ghidra.test.AbstractGhidraHeadlessIntegrationTest;
 import ghidra.util.Msg;
 import org.json.JSONObject;
@@ -100,8 +101,13 @@ public class ConvertBinSyncArtifactTests extends AbstractGhidraHeadlessIntegrati
         FunctionDataTypeStatus functionDataTypeStatus = FunctionDataTypeStatus.fromJson(mockResponse.data());
         var signature = GhidraRevengService.getFunctionSignature(functionDataTypeStatus.data_types().get());
 
+        var dtm = signature.getDataTypeManager();
         assert signature.getName().equals("md5_process");
-        Msg.info(this, signature);
+
+        Structure stateType = (Structure) dtm.getDataType("/DWARF/md5.h/md5_state_s");
+        assert stateType.getLength() == 88;
+        assert stateType.getNumComponents() == 3;
+
     }
 
 

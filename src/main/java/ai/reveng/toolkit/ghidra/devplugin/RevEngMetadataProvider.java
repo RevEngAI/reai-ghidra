@@ -1,5 +1,6 @@
 package ai.reveng.toolkit.ghidra.devplugin;
 
+import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.api.types.AnalysisID;
 import ai.reveng.toolkit.ghidra.core.services.api.types.BinaryID;
@@ -28,6 +29,8 @@ public class RevEngMetadataProvider extends ComponentProviderAdapter {
 
     public RevEngMetadataProvider(PluginTool tool, String owner) {
         super(tool, "RevEng.AI Metadata Widget", owner);
+        setIcon(ReaiPluginPackage.REVENG_16);
+
         // Build component: Just a JPanel with labels and read only text boxes
         this.panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));

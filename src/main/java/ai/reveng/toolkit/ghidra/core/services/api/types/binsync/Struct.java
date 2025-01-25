@@ -2,11 +2,6 @@ package ai.reveng.toolkit.ghidra.core.services.api.types.binsync;
 
 import org.json.JSONObject;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import static ai.reveng.toolkit.ghidra.core.services.api.Utils.mapJSONArray;
-
 /**
  *     Describes a struct.
  *     All members are stored by their byte offset from the start of the struct.
