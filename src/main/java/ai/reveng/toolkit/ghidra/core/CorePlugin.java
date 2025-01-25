@@ -210,7 +210,7 @@ public class CorePlugin extends ProgramPlugin {
 				return;
 			}
 			var binID = maybeBinID.get();
-			AnalysisStatus status = revengService.status(binID);
+			AnalysisStatus status = revengService.pollStatus(binID);
 			tool.firePluginEvent(
 					new RevEngAIAnalysisStatusChangedEvent(
 					"programActivated",
