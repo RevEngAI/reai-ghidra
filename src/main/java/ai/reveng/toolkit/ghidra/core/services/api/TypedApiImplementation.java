@@ -176,6 +176,7 @@ public class TypedApiImplementation implements TypedApiInterface {
         switch (response.statusCode()){
             case 200:
             case 201:
+                return new JSONObject(response.body());
             case 404:
                 return new JSONObject(response.body());
             case 401:
