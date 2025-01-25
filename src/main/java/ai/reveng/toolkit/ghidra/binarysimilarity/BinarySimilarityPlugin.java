@@ -184,7 +184,7 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 				.enabledWhen(context -> context.getProgram() != null && apiService.isKnownProgram(context.getProgram()))
 				.onAction(context -> {
 					var binID = apiService.getBinaryIDFor(context.getProgram()).orElseThrow();
-					AnalysisStatus status = apiService.status(binID);
+					AnalysisStatus status = apiService.pollStatus(binID);
 					loggingService.info("Check Status: " + status);
 					Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Check Analysis Status",
 							"Status of " + binID + ": " + status);
@@ -226,7 +226,7 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 				.withContext(ProgramActionContext.class)
 				.enabledWhen(context -> apiService.isKnownProgram(context.getProgram()))
 				.onAction(context -> {
-					if (apiService.status(context.getProgram()) != AnalysisStatus.Complete) {
+					if (!apiService.isProgramAnalysed(context.getProgram())) {
 						Msg.showError(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Auto Analyse Binary Symbols",
 								"Analysis must have completed before running name import");
 						return;
@@ -299,7 +299,7 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
             // Check the status of the analysis every 5 seconds
             AnalysisStatus lastStatus = null;
             while (true) {
-                AnalysisStatus currentStatus = apiService.status(programWithBinaryID.binaryID());
+                AnalysisStatus currentStatus = apiService.pollStatus(programWithBinaryID.binaryID());
                 if (currentStatus != lastStatus) {
                     tool.firePluginEvent(new RevEngAIAnalysisStatusChangedEvent("Checker", programWithBinaryID, currentStatus));
                     lastStatus = currentStatus;

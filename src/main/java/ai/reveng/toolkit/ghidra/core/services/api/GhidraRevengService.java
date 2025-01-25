@@ -167,6 +167,7 @@ public class GhidraRevengService {
         try {
             functionIDMap = program.getUsrPropertyManager().createLongPropertyMap(REAI_FUNCTION_PROP_MAP);
         } catch (DuplicateNameException e) {
+            program.endTransaction(transactionID, false);
             throw new RuntimeException("Previous function property map still exists",e);
         }
 
@@ -284,7 +285,7 @@ public class GhidraRevengService {
     }
 
     public boolean isProgramAnalysed(Program program){
-        return status(program) == AnalysisStatus.Complete;
+        return program.getUsrPropertyManager().getLongPropertyMap(REAI_FUNCTION_PROP_MAP) != null;
     }
 
     public boolean isKnownFunction(Function function){
@@ -453,15 +454,12 @@ public class GhidraRevengService {
         }
     }
 
-    public AnalysisStatus status(Program program) {
+    public AnalysisStatus pollStatus(Program program) {
         var bid = getBinaryIDFor(program);
-        return status(bid.orElseThrow());
+        return pollStatus(bid.orElseThrow());
     }
 
-    public AnalysisStatus status(BinaryID bid) {
-        if (statusCache.containsKey(bid)){
-            return statusCache.get(bid);
-        }
+    public AnalysisStatus pollStatus(BinaryID bid) {
         var status = api.status(bid);
         return status;
     }

@@ -1,5 +1,4 @@
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
-import ai.reveng.toolkit.ghidra.core.services.api.types.AnalysisStatus;
 import ai.reveng.toolkit.ghidra.core.services.api.types.ApiInfo;
 import ai.reveng.toolkit.ghidra.core.services.api.types.BinaryID;
 import ghidra.app.script.GhidraScript;
@@ -9,7 +8,7 @@ import ghidra.program.model.symbol.SourceType;
 import ghidra.util.exception.DuplicateNameException;
 import ghidra.util.exception.InvalidInputException;
 
-import static ai.reveng.toolkit.ghidra.binarysimularity.BinarySimularityPlugin.REVENG_AI_NAMESPACE;
+import static ai.reveng.toolkit.ghidra.binarysimilarity.BinarySimilarityPlugin.REVENG_AI_NAMESPACE;
 
 public class RevEngAutoRenamePostScript extends GhidraScript {
     @Override
@@ -68,7 +67,7 @@ public class RevEngAutoRenamePostScript extends GhidraScript {
         var analysisComplete = false;
         while (!analysisComplete) {
             Thread.sleep(5000);
-            switch (ghidraRevengService.status(binID)) {
+            switch (ghidraRevengService.pollStatus(binID)) {
                 case Complete:
                     println("Analysis finished successfully");
                     analysisComplete = true;
