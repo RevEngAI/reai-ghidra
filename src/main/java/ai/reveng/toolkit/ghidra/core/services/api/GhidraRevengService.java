@@ -558,6 +558,9 @@ public class GhidraRevengService {
                     try {
                         ghidraType = loadDataType(dtm, arg.type(), functionDataTypeMessage.func_deps());
                     } catch (DataTypeDependencyException e) {
+                        Msg.error(GhidraRevengService.class,
+                                "Couldn't find type '%s' for param of %s".formatted(arg.type(), functionDataTypeMessage.functionName())
+                        );
                         ghidraType = Undefined.getUndefinedDataType(arg.size());
                     }
                     // Add the type to the DataTypeManager
@@ -647,6 +650,10 @@ public class GhidraRevengService {
                                     try {
                                         fieldType = loadDataType(dtm, binSyncStructMember.type(), dependencies);
                                     } catch (DataTypeDependencyException e) {
+                                        Msg.error(
+                                                GhidraRevengService.class,
+                                                "Couldn't find type '%s' for field of %s".formatted(binSyncStructMember.type(), struct.name())
+                                        );
                                         fieldType = Undefined.getUndefinedDataType(binSyncStructMember.size());
                                     }
                                     structType.replaceAtOffset(
