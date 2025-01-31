@@ -1,5 +1,6 @@
 package ai.reveng.toolkit.ghidra.binarysimilarity.ui.aidecompiler;
 
+import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
 import ghidra.framework.plugintool.ComponentProviderAdapter;
 import ghidra.framework.plugintool.PluginTool;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
@@ -15,6 +16,7 @@ public class AIDecompiledWindow extends ComponentProviderAdapter {
     private RTextScrollPane sp;
     public AIDecompiledWindow(PluginTool tool, String owner) {
         super(tool, "AI Decompiler", owner);
+        setIcon(ReaiPluginPackage.REVENG_16);
         textArea = buildComponent();
     }
 
