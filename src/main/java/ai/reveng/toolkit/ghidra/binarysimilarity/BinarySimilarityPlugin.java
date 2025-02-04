@@ -192,7 +192,7 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 //				.popupMenuPath(new String[] { "Check Analysis Status" })
 				.buildAndInstall(tool);
 
-		new ActionBuilder("Rename From Similar Functions", this.getName())
+		new ActionBuilder("Find Similar Functions", this.getName())
 				.withContext(ProgramLocationActionContext.class)
 				.enabledWhen(context -> {
 					var func = context.getProgram().getFunctionManager().getFunctionContaining(context.getAddress());
@@ -203,7 +203,7 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 				.onAction(context -> {
 					var func = context.getProgram().getFunctionManager().getFunctionContaining(context.getAddress());
 					if (!apiService.isKnownFunction(func)){
-						Msg.showError(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Rename From Similar Functions",
+						Msg.showError(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Find Similar Functions",
 								"Function is not known to the RevEng.AI API." +
 										"This can happen if the function boundaries do not match.\n" +
 								"You can create a new analysis based on the current analysis state to fix this.");
@@ -214,7 +214,7 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 					tool.showDialog(renameDialogue);
 				})
 //				.keyBinding(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK))
-				.popupMenuPath(new String[] { "Rename From Similar Functions" })
+				.popupMenuPath(new String[] { "Find Similar Functions" })
 				.popupMenuGroup(ReaiPluginPackage.NAME)
 				.buildAndInstall(tool);
 
