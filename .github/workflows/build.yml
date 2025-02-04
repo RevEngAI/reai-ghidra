@@ -14,12 +14,12 @@ jobs:
       # Root directory for doing Ghidra work (building, etc.)
         root: ["/tmp/ghidra"]
         # Ghidra build version(s)
-        version: [11.1.2]
+        version: [11.2.1]
         include:
-          - version: 11.1.2
-            release_url: "https://github.com/NationalSecurityAgency/ghidra/releases/download/Ghidra_11.1.2_build"
-            filename: "ghidra_11.1.2_PUBLIC_20240709.zip"
-            directory: "ghidra_11.1.2_PUBLIC"
+          - version: 11.2.1
+            release_url: "https://github.com/NationalSecurityAgency/ghidra/releases/download/Ghidra_11.2.1_build"
+            filename: "ghidra_11.2.1_PUBLIC_20241105.zip"
+            directory: "ghidra_11.2.1_PUBLIC"
 
     steps:
       - uses: actions/checkout@v4
@@ -32,7 +32,7 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@v3
         with:
-          java-version: 17
+          java-version: 21
           distribution: temurin
 
       - name: Build plugin via gradle
