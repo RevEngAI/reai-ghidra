@@ -22,7 +22,7 @@ jobs:
             directory: "ghidra_11.1.2_PUBLIC"
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Download Ghidra
         run: |
@@ -44,7 +44,7 @@ jobs:
 
       # Upload the unzipped contents as the artifact to create a Ghidra-loadable ZIP file
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ghidra_${{matrix.version}}_REAIT
           path: dist/${{matrix.version}}/*
