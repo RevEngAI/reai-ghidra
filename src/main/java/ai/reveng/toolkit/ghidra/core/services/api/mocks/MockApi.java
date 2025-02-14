@@ -1,5 +1,8 @@
-package ai.reveng.toolkit.ghidra.core.services.api;
+package ai.reveng.toolkit.ghidra.core.services.api.mocks;
 
+import ai.reveng.toolkit.ghidra.core.services.api.AnalysisOptionsBuilder;
+import ai.reveng.toolkit.ghidra.core.services.api.ModelName;
+import ai.reveng.toolkit.ghidra.core.services.api.TypedApiInterface;
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
 import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.APIAuthenticationException;
 import org.json.JSONObject;
@@ -11,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class MockApi implements TypedApiInterface{
+public class MockApi implements TypedApiInterface {
 
     @Override
     public List<AnalysisResult> search(BinaryHash hash, String binaryName, Collection collection, AnalysisStatus state) {

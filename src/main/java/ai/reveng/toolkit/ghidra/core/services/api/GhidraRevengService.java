@@ -3,6 +3,7 @@ package ai.reveng.toolkit.ghidra.core.services.api;
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.aidecompiler.AIDecompiledWindow;
 import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisStatusChangedEvent;
+import ai.reveng.toolkit.ghidra.core.services.api.mocks.MockApi;
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
 import ai.reveng.toolkit.ghidra.core.services.api.types.Collection;
 import ai.reveng.toolkit.ghidra.core.services.api.types.binsync.*;
@@ -66,10 +67,10 @@ public class GhidraRevengService {
         this.api = new TypedApiImplementation(apiInfo);
     }
 
-    public GhidraRevengService(String baseUrl, String apiKey){
-        this(new ApiInfo(baseUrl, apiKey));
+    public GhidraRevengService(TypedApiInterface mockApi){
+        this.api = mockApi;
+        this.apiInfo = new ApiInfo("http://localhost:8080", "mock");
     }
-
 
     public GhidraRevengService(){
         this.api = new MockApi();
@@ -228,18 +229,15 @@ public class GhidraRevengService {
     }
 
     public Optional<FunctionID> getFunctionIDFor(ProgramWithBinaryID knownProgram, Function function){
-        var functionIDMap = getFunctionIDMap(knownProgram);
-        return Optional.ofNullable(functionIDMap.get(function.getEntryPoint())).map(FunctionID::new);
+        Optional<LongPropertyMap> functionIDMap = getFunctionIDMap(knownProgram);
+
+        return functionIDMap
+                .flatMap(map -> Optional.ofNullable(map.get(function.getEntryPoint())))
+                .map(FunctionID::new);
     }
 
-    private LongPropertyMap getFunctionIDMap(ProgramWithBinaryID program){
-        var propMap = program.program().getUsrPropertyManager().getLongPropertyMap(REAI_FUNCTION_PROP_MAP);
-        if (propMap == null){
-            // This should only happen for programs that got their binary ID associated with the program
-            // but never got the function ID map loaded
-            throw new RuntimeException("Function ID map not found in program: %s".formatted(program));
-        }
-        return propMap;
+    private Optional<LongPropertyMap> getFunctionIDMap(ProgramWithBinaryID program){
+        return Optional.ofNullable(program.program().getUsrPropertyManager().getLongPropertyMap(REAI_FUNCTION_PROP_MAP));
     }
 
     public BiMap<FunctionID, Function> getFunctionMap(Program program){

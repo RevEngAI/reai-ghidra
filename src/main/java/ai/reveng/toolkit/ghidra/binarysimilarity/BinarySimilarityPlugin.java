@@ -166,7 +166,7 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 						Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Create new Analysis for Binary",
 								"Analysis is running for: " + binID + "\n"
 										+ "You will be notified when the analysis is complete.");
-//						apiService.addBinaryIDtoProgramOptions(context.getProgram(), binID);
+						apiService.addBinaryIDtoProgramOptions(context.getProgram(), binID.binaryID());
 						loggingService.info("Analysis started for " + binID);
 						spawnAnalysisStatusChecker(binID);
 						// Trigger a context refresh so the UI status of the actions gets updated
