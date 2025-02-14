@@ -5,6 +5,7 @@ import ai.reveng.toolkit.ghidra.core.services.api.types.GhidraFunctionMatch;
 import ai.reveng.toolkit.ghidra.core.services.api.types.GhidraFunctionMatchWithSignature;
 import ai.reveng.toolkit.ghidra.core.services.api.types.binsync.FunctionArtifact;
 import ai.reveng.toolkit.ghidra.core.services.api.types.binsync.FunctionDataTypeMessage;
+import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
 import docking.widgets.table.TableColumnDescriptor;
 import docking.widgets.table.threaded.ThreadedTableModelStub;
 import ghidra.framework.plugintool.PluginTool;
@@ -22,10 +23,12 @@ public class CanidateFunctionModel extends ThreadedTableModelStub<GhidraFunction
 
 	private static final long serialVersionUID = -5451991421127501071L;
 	private final Function functionUnderReview;
+	private final PluginTool pluginTool;
 
 	public CanidateFunctionModel(PluginTool plugin,
 								 Function functionUnderReview) {
 		super("Candidate Function Model", plugin);
+		this.pluginTool = plugin;
 		this.functionUnderReview = functionUnderReview;
 	}
 
@@ -63,6 +66,11 @@ public class CanidateFunctionModel extends ThreadedTableModelStub<GhidraFunction
 
 		// TODO: make the settings configurable
 		var matches = revengService.getSimilarFunctions(functionUnderReview);
+		if (matches.isEmpty()){
+			this.pluginTool.getService(ReaiLoggingService.class).warn("No matches found for function " + functionUnderReview.getName());
+		} else{
+			this.pluginTool.getService(ReaiLoggingService.class).info("Found " + matches.size() + " matches for function " + functionUnderReview.getName());
+		}
 		monitor.checkCancelled();
 		for (GhidraFunctionMatch match : matches) {
 			var functionSignature = revengService.getFunctionSignatureArtifact(

@@ -29,6 +29,7 @@ import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoun
 import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoundariesServiceImpl;
 import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
 import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingServiceImpl;
+import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingToConsole;
 import ai.reveng.toolkit.ghidra.core.types.ProgramWithBinaryID;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardManager;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardStateKey;
@@ -40,6 +41,7 @@ import docking.wizard.WizardState;
 import ghidra.app.context.ProgramActionContext;
 import ghidra.app.plugin.PluginCategoryNames;
 import ghidra.app.plugin.ProgramPlugin;
+import ghidra.app.services.ConsoleService;
 import ghidra.framework.plugintool.*;
 import docking.options.OptionsService;
 import docking.widgets.filechooser.GhidraFileChooser;
@@ -69,7 +71,7 @@ import ghidra.util.Msg;
 	category = PluginCategoryNames.COMMON,
 	shortDescription = "Toolkit for using the RevEng.AI API",
 	description = "Toolkit for using RevEng.AI API",
-	servicesRequired = { OptionsService.class },
+	servicesRequired = { OptionsService.class, ConsoleService.class},
 	servicesProvided = { GhidraRevengService.class, ExportFunctionBoundariesService.class, ReaiLoggingService.class },
 	eventsConsumed = { RevEngAIAnalysisStatusChangedEvent.class}
 )
@@ -85,6 +87,14 @@ public class CorePlugin extends ProgramPlugin {
 	private PluginTool tool;
 	private ApiInfo apiInfo;
 
+	@Override
+	public void serviceAdded(Class<?> interfaceClass, Object service) {
+		if (interfaceClass == ConsoleService.class && loggingService instanceof ReaiLoggingToConsole) {
+			ReaiLoggingToConsole reaiLoggingToConsole = (ReaiLoggingToConsole) loggingService;
+			reaiLoggingToConsole.setConsoleService((ConsoleService) service);
+		}
+	}
+
 	public CorePlugin(PluginTool tool) {
 		super(tool);
 
@@ -92,7 +102,7 @@ public class CorePlugin extends ProgramPlugin {
 
 		var toolOptions =  tool;
 		tool.getOptions(REAI_OPTIONS_CATEGORY).registerOption(REAI_WIZARD_RUN_PREF, "false", null, "If the setup wizard has been run");
-		loggingService = new ReaiLoggingServiceImpl();
+		loggingService = new ReaiLoggingToConsole(tool.getService(ConsoleService.class));
 		registerServiceProvided(ReaiLoggingService.class, loggingService);
 
 
@@ -110,6 +120,8 @@ public class CorePlugin extends ProgramPlugin {
 		registerServiceProvided(ExportFunctionBoundariesService.class, exportFunctionBoundariesService);
 
 		setupActions();
+
+		loggingService.info("CorePlugin initialized");
 
 	}
 

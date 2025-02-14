@@ -1,0 +1,58 @@
+package ai.reveng.toolkit.ghidra.core.services.logging;
+
+import ghidra.app.services.ConsoleService;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class ReaiLoggingToConsole implements ReaiLoggingService {
+
+    private ConsoleService consoleService;
+
+    public ReaiLoggingToConsole(ConsoleService consoleService) {
+        this.consoleService = consoleService;
+    }
+
+    private List<String> logBuffer = new ArrayList<>();
+
+    @Override
+    public void info(String message) {
+        if (consoleService == null) {
+            logBuffer.add("INFO: " + message);
+        } else {
+            consoleService.println("INFO: " + message);
+        }
+    }
+
+    @Override
+    public void warn(String message) {
+        if (consoleService == null) {
+            logBuffer.add("WARN: " + message);
+        } else {
+            consoleService.println("WARN: " + message);
+        }
+    }
+
+    @Override
+    public void error(String message) {
+        if (consoleService == null) {
+            logBuffer.add("ERROR: " + message);
+        } else {
+            consoleService.println("ERROR: " + message);
+        }
+    }
+
+    @Override
+    public void export(String targetDirectoryPath, String exportedFileName) {
+        throw new UnsupportedOperationException("Not implemented for console logger");
+
+    }
+
+    public void setConsoleService(ConsoleService service) {
+        this.consoleService = service;
+        for (String message : logBuffer) {
+            consoleService.println(message);
+        }
+        logBuffer.clear();
+    }
+}
