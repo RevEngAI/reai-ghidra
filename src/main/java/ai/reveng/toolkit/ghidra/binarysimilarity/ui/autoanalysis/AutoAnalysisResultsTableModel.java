@@ -61,7 +61,7 @@ public class AutoAnalysisResultsTableModel extends ThreadedTableModelStub<Ghidra
 						// Filter out functions that have no matches
 						.filter(list -> !list.isEmpty())
 						// Get the best match
-						.map(List::getFirst)
+						.map(ghidraFunctionMatches -> ghidraFunctionMatches.get(0))
 						// Filter out matches that are below the threshold
 						.filter(match -> match.confidence() >= confidenceThreshold)
 						.map((match) -> {
