@@ -6,6 +6,7 @@ import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.APIAuthentica
 import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.APIConflictException;
 import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.InvalidAPIInfoException;
 import com.google.common.primitives.Bytes;
+import ghidra.program.model.listing.Program;
 import ghidra.util.Msg;
 import org.json.JSONObject;
 
@@ -423,6 +424,45 @@ public class TypedApiImplementation implements TypedApiInterface {
                 .GET()
                 .build();
         return AIDecompilationStatus.fromJSONObject(sendVersion2Request(request).data());
+
+    }
+
+    /**
+     * https://api.reveng.ai/redoc#tag/Analysis-Info/operation/batch_rename_function_v1_functions_batch_rename_post
+     * @param renameDict
+     *
+     * ```
+     * {
+     *   "new_name_mapping": [
+     *     {
+     *       "function_id": 3624718,
+     *       "function_name": "test_batch_rename_3"
+     *     },
+     *     {
+     *       "function_id": 3624696,
+     *       "function_name": "test_batch_rename_4"
+     *     }
+     *   ]
+     * }
+     * ```
+     *
+     */
+    @Override
+    public void renameFunctions(Map<FunctionID, String> renameDict) {
+        JSONObject params = new JSONObject();
+        var newNames = new ArrayList<JSONObject>();
+        for (var entry : renameDict.entrySet()){
+            newNames.add(new JSONObject()
+                    .put("function_id", entry.getKey().value())
+                    .put("function_name", entry.getValue()));
+        }
+        params.put("new_name_mapping", newNames);
+
+        HttpRequest request = requestBuilderForEndpoint(APIVersion.V1, "functions/batch/rename")
+                .POST(HttpRequest.BodyPublishers.ofString(params.toString()))
+                .header("Content-Type", "application/json" )
+                .build();
+        sendRequest(request);
 
     }
 }
