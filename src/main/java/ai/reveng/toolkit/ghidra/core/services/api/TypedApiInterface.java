@@ -38,7 +38,9 @@ public interface TypedApiInterface {
     }
 
 
-    List<FunctionInfo> getFunctionInfo(BinaryID binaryID);
+    default List<FunctionInfo> getFunctionInfo(BinaryID binaryID) {
+        throw new UnsupportedOperationException("getFunctionInfo not implemented yet");
+    }
 
     default List<AnalysisResult> recentAnalyses() {
         throw new UnsupportedOperationException("recentAnalyses not implemented yet");
@@ -49,13 +51,6 @@ public interface TypedApiInterface {
         throw new UnsupportedOperationException("status not implemented yet");
     };
 
-
-    // Utility
-
-    default Object getConfigurationSettings(){
-        throw new UnsupportedOperationException("getConfigurationSettings not implemented yet");
-    }
-
     /**
      * https://docs.reveng.ai/#/Utility/get_search
      */
@@ -64,36 +59,30 @@ public interface TypedApiInterface {
     }
 
 
-    BinaryHash upload(Path binPath) throws FileNotFoundException;
-
-    default Object getAvailableModels(){
-        throw new UnsupportedOperationException("getAvailableModels not implemented yet");
+    default BinaryHash upload(Path binPath) throws FileNotFoundException {
+        throw new UnsupportedOperationException("upload not implemented yet");
     }
 
-
-    // Analysis Info
-
-
-
-    // Collections
-
-
     // ANN
-    List<FunctionMatch> annSymbolsForFunctions(List<FunctionID> fID,
-                                               int resultsPerFunction,
-                                               double distance);
+    default List<FunctionMatch> annSymbolsForFunctions(List<FunctionID> fID,
+                                                       int resultsPerFunction,
+                                                       double distance) {
+        throw new UnsupportedOperationException("annSymbolsForFunctions not implemented yet");
+    }
 
     default List<FunctionMatch> annSymbolsForBinary(BinaryID binID, int resultsPerFunction, double distance, boolean debugMode){
         return this.annSymbolsForBinary(binID, resultsPerFunction, distance, debugMode, null);
     }
 
-    List<FunctionMatch> annSymbolsForBinary(
+    default List<FunctionMatch> annSymbolsForBinary(
             BinaryID binID,
             int resultsPerFunction,
             double distance,
             boolean debugMode,
             List<Collection> collections
-    );
+    ) {
+        throw new UnsupportedOperationException("annSymbolsForBinary not implemented yet");
+    }
 
 
 //    public default Object explain(String decompiledFunction){
@@ -101,9 +90,13 @@ public interface TypedApiInterface {
 //    };
 
     // Health
-    boolean healthStatus();
+    default boolean healthStatus() {
+        throw new UnsupportedOperationException("healthStatus not implemented yet");
+    }
 
-    String healthMessage();
+    default String healthMessage() {
+        throw new UnsupportedOperationException("healthMessage not implemented yet");
+    }
 
     List<Collection> collectionQuickSearch(ModelName modelName);
 
