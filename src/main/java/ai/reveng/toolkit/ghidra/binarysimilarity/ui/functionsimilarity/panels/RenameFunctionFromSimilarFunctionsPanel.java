@@ -100,7 +100,7 @@ public class RenameFunctionFromSimilarFunctionsPanel extends JPanel {
 
             GhidraFunctionMatchWithSignature match = cfm.getRowObject(canidateFunctionsTable.getSelectedRow());
 			if (match != null) {
-				Command<Program> cmd;
+				Command cmd;
 				if (match.signature().isPresent()){
 //					throw new UnsupportedOperationException("Not implemented yet");
 					FunctionSignature signature = GhidraRevengService.getFunctionSignature(match.signature().get());

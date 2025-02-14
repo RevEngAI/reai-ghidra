@@ -12,59 +12,61 @@ jobs:
   release:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        # Root directory for doing Ghidra work (building, etc.)
-        root: ["/tmp/ghidra"]
-        # Repository name ("reait-ghidra")
-        name: ["${{github.event.repository.name}}"]
-        # Ghidra build version(s)
-        version: ["11.3"]
         include:
-          - version: "11.3"
-            release_url: "https://github.com/NationalSecurityAgency/ghidra/releases/tag/Ghidra_11.3_build"
-            filename: "ghidra_11.3_PUBLIC_20250205.zip"
-            directory: "ghidra_11.3_PUBLIC"
+          - ghidra: "11.3"
+            java: "21"
+          - ghidra: "11.2.1"
+            java: "21"
+          - ghidra: "11.2"
+            java: "21"
+          - ghidra: "11.1.2"
+            java: "17"
+          - ghidra: "11.0.3"
+            java: "17"
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download Ghidra
-        run: |
-          wget -P ${{matrix.root}} -q ${{matrix.release_url}}/${{matrix.filename}}
-          unzip -d ${{matrix.root}} -q ${{matrix.root}}/${{matrix.filename}}
-
       - name: Setup Java
         uses: actions/setup-java@v3
         with:
-          java-version: 21
+          java-version: ${{ matrix.java }}
           distribution: temurin
 
+      - name: Install Ghidra ${{ matrix.ghidra }}
+        uses: antoniovazquezblanco/setup-ghidra@v2.0.4
+        with:
+          auth_token: ${{ secrets.GITHUB_TOKEN }}
+          version: ${{ matrix.ghidra }}
+
       - name: Build plugin via gradle
-        run: gradle -PGHIDRA_INSTALL_DIR=${{matrix.root}}/${{matrix.directory}}
+        run: gradle buildExtension
 
       - name: Rename ZIP for upload
-        run: mv dist/*_${{matrix.version}}_*.zip dist/ghidra_${{matrix.version}}_${{matrix.name}}.zip
+        run: mv dist/*_${{matrix.ghidra}}_*.zip dist/ghidra_${{matrix.ghidra}}_reai-ghidra.zip
 
-      - name: Check for Existing Asset
-        id: check_asset
-        run: |
-          asset_name=ghidra_${{matrix.version}}_${{matrix.name}}.zip
-          asset_id=$(curl -s "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ github.event.release.tag_name }}" |
-                     jq -r ".assets[] | select(.name == \"$asset_name\") | .id")
-          echo "Existing Asset ID: $asset_id"
-          echo "::set-output name=asset_id::$asset_id"
-        continue-on-error: true
-
-      - name: Delete Existing Asset
-        if: steps.check_asset.outputs.asset_id != ''
-        run: |
-          asset_id=${{ steps.check_asset.outputs.asset_id }}
-          echo "Deleting Asset ID: $asset_id"
-          curl -X DELETE \
-            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/releases/assets/$asset_id"
+#      - name: Check for Existing Asset
+#        id: check_asset
+#        run: |
+#          asset_name=ghidra_${{matrix.ghidra}}_${{matrix.name}}.zip
+#          asset_id=$(curl -s "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ github.event.release.tag_name }}" |
+#                     jq -r ".assets[] | select(.name == \"$asset_name\") | .id")
+#          echo "Existing Asset ID: $asset_id"
+#          echo "::set-output name=asset_id::$asset_id"
+#        continue-on-error: true
+#
+#      - name: Delete Existing Asset
+#        if: steps.check_asset.outputs.asset_id != ''
+#        run: |
+#          asset_id=${{ steps.check_asset.outputs.asset_id }}
+#          echo "Deleting Asset ID: $asset_id"
+#          curl -X DELETE \
+#            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+#            "https://api.github.com/repos/${{ github.repository }}/releases/assets/$asset_id"
 
       - name: Upload release ZIP
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
-        run: gh release upload ${{github.event.release.tag_name}} dist/ghidra_${{matrix.version}}_${{matrix.name}}.zip
+        run: gh release upload ${{github.event.release.tag_name}} dist/ghidra_${{matrix.ghidra}}_reai-ghidra.zip
