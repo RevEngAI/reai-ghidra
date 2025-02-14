@@ -58,7 +58,7 @@ import java.util.Optional;
  */
 //@formatter:off
 @PluginInfo(
-	status = PluginStatus.STABLE,
+	status = PluginStatus.RELEASED,
 	packageName = ReaiPluginPackage.NAME,
 	category = PluginCategoryNames.COMMON,
 	shortDescription = "Support for Binary Similarity Featrues of RevEng.AI Toolkit.",
