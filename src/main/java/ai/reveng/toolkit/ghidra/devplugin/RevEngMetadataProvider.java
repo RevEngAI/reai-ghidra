@@ -16,6 +16,7 @@ import java.util.Optional;
 
 public class RevEngMetadataProvider extends ComponentProviderAdapter {
     private final JPanel panel;
+    private final JTextField serverField;
     BinaryID binaryID;
     AnalysisID analysisID;
     FunctionID functionID;
@@ -34,6 +35,10 @@ public class RevEngMetadataProvider extends ComponentProviderAdapter {
         // Build component: Just a JPanel with labels and read only text boxes
         this.panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+
+        serverField = new JTextField();
+        serverField.setEditable(false);
+
         binaryIDField = new JTextField();
         binaryIDField.setEditable(false);
         analysisIDField = new JTextField();
@@ -42,6 +47,10 @@ public class RevEngMetadataProvider extends ComponentProviderAdapter {
         functionIDField.setEditable(false);
         functionField = new JTextField();
         functionField.setEditable(false);
+
+
+        panel.add(new JLabel("Server"));
+        panel.add(serverField);
         panel.add(new JLabel("Binary ID"));
         panel.add(binaryIDField);
         panel.add(new JLabel("Analysis ID"));
@@ -94,6 +103,7 @@ public class RevEngMetadataProvider extends ComponentProviderAdapter {
         functionID = null;
         if (loc != null) {
             var api = tool.getService(GhidraRevengService.class);
+            serverField.setText(api.getServer().toString());
             var func = loc.getProgram().getFunctionManager().getFunctionContaining(loc.getAddress());
             if (func != null) {
                 function = func;

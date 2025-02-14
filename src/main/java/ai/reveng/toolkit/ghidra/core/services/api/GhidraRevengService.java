@@ -28,6 +28,7 @@ import ghidra.util.exception.NoValueException;
 import ghidra.util.task.TaskMonitor;
 
 import java.io.FileNotFoundException;
+import java.net.URI;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.*;
@@ -72,6 +73,10 @@ public class GhidraRevengService {
 
     public GhidraRevengService(){
         this.api = new MockApi();
+    }
+
+    public URI getServer() {
+        return this.apiInfo.hostURI();
     }
 
     public void handleAnalysisCompletion(RevEngAIAnalysisStatusChangedEvent event){
