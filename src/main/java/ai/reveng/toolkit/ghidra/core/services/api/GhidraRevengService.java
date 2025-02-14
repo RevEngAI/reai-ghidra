@@ -698,4 +698,15 @@ public class GhidraRevengService {
         }
         return dataType;
     }
+
+    public Map<FunctionID, String> pushUserFunctionNamesToBackend(Program program) {
+        Map<FunctionID, String> renameDict = getFunctionMap(program).entrySet().stream()
+                .filter(entry -> entry.getValue().getSymbol().getSource() == SourceType.USER_DEFINED)
+                .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getName()));
+        if (renameDict.isEmpty()){
+            return renameDict;
+        }
+        api.renameFunctions(renameDict);
+        return renameDict;
+    }
 }

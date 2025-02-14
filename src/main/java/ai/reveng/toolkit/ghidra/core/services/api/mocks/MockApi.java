@@ -207,6 +207,11 @@ public class MockApi implements TypedApiInterface{
     }
 
     @Override
+    public void renameFunctions(Map<FunctionID, String> renameDict) {
+
+    }
+
+    @Override
     public List<ModelName> models() {
         return null;
     }

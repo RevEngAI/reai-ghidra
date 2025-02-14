@@ -209,6 +209,19 @@ public class CorePlugin extends ProgramPlugin {
 				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Remove analysis association" })
 				.buildAndInstall(tool);
 
+		new ActionBuilder("Push Function names to portal", this.toString())
+				.withContext(ProgramActionContext.class)
+				.onAction(context -> {
+					var renameMap = revengService.pushUserFunctionNamesToBackend(context.getProgram());
+					if (renameMap.isEmpty()){
+						Msg.showInfo(this, null, "Push Function names to portal", "No functions were renamed");
+					} else {
+						Msg.showInfo(this, null, "Push Function names to portal", "Renamed functions: " + renameMap);
+					}
+				})
+				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Push Function names to portal" })
+				.buildAndInstall(tool);
+
 	}
 
 	@Override

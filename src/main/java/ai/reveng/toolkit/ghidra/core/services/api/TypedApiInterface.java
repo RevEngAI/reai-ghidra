@@ -3,6 +3,7 @@ package ai.reveng.toolkit.ghidra.core.services.api;
 import java.io.FileNotFoundException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
@@ -135,5 +136,6 @@ public interface TypedApiInterface {
         throw new UnsupportedOperationException("pollAIDecompileStatus not implemented yet");
     }
 
+    void renameFunctions(Map<FunctionID, String> renameDict);
 }
 
