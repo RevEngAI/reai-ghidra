@@ -164,10 +164,11 @@ public class CorePlugin extends ProgramPlugin {
 
 	private void setupActions() {
 
-		new ActionBuilder("Run Setup Wizard", this.toString())
+		new ActionBuilder("Re-Run Setup Wizard", this.toString())
 				.withContext(ActionContext.class)
-				.enabledWhen(c -> !hasSetupWizardRun())
-				.onAction(context -> runSetupWizard())
+				.onAction(context ->  {
+					runSetupWizard();
+				})
 				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Run Setup Wizard" })
 				.buildAndInstall(tool);
 
