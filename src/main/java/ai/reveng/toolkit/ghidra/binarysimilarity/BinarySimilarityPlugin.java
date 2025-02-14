@@ -167,6 +167,7 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 								"Analysis is running for: " + binID + "\n"
 										+ "You will be notified when the analysis is complete.");
 //						apiService.addBinaryIDtoProgramOptions(context.getProgram(), binID);
+						loggingService.info("Analysis started for " + binID);
 						spawnAnalysisStatusChecker(binID);
 						// Trigger a context refresh so the UI status of the actions gets updated
 						// because now other actions are available
@@ -255,6 +256,7 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 					// Spawn Task to decompile the function
 					TaskLauncher.launchNonModal("Decompile via RevEng.AI", monitor -> {
 						monitor.setMessage("Decompiling function...");
+						loggingService.info("Requested AI Decompilation for function" + func.getName());
 						var result = apiService.decompileFunctionViaAI(func, monitor, decompiledWindow);
 					});
 				})
@@ -299,7 +301,9 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
             AnalysisStatus lastStatus = null;
             while (true) {
                 AnalysisStatus currentStatus = apiService.pollStatus(programWithBinaryID.binaryID());
+				loggingService.info("Analysis status: " + currentStatus);
                 if (currentStatus != lastStatus) {
+					loggingService.info("Sending RevEngAIAnalysisStatusChangedEvent for new status: " + currentStatus);
                     tool.firePluginEvent(new RevEngAIAnalysisStatusChangedEvent("Checker", programWithBinaryID, currentStatus));
                     lastStatus = currentStatus;
                 }
