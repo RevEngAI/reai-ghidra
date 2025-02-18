@@ -3,6 +3,7 @@ package ai.reveng.toolkit.ghidra.binarysimilarity.ui.functionsimilarity;
 import javax.swing.*;
 
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
+import ai.reveng.toolkit.ghidra.binarysimilarity.ui.settingsdialog.ANNSettingsDialog;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.api.types.GhidraFunctionMatchWithSignature;
 import docking.action.ToggleDockingAction;
@@ -18,7 +19,6 @@ import ghidra.program.model.listing.Function;
 import ghidra.program.model.listing.FunctionSignature;
 import ghidra.program.model.symbol.SourceType;
 import ghidra.program.util.ProgramLocation;
-import ghidra.util.Msg;
 import ghidra.util.table.GhidraTable;
 
 import java.awt.*;
@@ -67,7 +67,7 @@ public class FunctionSimilarityComponent extends ComponentProviderAdapter {
 
 		includeSignaturesAction = new ToggleActionBuilder("Include Signatures", getOwner())
 				.toolBarIcon(SEARCH_ICON)
-				.description("Fetch Signatures for found matches")
+				.description("Only show matches with signatures available")
 				.onAction(ac -> {
 					cfm.setLimitToSignaturesAvailable(includeSignaturesAction.isSelected());
 				})
@@ -83,7 +83,11 @@ public class FunctionSimilarityComponent extends ComponentProviderAdapter {
 				.toolBarIcon("conf.png")
 				.description("Configure the search settings")
 				.onAction(ac -> {
-					Msg.showInfo(this, null, "Settings not yet implemented", "Settings for the search are not yet implemented");
+					ANNSettingsDialog dialog = new ANNSettingsDialog();
+					tool.showDialog(dialog, this);
+					cfm.setNumResults(dialog.getNumResults());
+					cfm.setConfidence(dialog.getConfidence());
+					this.cfm.reload();
 				})
 				.buildAndInstallLocal(this);
 

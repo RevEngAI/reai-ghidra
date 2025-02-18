@@ -6,7 +6,6 @@ import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.APIAuthentica
 import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.APIConflictException;
 import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.InvalidAPIInfoException;
 import com.google.common.primitives.Bytes;
-import ghidra.program.model.listing.Program;
 import ghidra.util.Msg;
 import org.json.JSONObject;
 
@@ -227,7 +226,7 @@ public class TypedApiImplementation implements TypedApiInterface {
     @Override
     public List<FunctionMatch> annSymbolsForFunctions(List<FunctionID> fID,
                                                       int resultsPerFunction,
-                                                      double distance) {
+                                                      double distance, boolean debug) {
 
 //        throw new UnsupportedOperationException("annSymbolsForFunctions not implemented yet");
         var params = new JSONObject();

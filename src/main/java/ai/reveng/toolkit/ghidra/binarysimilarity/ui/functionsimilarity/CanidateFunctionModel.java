@@ -1,4 +1,4 @@
-package ai.reveng.toolkit.ghidra.binarysimilarity.ui.functionsimilarity.models;
+package ai.reveng.toolkit.ghidra.binarysimilarity.ui.functionsimilarity;
 
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.api.types.GhidraFunctionMatch;
@@ -22,16 +22,23 @@ import static ai.reveng.toolkit.ghidra.Utils.addRowToDescriptor;
 public class CanidateFunctionModel extends ThreadedTableModelStub<GhidraFunctionMatchWithSignature> {
 
 	private static final long serialVersionUID = -5451991421127501071L;
-	private final Function functionUnderReview;
+	private Function functionUnderReview;
 	private final PluginTool pluginTool;
+	private boolean limitToSignaturesAvailable;
+	private boolean limitToDebugSymbols;
+	private int results = 5;
+	private Double distance = 0.2;
 
-	public CanidateFunctionModel(PluginTool plugin,
-								 Function functionUnderReview) {
+	public CanidateFunctionModel(PluginTool plugin) {
 		super("Candidate Function Model", plugin);
 		this.pluginTool = plugin;
-		this.functionUnderReview = functionUnderReview;
+		this.functionUnderReview = null;
 	}
 
+	public void setFunctionUnderReview(Function functionUnderReview) {
+		this.functionUnderReview = functionUnderReview;
+		reload();
+	}
 
 	@Override
 	protected TableColumnDescriptor<GhidraFunctionMatchWithSignature> createTableColumnDescriptor() {
@@ -62,10 +69,13 @@ public class CanidateFunctionModel extends ThreadedTableModelStub<GhidraFunction
 
 	@Override
 	protected void doLoad(Accumulator<GhidraFunctionMatchWithSignature> accumulator, TaskMonitor monitor) throws CancelledException {
-        GhidraRevengService revengService = serviceProvider.getService(GhidraRevengService.class);
 
-		// TODO: make the settings configurable
-		var matches = revengService.getSimilarFunctions(functionUnderReview);
+		if (functionUnderReview == null) {
+			return;
+		}
+		GhidraRevengService revengService = serviceProvider.getService(GhidraRevengService.class);
+
+		var matches = revengService.getSimilarFunctions(functionUnderReview, distance, results, limitToDebugSymbols);
 		if (matches.isEmpty()){
 			this.pluginTool.getService(ReaiLoggingService.class).warn("No matches found for function " + functionUnderReview.getName());
 		} else{
@@ -73,14 +83,32 @@ public class CanidateFunctionModel extends ThreadedTableModelStub<GhidraFunction
 		}
 		monitor.checkCancelled();
 		for (GhidraFunctionMatch match : matches) {
+
 			var functionSignature = revengService.getFunctionSignatureArtifact(
 					match.functionMatch().nearest_neighbor_binary_id(),
 					match.functionMatch().nearest_neighbor_id()
 			);
-
+			if (limitToSignaturesAvailable && functionSignature.isEmpty()){
+				continue;
+			}
 			accumulator.add(new GhidraFunctionMatchWithSignature(match.function(), match.functionMatch(), functionSignature));
 		}
 	}
 
 
+	public void setLimitToSignaturesAvailable(boolean selected) {
+		limitToSignaturesAvailable = selected;
+	}
+
+	public void setLimitToDebugSymbols(boolean selected) {
+		limitToDebugSymbols = selected;
+	}
+
+	public void setNumResults(int numResults) {
+		results = numResults;
+	}
+
+	public void setConfidence(double confidence) {
+		distance = 1 - confidence;
+	}
 }
