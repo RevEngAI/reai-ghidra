@@ -18,7 +18,8 @@ package ai.reveng.toolkit.ghidra.binarysimilarity;
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.aidecompiler.AIDecompiledWindow;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.autoanalysis.AutoAnalysisDockableDialog;
-import ai.reveng.toolkit.ghidra.binarysimilarity.ui.functionsimilarity.FunctionSimilarityDockableDialog;
+import ai.reveng.toolkit.ghidra.binarysimilarity.ui.functionsimilarity.FunctionSimilarityAction;
+import ai.reveng.toolkit.ghidra.binarysimilarity.ui.functionsimilarity.FunctionSimilarityComponent;
 import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisStatusChangedEvent;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.api.ModelName;
@@ -40,6 +41,7 @@ import ghidra.framework.plugintool.PluginTool;
 import ghidra.framework.plugintool.util.PluginStatus;
 import ghidra.program.model.listing.Function;
 import ghidra.program.util.GhidraProgramUtilities;
+import ghidra.program.util.ProgramLocation;
 import ghidra.util.Msg;
 import ghidra.util.task.RunManager;
 import ghidra.util.task.TaskLauncher;
@@ -69,11 +71,23 @@ import java.util.Optional;
 public class BinarySimilarityPlugin extends ProgramPlugin {
 	private final AutoAnalysisDockableDialog autoAnalyse;
 	private final AIDecompiledWindow decompiledWindow;
+
+	public FunctionSimilarityComponent getFunctionSimilarityComponent() {
+		return functionSimilarityComponent;
+	}
+
+	protected final FunctionSimilarityComponent functionSimilarityComponent;
 	private GhidraRevengService apiService;
 	public ReaiLoggingService loggingService;
 	private RunManager runMgr;
 
 	public final static String REVENG_AI_NAMESPACE = "RevEng.AI";
+
+	@Override
+	protected void locationChanged(ProgramLocation loc) {
+		super.locationChanged(loc);
+		functionSimilarityComponent.locationChanged(loc);
+	}
 
 	/**
 	 * Plugin constructor.
@@ -98,6 +112,8 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 		decompiledWindow = new AIDecompiledWindow(tool, REVENG_AI_NAMESPACE);
 		decompiledWindow.addToTool();
 
+		functionSimilarityComponent = new FunctionSimilarityComponent(tool);
+		functionSimilarityComponent.addToTool();
 	}
 
 	@Override
@@ -193,40 +209,27 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 //				.popupMenuPath(new String[] { "Check Analysis Status" })
 				.buildAndInstall(tool);
 
-		new ActionBuilder("Find Similar Functions", this.getName())
-				.withContext(ProgramLocationActionContext.class)
-				.enabledWhen(context -> {
-					var func = context.getProgram().getFunctionManager().getFunctionContaining(context.getAddress());
-					return func != null
-							&& apiService.isKnownProgram(context.getProgram())
-							&& apiService.isProgramAnalysed(context.getProgram());
-				})
-				.onAction(context -> {
-					var func = context.getProgram().getFunctionManager().getFunctionContaining(context.getAddress());
-					if (!apiService.isKnownFunction(func)){
-						Msg.showError(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Find Similar Functions",
-								"Function is not known to the RevEng.AI API." +
-										"This can happen if the function boundaries do not match.\n" +
-								"You can create a new analysis based on the current analysis state to fix this.");
-						return;
-					}
-
-					FunctionSimilarityDockableDialog renameDialogue = new FunctionSimilarityDockableDialog(func, tool);
-					tool.showDialog(renameDialogue);
-				})
-//				.keyBinding(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK))
-				.popupMenuPath(new String[] { "Find Similar Functions" })
-				.popupMenuGroup(ReaiPluginPackage.NAME)
-				.buildAndInstall(tool);
+		tool.addAction(new FunctionSimilarityAction(this));
 
 
 		new ActionBuilder("Auto Analysis Similar Functions", this.getName())
 				.menuGroup(ReaiPluginPackage.NAME)
 				.menuPath(ReaiPluginPackage.MENU_GROUP_NAME, "Auto Analyse Binary Symbols")
-				.withContext(ProgramActionContext.class)
-				.enabledWhen(context -> apiService.isKnownProgram(context.getProgram()))
+//				.withContext(ProgramActionContext.class)
+//				.enabledWhen(context -> apiService.isKnownProgram(context.getProgram()))
+				.enabledWhen(context -> {
+					var program = tool.getService(ProgramManager.class).getCurrentProgram();
+					if (program != null) {
+						return apiService.isKnownProgram(program);
+					} else {
+						return false;
+					}
+				}
+				)
+
 				.onAction(context -> {
-					if (!apiService.isProgramAnalysed(context.getProgram())) {
+					var program = tool.getService(ProgramManager.class).getCurrentProgram();
+					if (!apiService.isProgramAnalysed(program)) {
 						Msg.showError(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Auto Analyse Binary Symbols",
 								"Analysis must have completed before running name import");
 						return;

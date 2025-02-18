@@ -295,12 +295,12 @@ public class GhidraRevengService {
         return getFunctionIDFor(function).isPresent();
     }
 
-    public List<GhidraFunctionMatch> getSimilarFunctions(List<Function> functions, int results, double distance){
+    public List<GhidraFunctionMatch> getSimilarFunctions(List<Function> functions, int results, double distance, boolean debugMode){
 
         // Get the FunctionIDs for all the functions
         List<FunctionID> functionIDs = functions.stream().map(this::getFunctionIDFor).map(Optional::orElseThrow).toList();
         // Look up the matches via the API
-        List<FunctionMatch> matches = api.annSymbolsForFunctions(functionIDs, results, distance);
+        List<FunctionMatch> matches = api.annSymbolsForFunctions(functionIDs, results, distance, debugMode);
 
         // Prepare the map from FunctionID -> Ghidra Function
         BiMap<FunctionID, Function> functionMap = getFunctionMap(functions.get(0).getProgram());
@@ -314,8 +314,8 @@ public class GhidraRevengService {
         ).toList();
     }
 
-    public List<GhidraFunctionMatch> getSimilarFunctions(Function function, Double distance, int results) {
-        return getSimilarFunctions(List.of(function), results, distance);
+    public List<GhidraFunctionMatch> getSimilarFunctions(Function function, Double distance, int results, boolean debugMode) {
+        return getSimilarFunctions(List.of(function), results, distance, debugMode);
     }
 
     public Map<Function, List<GhidraFunctionMatch>> getSimilarFunctions(
@@ -359,7 +359,7 @@ public class GhidraRevengService {
     public List<GhidraFunctionMatch> getSimilarFunctions(Function function) {
         // TODO: This could maybe be made configureable
         // Problem is that the API should also work without a tool, so we can't rely on the tool options being available
-        return getSimilarFunctions(function, 0.1, 5);
+        return getSimilarFunctions(function, 0.1, 5, false);
     }
 
     public List<Collection> collections() {

@@ -66,7 +66,7 @@ public interface TypedApiInterface {
     // ANN
     default List<FunctionMatch> annSymbolsForFunctions(List<FunctionID> fID,
                                                        int resultsPerFunction,
-                                                       double distance) {
+                                                       double distance, boolean debug) {
         throw new UnsupportedOperationException("annSymbolsForFunctions not implemented yet");
     }
 

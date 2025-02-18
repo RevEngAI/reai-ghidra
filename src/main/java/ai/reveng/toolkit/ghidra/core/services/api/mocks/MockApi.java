@@ -53,7 +53,7 @@ public class MockApi implements TypedApiInterface {
     }
 
     @Override
-    public List<FunctionMatch> annSymbolsForFunctions(List<FunctionID> fID, int resultsPerFunction, double distance) {
+    public List<FunctionMatch> annSymbolsForFunctions(List<FunctionID> fID, int resultsPerFunction, double distance, boolean debug) {
        var r = """
                {
                  "success": true,
