@@ -2,6 +2,9 @@ package ai.reveng.toolkit.ghidra.devplugin;
 
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
+import ai.reveng.toolkit.ghidra.core.services.api.types.AnalysisID;
+import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.APIConflictException;
+import docking.action.builder.ActionBuilder;
 import docking.options.OptionsService;
 import ghidra.app.plugin.PluginCategoryNames;
 import ghidra.app.plugin.ProgramPlugin;
@@ -10,6 +13,13 @@ import ghidra.framework.plugintool.PluginTool;
 import ghidra.framework.plugintool.util.PluginStatus;
 import ghidra.program.model.listing.Program;
 import ghidra.program.util.ProgramLocation;
+import ghidra.util.Msg;
+import ghidra.util.task.Task;
+import ghidra.util.task.TaskMonitor;
+
+import java.util.List;
+
+import static ai.reveng.toolkit.ghidra.ReaiPluginPackage.DEV_TOOLING_MENU_GROUP_NAME;
 
 /**
  * Plugin for development and debug helpers for the RevEng.AI Toolkit
@@ -34,6 +44,37 @@ public class DevPlugin extends ProgramPlugin {
 		super(tool);
 		revEngMetadataProvider = new RevEngMetadataProvider(tool, ReaiPluginPackage.NAME);
 		tool.addComponentProvider(revEngMetadataProvider, false);
+
+		var generateSignaturesAction = new ActionBuilder("Generate Signatures", ReaiPluginPackage.NAME)
+				.menuPath(DEV_TOOLING_MENU_GROUP_NAME, "Generate Signatures for current program")
+				.onAction(e -> {
+					GhidraRevengService reAIService = tool.getService(GhidraRevengService.class);
+					var api = reAIService.getApi();
+					AnalysisID analysisID = reAIService.getAnalysisIDFor(currentProgram).get();
+					var functionMap = reAIService.getFunctionMap(currentProgram);
+					var task = new Task("Generate Signatures", true, true, true) {
+						@Override
+						public void run(TaskMonitor monitor) {
+							monitor.setMaximum(functionMap.size());
+							functionMap.forEach(
+									(fID, function) -> {
+										try {
+											monitor.checkCancelled();
+											api.generateFunctionDataTypes(analysisID, List.of(fID));
+											monitor.incrementProgress(1);
+										} catch (APIConflictException e) {
+											// Already requested
+										} catch (Exception e) {
+											Msg.showError(this, null, "Error", e.getMessage(), e);
+										}
+									}
+							);
+						}
+					};
+					tool.execute(task);
+				})
+				.buildAndInstall(tool);
+
 
 
 	}
