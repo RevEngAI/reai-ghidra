@@ -18,6 +18,7 @@ import docking.action.ToolBarData;
 import docking.widgets.table.GFilterTable;
 import generic.theme.GIcon;
 import ghidra.app.cmd.function.ApplyFunctionSignatureCmd;
+import ghidra.app.context.ProgramActionContext;
 import ghidra.app.services.ProgramManager;
 import ghidra.framework.plugintool.ComponentProviderAdapter;
 import ghidra.framework.plugintool.PluginTool;
@@ -33,6 +34,7 @@ import ghidra.util.task.TaskLauncher;
 
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
+import java.awt.event.MouseEvent;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -79,6 +81,13 @@ public class AutoAnalysisDockableDialog extends ComponentProviderAdapter {
         var fetchSimilarFunctionsAction = new FetchSimilarFunctionsAction();
         tool.addLocalAction(this, fetchSimilarFunctionsAction);
 
+    }
+    @Override
+    public ActionContext getActionContext(MouseEvent event) {
+        ProgramManager programManager = tool.getService(ProgramManager.class);
+
+        Program currentProgram = programManager.getCurrentProgram();
+        return new ProgramActionContext(this, currentProgram, getComponent());
     }
 
 
