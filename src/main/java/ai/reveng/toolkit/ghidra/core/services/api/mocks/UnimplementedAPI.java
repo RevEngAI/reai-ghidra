@@ -71,4 +71,9 @@ public class UnimplementedAPI implements TypedApiInterface {
         }
 
     }
+
+    @Override
+    public AnalysisID getAnalysisIDfromBinaryID(BinaryID binaryID) {
+        return new AnalysisID(1337);
+    }
 }

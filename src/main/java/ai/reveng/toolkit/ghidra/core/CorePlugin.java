@@ -22,6 +22,8 @@ import java.util.Optional;
 import ai.reveng.toolkit.ghidra.binarysimilarity.BinarySimilarityPlugin;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.recentanalyses.RecentAnalysisDialog;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
+import ai.reveng.toolkit.ghidra.core.services.api.mocks.ProcessingLimboApi;
+import ai.reveng.toolkit.ghidra.core.services.api.mocks.SimpleMatchesApi;
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
 
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
@@ -112,8 +114,25 @@ public class CorePlugin extends ProgramPlugin {
 				info -> apiInfo = info,
 				() -> { runSetupWizard(); apiInfo = getApiInfoFromConfig().orElseThrow();}
 		);
-
-		revengService = new GhidraRevengService(apiInfo);
+		// Check if the System Property to use a Mock is set
+		String mock;
+		if ((mock = System.getProperty("reai.mock")) != null) {
+			loggingService.warn("Using Mock API: " + mock);
+			apiInfo = new ApiInfo("mock", "mock");
+			switch (mock) {
+				case "limbo":
+					revengService = new GhidraRevengService(new ProcessingLimboApi());
+					break;
+				case "simpleMatches":
+					revengService = new GhidraRevengService(new SimpleMatchesApi());
+					break;
+				default:
+					throw new UnsupportedOperationException("Unknown mock type: " + mock);
+			}
+			revengService = new GhidraRevengService(new ProcessingLimboApi());
+		} else {
+			revengService = new GhidraRevengService(apiInfo);
+		}
 		registerServiceProvided(GhidraRevengService.class, revengService);
 
 		exportFunctionBoundariesService = new ExportFunctionBoundariesServiceImpl(tool);
