@@ -106,6 +106,8 @@ public interface TypedApiInterface {
 
     String getAnalysisLogs(BinaryID binID);
 
+    String getAnalysisLogs(AnalysisID analysisID);
+
     void authenticate() throws InvalidAPIInfoException;
 
     default Object generateFunctionDataTypes(AnalysisID analysisID, List<FunctionID> functionIDS) {

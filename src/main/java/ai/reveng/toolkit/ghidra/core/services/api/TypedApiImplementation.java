@@ -299,6 +299,15 @@ public class TypedApiImplementation implements TypedApiInterface {
         return response.getString("logs");
     }
 
+    @Override
+    public String getAnalysisLogs(AnalysisID analysisID) {
+        var request = requestBuilderForEndpoint(APIVersion.V2, "analyses", String.valueOf(analysisID.id()), "logs")
+                .build();
+        var response = sendVersion2Request(request).data();
+        return response.getString("logs");
+    }
+
+
     public JSONObject health(){
         URI uri;
         try {
@@ -317,7 +326,7 @@ public class TypedApiImplementation implements TypedApiInterface {
         }
     }
 
-    private HttpRequest.Builder requestBuilderForEndpoint(APIVersion version, String endpoint){
+    private HttpRequest.Builder requestBuilderForEndpoint(APIVersion version, String... endpointPaths){
         URI uri;
         String apiVersionPath;
         if (version == APIVersion.V1){
@@ -327,6 +336,7 @@ public class TypedApiImplementation implements TypedApiInterface {
         } else {
             throw new RuntimeException("Unknown API version");
         }
+        String endpoint = String.join("/", endpointPaths);
 
         try {
             uri = new URI(baseUrl + apiVersionPath + "/" + endpoint);

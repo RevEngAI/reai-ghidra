@@ -707,4 +707,8 @@ public class GhidraRevengService {
         api.renameFunctions(renameDict);
         return renameDict;
     }
+
+    public String getAnalysisLog(AnalysisID analysisID) {
+        return api.getAnalysisLogs(analysisID);
+    }
 }

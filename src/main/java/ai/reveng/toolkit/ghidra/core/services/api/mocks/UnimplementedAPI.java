@@ -49,6 +49,11 @@ public class UnimplementedAPI implements TypedApiInterface {
     }
 
     @Override
+    public String getAnalysisLogs(AnalysisID analysisID) {
+        return "ANALYSIS LOGS";
+    }
+
+    @Override
     public void authenticate() throws InvalidAPIInfoException {
 
     }

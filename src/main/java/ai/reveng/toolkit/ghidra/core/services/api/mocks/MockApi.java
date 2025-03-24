@@ -206,6 +206,11 @@ public class MockApi implements TypedApiInterface {
     }
 
     @Override
+    public String getAnalysisLogs(AnalysisID analysisID) {
+        return "";
+    }
+
+    @Override
     public void authenticate() throws APIAuthenticationException {
     }
 
