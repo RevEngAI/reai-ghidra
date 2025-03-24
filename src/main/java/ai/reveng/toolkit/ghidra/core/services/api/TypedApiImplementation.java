@@ -232,7 +232,7 @@ public class TypedApiImplementation implements TypedApiInterface {
         var params = new JSONObject();
         params.put("result_per_function", resultsPerFunction);
         params.put("distance", distance);
-        params.put("debug_mode", false);
+        params.put("debug_mode", debug);
         params.put("function_id_list", fID.stream().map(FunctionID::value).toList());
 
         var request = requestBuilderForEndpoint(APIVersion.V1, "ann/symbol/batch")
