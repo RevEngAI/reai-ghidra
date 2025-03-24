@@ -20,6 +20,7 @@ import ai.reveng.toolkit.ghidra.binarysimilarity.ui.aidecompiler.AIDecompiledWin
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.autoanalysis.AutoAnalysisDockableDialog;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.functionsimilarity.FunctionSimilarityAction;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.functionsimilarity.FunctionSimilarityComponent;
+import ai.reveng.toolkit.ghidra.binarysimilarity.ui.misc.AnalysisLogComponent;
 import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisStatusChangedEvent;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.api.ModelName;
@@ -71,6 +72,7 @@ import java.util.Optional;
 public class BinarySimilarityPlugin extends ProgramPlugin {
 	private final AutoAnalysisDockableDialog autoAnalyse;
 	private final AIDecompiledWindow decompiledWindow;
+	private final AnalysisLogComponent analysisLogComponent;
 
 	public FunctionSimilarityComponent getFunctionSimilarityComponent() {
 		return functionSimilarityComponent;
@@ -114,6 +116,12 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 
 		functionSimilarityComponent = new FunctionSimilarityComponent(tool);
 		functionSimilarityComponent.addToTool();
+
+
+		// Install analysis log viewer
+		analysisLogComponent = new AnalysisLogComponent(tool);
+		tool.addComponentProvider(analysisLogComponent, false);
+
 	}
 
 	@Override
@@ -200,6 +208,9 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 				.enabledWhen(context -> context.getProgram() != null && apiService.isKnownProgram(context.getProgram()))
 				.onAction(context -> {
 					var binID = apiService.getBinaryIDFor(context.getProgram()).orElseThrow();
+					var analysisID = apiService.getApi().getAnalysisIDfromBinaryID(binID);
+					var logs = apiService.getAnalysisLog(analysisID);
+					analysisLogComponent.setLogs(logs);
 					AnalysisStatus status = apiService.pollStatus(binID);
 					loggingService.info("Check Status: " + status);
 					Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Check Analysis Status",
@@ -300,10 +311,17 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 		runMgr.runNext(monitor -> {
             monitor.setMessage("Checking analysis status");
 			var binID = programWithBinaryID.binaryID();
-            // Check the status of the analysis every 5 seconds
+			var analysisID = apiService.getApi().getAnalysisIDfromBinaryID(binID);
+            // Check the status of the analysis every 500ms
+			// TODO: In the future this can be made smarter and e.g. wait longer if the analysis log hasn't changed
             AnalysisStatus lastStatus = null;
             while (true) {
                 AnalysisStatus currentStatus = apiService.pollStatus(programWithBinaryID.binaryID());
+				if (currentStatus != AnalysisStatus.Queued) {
+					// Analysis log endpoint only starts to return data after the analysis is processing
+					String logs = apiService.getAnalysisLog(analysisID);
+					analysisLogComponent.setLogs(logs);
+				}
 				loggingService.info("Analysis status: " + currentStatus);
                 if (currentStatus != lastStatus) {
 					loggingService.info("Sending RevEngAIAnalysisStatusChangedEvent for new status: " + currentStatus);
@@ -321,7 +339,7 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 				}
 
                 try {
-                    Thread.sleep(5000);
+                    Thread.sleep(500);
                 } catch (InterruptedException e) {
                     loggingService.error(e.getMessage());
                 }
