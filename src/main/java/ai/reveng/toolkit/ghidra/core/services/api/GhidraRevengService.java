@@ -28,11 +28,14 @@ import ghidra.util.exception.InvalidInputException;
 import ghidra.util.exception.NoValueException;
 import ghidra.util.task.TaskMonitor;
 
+import java.awt.*;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.net.URI;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import static ai.reveng.toolkit.ghidra.core.CorePlugin.REAI_OPTIONS_CATEGORY;
@@ -724,4 +727,47 @@ public class GhidraRevengService {
         return functionNameScore.score();
 
     }
+
+    public static final String PORTAL_FUNCTIONS = "function/";
+
+    public void openFunctionInPortal(FunctionID functionID) {
+        openPortal(PORTAL_FUNCTIONS, String.valueOf(functionID.value()));
+    }
+
+    public void openPortal(String... subPath) {
+        // For now this is hardcoded, but it should be configurable later
+        // Potentially this will be provided by an endpoint in the API
+        StringBuilder sb = new StringBuilder("https://portal.reveng.ai/");
+        for (String s : subPath) {
+            sb.append(s);
+            sb.append("/");
+        }
+        openURI(URI.create(sb.toString()));
+    }
+
+    private void openURI(URI uri){
+        if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)
+        ) {
+            try {
+                Desktop.getDesktop().browse(uri);
+            } catch (IOException e) {
+                Msg.showError(
+                        this,
+                        null,
+                        "URI Opening Failed",
+                        "Browsing to URI %s failed".formatted(uri),
+                        e
+                );
+            }
+        } else {
+            Msg.showError(
+                    this,
+                    null,
+                    "URI Opening unsupported",
+                    "URI %s couldn't be opened because the environment doesn't support opening URLs".formatted(uri)
+            );
+
+        }
+    }
+
 }

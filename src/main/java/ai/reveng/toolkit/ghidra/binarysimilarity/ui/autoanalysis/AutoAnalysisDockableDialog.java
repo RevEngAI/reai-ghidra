@@ -15,6 +15,7 @@ import docking.ActionContext;
 import docking.action.DockingAction;
 import docking.action.ToggleDockingAction;
 import docking.action.ToolBarData;
+import docking.action.builder.ActionBuilder;
 import docking.widgets.table.GFilterTable;
 import generic.theme.GIcon;
 import ghidra.app.cmd.function.ApplyFunctionSignatureCmd;
@@ -80,6 +81,18 @@ public class AutoAnalysisDockableDialog extends ComponentProviderAdapter {
 
         var fetchSimilarFunctionsAction = new FetchSimilarFunctionsAction();
         tool.addLocalAction(this, fetchSimilarFunctionsAction);
+
+        new ActionBuilder("Open Matched Function in Portal", getOwner())
+                .popupMenuPath("Open Matched Function in Portal")
+                .popupMenuIcon(ReaiPluginPackage.REVENG_16)
+                .enabledWhen(ac -> analysisResultsTable.getSelectedRowObject() != null)
+                .onAction(ac -> {
+                    var selectedRowObject = analysisResultsTable.getSelectedRowObject();
+                    tool.getService(GhidraRevengService.class)
+                            .openFunctionInPortal(selectedRowObject.functionMatch().nearest_neighbor_id());
+                })
+                .buildAndInstallLocal(this);
+
 
     }
     @Override

@@ -58,6 +58,21 @@ public class FunctionSimilarityComponent extends ComponentProviderAdapter {
 				.onAction(ac -> applyMatch())
 				.buildAndInstallLocal(this);
 
+		new ActionBuilder("Open Function in Portal", getOwner())
+				.popupMenuPath("Open Function in Portal")
+				.popupMenuIcon(REVENG_ICON)
+//				.toolBarIcon(EDIT_ICON)
+				.enabledWhen(ac -> canidateFunctionsTable.getSelectedRowCount() == 1)
+				.onAction(ac -> {
+					GhidraFunctionMatchWithSignature match = cfm.getRowObject(canidateFunctionsTable.getSelectedRow());
+					if (match != null) {
+						tool.getService(GhidraRevengService.class)
+								.openFunctionInPortal(match.functionMatch().nearest_neighbor_id());
+					}
+				})
+				.buildAndInstallLocal(this);
+
+
 		limitToDebugSymbolsAction = new ToggleActionBuilder("Limit Search to Debug Symbols", getOwner())
 				.toolBarIcon(SEARCH_ICON)
 				.onAction(ac ->
@@ -109,6 +124,7 @@ public class FunctionSimilarityComponent extends ComponentProviderAdapter {
 
 		}
 	}
+
 	private JPanel buildPanel(PluginTool tool) {
 		var panel = new JPanel();
 		panel.setLayout(new BorderLayout(0, 0));
