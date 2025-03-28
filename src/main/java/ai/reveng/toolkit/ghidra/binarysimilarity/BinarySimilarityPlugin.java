@@ -47,9 +47,6 @@ import ghidra.util.Msg;
 import ghidra.util.task.RunManager;
 import ghidra.util.task.TaskLauncher;
 
-import java.awt.*;
-import java.io.IOException;
-import java.net.URI;
 import java.util.Optional;
 
 /**
@@ -283,7 +280,7 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 				.enabledWhen(context -> getFunctionFromContext(context).flatMap(apiService::getFunctionIDFor).isPresent())
 				.onAction(context -> {
                     FunctionID fid = getFunctionFromContext(context).flatMap(apiService::getFunctionIDFor).orElseThrow();
-					openURI(URI.create("https://portal.reveng.ai/function/" + fid.value()));
+					apiService.openFunctionInPortal(fid);
 
 				})
 				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Open Function in RevEng.AI Portal" })
@@ -346,30 +343,4 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
             }
         }, "Checking analysis status", 0);
 	}
-
-	private void openURI(URI uri){
-		if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)
-		) {
-			try {
-				Desktop.getDesktop().browse(uri);
-			} catch (IOException e) {
-				Msg.showError(
-						this,
-						null,
-						"URI Opening Failed",
-						"Browsing to URI %s failed".formatted(uri),
-						e
-				);
-			}
-		} else {
-			Msg.showError(
-					this,
-					null,
-					"URI Opening unsupported",
-					"URI %s couldn't be opened because the environment doesn't support opening URLs".formatted(uri)
-			);
-
-		}
-	}
-
 }
