@@ -711,4 +711,17 @@ public class GhidraRevengService {
     public String getAnalysisLog(AnalysisID analysisID) {
         return api.getAnalysisLogs(analysisID);
     }
+
+    /**
+     * Get the "name score" confidence of a match via the new API.
+     * The old kind of confidence is now called similarity
+     *
+     * @param functionMatch the match to get the confidence for
+     * @return the confidence of the match
+     */
+    public BoxPlot getNameScoreForMatch(GhidraFunctionMatch functionMatch) {
+        var functionNameScore = api.getNameScore(functionMatch.functionMatch());
+        return functionNameScore.score();
+
+    }
 }

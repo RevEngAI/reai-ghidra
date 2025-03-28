@@ -7,6 +7,7 @@ import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.APIConflictEx
 import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.InvalidAPIInfoException;
 import com.google.common.primitives.Bytes;
 import ghidra.util.Msg;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.File;
@@ -303,7 +304,7 @@ public class TypedApiImplementation implements TypedApiInterface {
     public String getAnalysisLogs(AnalysisID analysisID) {
         var request = requestBuilderForEndpoint(APIVersion.V2, "analyses", String.valueOf(analysisID.id()), "logs")
                 .build();
-        var response = sendVersion2Request(request).data();
+        JSONObject response = sendVersion2Request(request).getJsonData();
         return response.getString("logs");
     }
 
@@ -399,7 +400,7 @@ public class TypedApiImplementation implements TypedApiInterface {
                 .build();
         var response = sendVersion2Request(request);
         if (response.errors() == null){
-            return Optional.of(FunctionDataTypeStatus.fromJson(response.data()));
+            return Optional.of(FunctionDataTypeStatus.fromJson(response.getJsonData()));
         } else {
             return Optional.empty();
         }
@@ -432,7 +433,7 @@ public class TypedApiImplementation implements TypedApiInterface {
         HttpRequest request = requestBuilderForEndpoint(APIVersion.V2, "ai-decompilation/" + functionID.value())
                 .GET()
                 .build();
-        return AIDecompilationStatus.fromJSONObject(sendVersion2Request(request).data());
+        return AIDecompilationStatus.fromJSONObject(sendVersion2Request(request).getJsonData());
 
     }
 
@@ -473,6 +474,35 @@ public class TypedApiImplementation implements TypedApiInterface {
                 .build();
         sendRequest(request);
 
+    }
+
+    @Override
+    public FunctionNameScore getNameScore(FunctionMatch match) {
+        return getNameScores(List.of(match), false).get(0);
+    }
+
+    /**
+     * https://api.reveng.ai/v2/docs#tag/Confidence-Scores/operation/function_threat_score_v2_confidence_functions_threat_score_post
+     */
+    public List<FunctionNameScore> getNameScores(List<FunctionMatch> matches, Boolean isDebug) {
+        JSONObject params = new JSONObject();
+        params.put("is_debug", isDebug);
+        var functions = new ArrayList<JSONObject>();
+        for (var match : matches){
+            functions.add(new JSONObject()
+                    // The id of the original function that matches were searched for
+                    .put("function_id", match.origin_function_id().value())
+                    // The name of the nearest neighbor function for which we want the score
+                    .put("function_name", match.nearest_neighbor_function_name()));
+        }
+        params.put("functions", functions);
+
+        HttpRequest request = requestBuilderForEndpoint(APIVersion.V2, "confidence", "functions", "name_score")
+                .POST(HttpRequest.BodyPublishers.ofString(params.toString()))
+                .header("Content-Type", "application/json" )
+                .build();
+        JSONArray responseData = (JSONArray) sendVersion2Request(request).data();
+        return mapJSONArray(responseData, FunctionNameScore::fromJSONObject);
     }
 }
 
