@@ -86,7 +86,7 @@ public class FunctionSimilarityComponent extends ComponentProviderAdapter {
 					ANNSettingsDialog dialog = new ANNSettingsDialog();
 					tool.showDialog(dialog, this);
 					cfm.setNumResults(dialog.getNumResults());
-					cfm.setConfidence(dialog.getConfidence());
+					cfm.setSimilarity(dialog.getSimilarity());
 					this.cfm.reload();
 				})
 				.buildAndInstallLocal(this);

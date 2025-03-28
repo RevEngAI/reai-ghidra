@@ -13,7 +13,7 @@ import org.json.JSONObject;
  * @param nearest_neighbor_sha_256_hash
  * @param nearest_neighbor_binary_id
  * @param nearest_neighbor_debug
- * @param confidence
+ * @param similarity
  */
 public record FunctionMatch(
         FunctionID origin_function_id,
@@ -23,7 +23,7 @@ public record FunctionMatch(
         BinaryHash nearest_neighbor_sha_256_hash,
         BinaryID nearest_neighbor_binary_id,
         Boolean nearest_neighbor_debug,
-        double confidence
+        double similarity
 ) {
     public static FunctionMatch fromJSONObject(JSONObject json) {
         return new FunctionMatch(
@@ -34,6 +34,7 @@ public record FunctionMatch(
                 new BinaryHash(json.getString("nearest_neighbor_sha_256_hash")),
                 new BinaryID(json.getInt("nearest_neighbor_binary_id")),
                 json.has("nearest_neighbor_debug") ? json.getBoolean("nearest_neighbor_debug") : null,
+                // This is called confidence for legacy reasons, but it is actually the similarity
                 json.getDouble("confidence")
         );
     }

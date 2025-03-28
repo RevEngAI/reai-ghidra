@@ -59,12 +59,12 @@ public class CanidateFunctionModel extends ThreadedTableModelStub<GhidraFunction
 						.orElse(null)
 		);
 
-		addRowToDescriptor(descriptor, "Similarity", Double.class, (row) -> row.functionMatch().confidence());
+		addRowToDescriptor(descriptor, "Similarity", Double.class, (row) -> row.functionMatch().similarity());
 		addRowToDescriptor(descriptor, "Binary Name", String.class, (row) -> row.functionMatch().nearest_neighbor_binary_name());
 		addRowToDescriptor(descriptor, "Debug Info", Boolean.class, (row) -> row.functionMatch().nearest_neighbor_debug());
-		addRowToDescriptor(descriptor, "Function ID", Long.class, (row) -> row.functionMatch().nearest_neighbor_id().value());
-		addRowToDescriptor(descriptor, "Binary ID", Integer.class, (row) -> row.functionMatch().nearest_neighbor_binary_id().value());
-		addRowToDescriptor(descriptor, "Name Score", Double.class,
+		addRowToDescriptor(descriptor, "Function ID", false, Long.class, (row) -> row.functionMatch().nearest_neighbor_id().value());
+		addRowToDescriptor(descriptor, "Binary ID", false, Integer.class, (row) -> row.functionMatch().nearest_neighbor_binary_id().value());
+		addRowToDescriptor(descriptor, "Confidence", Double.class,
 				(row) -> row.nameScore().map(BoxPlot::average).orElse(null)
 		);
 		return descriptor;
@@ -119,7 +119,7 @@ public class CanidateFunctionModel extends ThreadedTableModelStub<GhidraFunction
 		results = numResults;
 	}
 
-	public void setConfidence(double confidence) {
-		distance = 1 - confidence;
+	public void setSimilarity(double similarity) {
+		distance = 1 - similarity;
 	}
 }

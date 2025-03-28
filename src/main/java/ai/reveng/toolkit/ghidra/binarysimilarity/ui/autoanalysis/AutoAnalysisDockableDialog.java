@@ -41,7 +41,7 @@ import java.util.stream.Collectors;
 import static ai.reveng.toolkit.ghidra.binarysimilarity.BinarySimilarityPlugin.REVENG_AI_NAMESPACE;
 
 /**
- * Provides a GUI for selecting the confidence threshold for auto renaming of functions
+ * Provides a GUI for selecting the similarity threshold for auto renaming of functions
  */
 public class AutoAnalysisDockableDialog extends ComponentProviderAdapter {
     private final ToggleNamedOnlyAction toggleNamedOnlyAction;
@@ -191,7 +191,7 @@ public class AutoAnalysisDockableDialog extends ComponentProviderAdapter {
         // Prepare the model with the configured values
         autoanalysisResultsModel.enableLoad();
         // TODO: Make configureable again
-        autoanalysisResultsModel.setConfidenceThreshold(0.95);
+        autoanalysisResultsModel.setSimilarityThreshold(0.95);
 
         // Get all collections that are selected
         List<Collection> collections = collectionsModel.getModelData().stream()

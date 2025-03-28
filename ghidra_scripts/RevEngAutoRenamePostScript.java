@@ -46,7 +46,7 @@ public class RevEngAutoRenamePostScript extends GhidraScript {
                                 libraryNamespace,
                                 SourceType.ANALYSIS
                         );
-                        println("Renamed " + function.getName() + " to " + bestMatch.nearest_neighbor_function_name() + " from " + bestMatch.nearest_neighbor_binary_name() + " with confidence " + bestMatch.confidence());
+                        println("Renamed " + function.getName() + " to " + bestMatch.nearest_neighbor_function_name() + " from " + bestMatch.nearest_neighbor_binary_name() + " with similarity " + bestMatch.similarity());
                     } catch (DuplicateNameException e) {
                         throw new RuntimeException(e);
                     } catch (InvalidInputException e) {
