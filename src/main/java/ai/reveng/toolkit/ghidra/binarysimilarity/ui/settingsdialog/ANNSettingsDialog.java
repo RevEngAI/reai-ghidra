@@ -13,9 +13,9 @@ import java.awt.*;
  */
 public class ANNSettingsDialog extends DialogComponentProvider {
     private final JTextField numResultsBox;
-    private final JTextField confidenceBox;
+    private final JTextField similarityBox;
 
-    private double confidence;
+    private double similarity;
     private int numResults;
 
     public ANNSettingsDialog() {
@@ -27,9 +27,9 @@ public class ANNSettingsDialog extends DialogComponentProvider {
         settingsPanel.add(new JLabel("Number of Results"));
         settingsPanel.add(numResultsBox);
 
-        settingsPanel.add(new JLabel("Confidence"));
-        confidenceBox = new JTextField("0.9");
-        settingsPanel.add(confidenceBox);
+        settingsPanel.add(new JLabel("Similarity"));
+        similarityBox = new JTextField("0.9");
+        settingsPanel.add(similarityBox);
 
         addOKButton();
         addCancelButton();
@@ -40,7 +40,7 @@ public class ANNSettingsDialog extends DialogComponentProvider {
     @Override
     protected void okCallback() {
         numResults = Integer.parseInt(numResultsBox.getText());
-        confidence = Double.parseDouble(confidenceBox.getText());
+        similarity = Double.parseDouble(similarityBox.getText());
         close();
     }
 
@@ -48,8 +48,8 @@ public class ANNSettingsDialog extends DialogComponentProvider {
         return numResults;
     }
 
-    public double getConfidence(){
-        return confidence;
+    public double getSimilarity(){
+        return similarity;
     }
 
 

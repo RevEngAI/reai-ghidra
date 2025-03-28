@@ -93,7 +93,7 @@ public class MockApi implements TypedApiInterface {
                 String matchedFunctionID = matchEntry.getKey();
                 Map<String, Object> matchInfo = (Map<String, Object>) matchEntry.getValue();
 
-                double confidence = ((BigDecimal) matchInfo.get("confidence")).doubleValue();
+                double similarity = ((BigDecimal) matchInfo.get("confidence")).doubleValue();
                 FunctionID neighbourFunctionID = new FunctionID(Integer.parseInt(matchedFunctionID));
                 BinaryID neighbourBinaryID = new BinaryID((int) matchInfo.get("binary_id"));
                 FunctionMatch match = new FunctionMatch(
@@ -104,7 +104,7 @@ public class MockApi implements TypedApiInterface {
                         new BinaryHash((String) matchInfo.get("sha_256_hash")),
                         neighbourBinaryID,
                         false,
-                        confidence
+                        similarity
                         );
                 result.add(match);
             }

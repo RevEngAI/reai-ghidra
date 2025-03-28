@@ -30,7 +30,7 @@ public class AutoAnalysisResultsTableModel extends ThreadedTableModelStub<Ghidra
 	private Program program;
 	private PluginTool tool;
 	private boolean allowReload = false;
-	private double confidenceThreshold;
+	private double similarityThreshold;
 	private List<Collection> collections;
 	private boolean onlyNamed;
 	private boolean fetchSignatures;
@@ -54,7 +54,7 @@ public class AutoAnalysisResultsTableModel extends ThreadedTableModelStub<Ghidra
 			Map<Function, List<GhidraFunctionMatch>> r = apiService.getSimilarFunctions(
 					program,
 					1,
-					1 - confidenceThreshold,
+					1 - similarityThreshold,
 					onlyNamed,
 					collections
 			);
@@ -68,7 +68,7 @@ public class AutoAnalysisResultsTableModel extends ThreadedTableModelStub<Ghidra
 						// Get the best match. Not using `getFirst` instead of `get(0)` for JDK 17 compatibility
 						.map(ghidraFunctionMatches -> ghidraFunctionMatches.get(0))
 						// Filter out matches that are below the threshold
-						.filter(match -> match.confidence() >= confidenceThreshold)
+						.filter(match -> match.similarity() >= similarityThreshold)
 						.map((match) -> {
 									if (fetchSignatures) {
 										return GhidraFunctionMatchWithSignature.createWith(match, apiService);
@@ -118,8 +118,8 @@ public class AutoAnalysisResultsTableModel extends ThreadedTableModelStub<Ghidra
 
 		addRowToDescriptor(descriptor, "Source Binary", String.class, (row) -> row.functionMatch().nearest_neighbor_binary_name());
 
-		addRowToDescriptor(descriptor, "Similarity", Double.class, (row) -> row.functionMatch().confidence());
-		addRowToDescriptor(descriptor, "Name Score", Double.class, (row) -> row.nameScore().map(BoxPlot::average).orElse(null));
+		addRowToDescriptor(descriptor, "Similarity", Double.class, (row) -> row.functionMatch().similarity());
+		addRowToDescriptor(descriptor, "Confidence", Double.class, (row) -> row.nameScore().map(BoxPlot::average).orElse(null));
 
 		return descriptor;
 	}
@@ -146,8 +146,8 @@ public class AutoAnalysisResultsTableModel extends ThreadedTableModelStub<Ghidra
 		allowReload = true;
 	}
 
-	public void setConfidenceThreshold(double v) {
-		this.confidenceThreshold = v;
+	public void setSimilarityThreshold(double v) {
+		this.similarityThreshold = v;
 	}
 
 	public void setCollections(List<Collection> collections) {

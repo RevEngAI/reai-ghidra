@@ -20,8 +20,8 @@ public record GhidraFunctionMatch(
         return functionMatch.nearest_neighbor_binary_name();
     }
 
-    public double confidence() {
-        return functionMatch.confidence();
+    public double similarity() {
+        return functionMatch.similarity();
     }
 
 }
