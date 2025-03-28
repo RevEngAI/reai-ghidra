@@ -97,7 +97,11 @@ public class CanidateFunctionModel extends ThreadedTableModelStub<GhidraFunction
 			if (limitToSignaturesAvailable && functionSignature.isEmpty()){
 				continue;
 			}
-			var namescore = revengService.getNameScoreForMatch(match);
+			BoxPlot namescore = null;
+			if (match.functionMatch().nearest_neighbor_debug()){
+				namescore = revengService.getNameScoreForMatch(match);
+
+			}
 			accumulator.add(
 					new GhidraFunctionMatchWithSignature(
 							match.function(), match.functionMatch(), functionSignature, Optional.ofNullable(namescore))
