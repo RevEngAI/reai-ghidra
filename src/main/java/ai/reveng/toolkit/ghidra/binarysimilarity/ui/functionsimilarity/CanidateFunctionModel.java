@@ -60,13 +60,15 @@ public class CanidateFunctionModel extends ThreadedTableModelStub<GhidraFunction
 		);
 
 		addRowToDescriptor(descriptor, "Similarity", Double.class, (row) -> row.functionMatch().similarity());
-		addRowToDescriptor(descriptor, "Binary Name", String.class, (row) -> row.functionMatch().nearest_neighbor_binary_name());
-		addRowToDescriptor(descriptor, "Debug Info", Boolean.class, (row) -> row.functionMatch().nearest_neighbor_debug());
-		addRowToDescriptor(descriptor, "Function ID", false, Long.class, (row) -> row.functionMatch().nearest_neighbor_id().value());
-		addRowToDescriptor(descriptor, "Binary ID", false, Integer.class, (row) -> row.functionMatch().nearest_neighbor_binary_id().value());
 		addRowToDescriptor(descriptor, "Confidence", Double.class,
 				(row) -> row.nameScore().map(BoxPlot::average).orElse(null)
 		);
+		addRowToDescriptor(descriptor, "Binary Name", String.class, (row) -> row.functionMatch().nearest_neighbor_binary_name());
+		addRowToDescriptor(descriptor, "Debug Info", Boolean.class, (row) -> row.functionMatch().nearest_neighbor_debug());
+
+		addRowToDescriptor(descriptor, "Function ID", false, Long.class, (row) -> row.functionMatch().nearest_neighbor_id().value());
+		addRowToDescriptor(descriptor, "Binary ID", false, Integer.class, (row) -> row.functionMatch().nearest_neighbor_binary_id().value());
+
 		return descriptor;
 	}
 
