@@ -1,6 +1,7 @@
 package ai.reveng.toolkit.ghidra.binarysimilarity.ui.autoanalysis;
 
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
+import ai.reveng.toolkit.ghidra.core.services.api.types.BoxPlot;
 import ai.reveng.toolkit.ghidra.core.services.api.types.Collection;
 import ai.reveng.toolkit.ghidra.core.services.api.types.GhidraFunctionMatch;
 import ai.reveng.toolkit.ghidra.core.services.api.types.GhidraFunctionMatchWithSignature;
@@ -47,7 +48,8 @@ public class AutoAnalysisResultsTableModel extends ThreadedTableModelStub<Ghidra
 		if (allowReload) {
 			GhidraRevengService apiService = tool.getService(GhidraRevengService.class);
 			ProgramManager programManager = tool.getService(ProgramManager.class);
-
+			monitor.setMessage("Searching for Matches");
+			monitor.setProgress(0);
 			this.program = programManager.getCurrentProgram();
 			Map<Function, List<GhidraFunctionMatch>> r = apiService.getSimilarFunctions(
 					program,
@@ -56,11 +58,14 @@ public class AutoAnalysisResultsTableModel extends ThreadedTableModelStub<Ghidra
 					onlyNamed,
 					collections
 			);
+
+			monitor.setMaximum(r.size());
 				r.values().stream()
 						.takeWhile(t -> !monitor.isCancelled())
+						.peek(t -> monitor.incrementProgress(1))
 						// Filter out functions that have no matches
 						.filter(list -> !list.isEmpty())
-						// Get the best match
+						// Get the best match. Not using `getFirst` instead of `get(0)` for JDK 17 compatibility
 						.map(ghidraFunctionMatches -> ghidraFunctionMatches.get(0))
 						// Filter out matches that are below the threshold
 						.filter(match -> match.confidence() >= confidenceThreshold)
@@ -68,7 +73,8 @@ public class AutoAnalysisResultsTableModel extends ThreadedTableModelStub<Ghidra
 									if (fetchSignatures) {
 										return GhidraFunctionMatchWithSignature.createWith(match, apiService);
 									} else {
-										return new GhidraFunctionMatchWithSignature(match, null);
+										BoxPlot nameScore = apiService.getNameScoreForMatch(match);
+										return new GhidraFunctionMatchWithSignature(match, null, nameScore);
 									}
 								}
 						)
@@ -112,7 +118,8 @@ public class AutoAnalysisResultsTableModel extends ThreadedTableModelStub<Ghidra
 
 		addRowToDescriptor(descriptor, "Source Binary", String.class, (row) -> row.functionMatch().nearest_neighbor_binary_name());
 
-		addRowToDescriptor(descriptor, "Confidence", Double.class, (row) -> row.functionMatch().confidence());
+		addRowToDescriptor(descriptor, "Similarity", Double.class, (row) -> row.functionMatch().confidence());
+		addRowToDescriptor(descriptor, "Name Score", Double.class, (row) -> row.nameScore().map(BoxPlot::average).orElse(null));
 
 		return descriptor;
 	}

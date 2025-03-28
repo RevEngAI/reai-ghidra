@@ -25,7 +25,8 @@ import static ai.reveng.toolkit.ghidra.core.services.api.Utils.mapJSONArray;
  */
 public record V2Response(
         boolean status,
-        JSONObject data,
+        // Either a JSONObject or JSONArray
+        Object data,
         String message,
         List<APIError> errors,
         JSONObject meta
@@ -36,10 +37,14 @@ public record V2Response(
     public static V2Response fromJSONObject(JSONObject json) {
         return new V2Response(
                 json.getBoolean("status"),
-                !json.isNull("data") ? json.getJSONObject("data") : null,
+                !json.isNull("data") ? json.get("data") : null,
                 !json.isNull("message") ? json.getString("message") : null,
                 !json.isNull("errors") ? mapJSONArray(json.getJSONArray("errors"), APIError::fromJSONObject) : null,
                 json.getJSONObject("meta")
         );
+    }
+
+    public JSONObject getJsonData() {
+        return (JSONObject) data;
     }
 }

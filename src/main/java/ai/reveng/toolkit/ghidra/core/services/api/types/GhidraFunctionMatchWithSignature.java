@@ -15,16 +15,30 @@ import java.util.Optional;
 public record GhidraFunctionMatchWithSignature(
         Function function,
         FunctionMatch functionMatch,
-        Optional<FunctionDataTypeMessage> signature
+        Optional<FunctionDataTypeMessage> signature,
+        Optional<BoxPlot> nameScore
 ) {
+    public GhidraFunctionMatchWithSignature {
+        if (function == null) {
+            throw new IllegalArgumentException("Function cannot be null");
+        }
+        if (functionMatch == null) {
+            throw new IllegalArgumentException("FunctionMatch cannot be null");
+        }
 
-    public GhidraFunctionMatchWithSignature(GhidraFunctionMatch functionMatch, FunctionDataTypeMessage signature) {
-        this(functionMatch.function(), functionMatch.functionMatch(), Optional.ofNullable(signature));
+        if (nameScore == null) {
+            throw new IllegalArgumentException("NameScore cannot be null, use Optional.empty() instead");
+        }
+    }
+
+    public GhidraFunctionMatchWithSignature(GhidraFunctionMatch functionMatch, FunctionDataTypeMessage signature, BoxPlot nameScore) {
+        this(functionMatch.function(), functionMatch.functionMatch(), Optional.ofNullable(signature), Optional.ofNullable(nameScore));
     }
 
     public static GhidraFunctionMatchWithSignature createWith(GhidraFunctionMatch functionMatch, GhidraRevengService apiService) {
         var signature = apiService.getFunctionSignatureArtifact(functionMatch.functionMatch().nearest_neighbor_binary_id(), functionMatch.functionMatch().nearest_neighbor_id());
-        return new GhidraFunctionMatchWithSignature(functionMatch.function(), functionMatch.functionMatch(), signature);
+        BoxPlot nameScore = apiService.getNameScoreForMatch(functionMatch);
+        return new GhidraFunctionMatchWithSignature(functionMatch, signature.orElse(null), nameScore);
     }
 
 }
