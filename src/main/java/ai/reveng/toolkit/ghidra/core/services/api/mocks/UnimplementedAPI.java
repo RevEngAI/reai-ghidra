@@ -6,7 +6,6 @@ import ai.reveng.toolkit.ghidra.core.services.api.TypedApiInterface;
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
 import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.InvalidAPIInfoException;
 
-import javax.script.Bindings;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -29,23 +28,8 @@ public class UnimplementedAPI implements TypedApiInterface {
     }
 
     @Override
-    public List<Collection> collectionQuickSearch(ModelName modelName) {
-        return List.of();
-    }
-
-    @Override
     public List<ModelName> models() {
         return List.of(new ModelName("mock-linux"), new ModelName("mock-linux"));
-    }
-
-    @Override
-    public List<Collection> collectionQuickSearch(String searchTerm) {
-        return List.of();
-    }
-
-    @Override
-    public String getAnalysisLogs(BinaryID binID) {
-        return "";
     }
 
     @Override

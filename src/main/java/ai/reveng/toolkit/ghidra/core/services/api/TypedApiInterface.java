@@ -40,6 +40,10 @@ public interface TypedApiInterface {
     }
 
 
+    default AnalysisStatus status(AnalysisID analysisID) {
+        throw new UnsupportedOperationException("status not implemented yet");
+    }
+
     default List<FunctionInfo> getFunctionInfo(BinaryID binaryID) {
         throw new UnsupportedOperationException("getFunctionInfo not implemented yet");
     }
@@ -100,11 +104,7 @@ public interface TypedApiInterface {
         throw new UnsupportedOperationException("healthMessage not implemented yet");
     }
 
-    List<Collection> collectionQuickSearch(ModelName modelName);
-
     List<ModelName> models();
-
-    List<Collection> collectionQuickSearch(String searchTerm);
 
     default List<Collection> searchCollections(String searchTerm,
                                        @Nullable List<SearchFilter> filter,
@@ -115,8 +115,6 @@ public interface TypedApiInterface {
     ) {
         throw new UnsupportedOperationException("searchCollections not implemented yet");
     }
-
-    String getAnalysisLogs(BinaryID binID);
 
     String getAnalysisLogs(AnalysisID analysisID);
 

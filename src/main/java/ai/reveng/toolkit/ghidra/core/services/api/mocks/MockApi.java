@@ -175,37 +175,6 @@ public class MockApi implements TypedApiInterface {
     }
 
     @Override
-    public List<Collection> collectionQuickSearch(ModelName modelName) {
-        var r = """
-                {
-                  "success": true,
-                  "collections": [
-                    {
-                      "collection_name": "TestCollection",
-                      "collection_scope": "PRIVATE",
-                      "collection_name_1": "TestCollection"
-                    }
-                  ]
-                }""";
-        var jsonObject = new JSONObject(r);
-        var result = new ArrayList<Collection>();
-        jsonObject.getJSONArray("collections").forEach((Object o) -> {
-            result.add(Collection.fromSmallJSONObject((JSONObject) o, modelName));
-        });
-        return result;
-    }
-
-    @Override
-    public List<Collection> collectionQuickSearch(String searchTerm) {
-        return List.of();
-    }
-
-    @Override
-    public String getAnalysisLogs(BinaryID binID) {
-        return null;
-    }
-
-    @Override
     public String getAnalysisLogs(AnalysisID analysisID) {
         return "";
     }

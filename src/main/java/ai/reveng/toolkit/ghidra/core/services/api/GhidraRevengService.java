@@ -365,9 +365,6 @@ public class GhidraRevengService {
         return getSimilarFunctions(function, 0.1, 5, false);
     }
 
-    public List<Collection> collections() {
-        return api.collectionQuickSearch(new ModelName("binnet-0.3-x86-linux"));
-    }
 
     public ProgramWithBinaryID analyse(Program program) {
         return analyse(program, getModelNameForProgram(program));
