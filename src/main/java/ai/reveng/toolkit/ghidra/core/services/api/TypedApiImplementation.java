@@ -62,25 +62,6 @@ public class TypedApiImplementation implements TypedApiInterface {
         this(info.hostURI().toString(), info.apiKey());
     }
 
-    public List<AnalysisResult> recentAnalyses(AnalysisStatus status, AnalysisScope scope, int number) {
-
-        JSONObject parameters = new JSONObject();
-        parameters.put("status", status.name());
-        parameters.put("scope", scope.name());
-        parameters.put("n", number);
-
-        HttpRequest.Builder requestBuilder = requestBuilderForEndpoint(APIVersion.V1, "analyse/recent");
-        requestBuilder
-                .method("GET",HttpRequest.BodyPublishers.ofString(parameters.toString()))
-                .header("Content-Type", "application/json");
-
-        HttpRequest request = requestBuilder.build();
-        var jsonResponse = sendRequest(request);
-
-        return mapJSONArray(jsonResponse.getJSONArray("analysis"), AnalysisResult::fromJSONObject);
-
-    }
-
     public BinaryHash upload(Path binPath) throws FileNotFoundException {
 
         File bin = binPath.toFile();
@@ -257,6 +238,14 @@ public class TypedApiImplementation implements TypedApiInterface {
     }
 
     @Override
+    public AnalysisStatus status(AnalysisID analysisID) {
+        var request = requestBuilderForEndpoint(APIVersion.V2, "analyses/%s/status".formatted(analysisID.id()))
+                .GET()
+                .build();
+        return AnalysisStatus.valueOf(sendVersion2Request(request).getJsonData().getString("analysis_status"));
+    }
+
+    @Override
     public List<FunctionInfo> getFunctionInfo(BinaryID binaryID) {
         var request = requestBuilderForEndpoint(APIVersion.V1, "analyse/functions/" + binaryID.value())
                 .GET()
@@ -275,24 +264,6 @@ public class TypedApiImplementation implements TypedApiInterface {
     @Override
     public String healthMessage(){
         return health().getString("message");
-    }
-
-    @Override
-    public List<Collection> collectionQuickSearch(ModelName modelName) {
-        var request = requestBuilderForEndpoint(APIVersion.V1, "collections/quick/search?model_name=" + modelName.modelName())
-                .build();
-        var response = sendRequest(request);
-        return mapJSONArray(response.getJSONArray("collections"), o -> Collection.fromSmallJSONObject((JSONObject) o, modelName));
-    }
-
-    @Override
-    public List<Collection> collectionQuickSearch(String searchTerm) {
-        var request = requestBuilderForEndpoint(APIVersion.V1, "collections/quick/search?search_term=" + searchTerm)
-                .build();
-        var response = sendRequest(request);
-        return mapJSONArray(
-                response.getJSONArray("collections"),
-                o -> Collection.fromSmallJSONObject(o, new ModelName("Unknown")));
     }
 
     private String queryParams(Map<String, String> params){
@@ -339,14 +310,6 @@ public class TypedApiImplementation implements TypedApiInterface {
                 .build();
         var response = sendVersion2Request(request);
         return mapJSONArray(response.getJsonData().getJSONArray("results"), Collection::fromJSONObject);
-    }
-
-    @Override
-    public String getAnalysisLogs(BinaryID binID) {
-        var request = requestBuilderForEndpoint(APIVersion.V1, "logs/" + binID.value())
-                .build();
-        var response = sendRequest(request);
-        return response.getString("logs");
     }
 
     @Override
