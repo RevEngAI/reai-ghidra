@@ -185,7 +185,9 @@ public class TypedApiImplementation implements TypedApiInterface {
             case 409:
                 throw new APIConflictException(response.body());
             default:
-                throw new RuntimeException("Request failed with status code: " + response.statusCode() + " and message: " + response.body());
+                var errorMsg = "Request to %s failed with status code: %s and message: %s".formatted(request.uri(), response.statusCode(), response.body());
+                Msg.showError(this, null, "Request failed with status code: " + response.statusCode(), errorMsg);
+                throw new RuntimeException(errorMsg);
         }
     }
 
