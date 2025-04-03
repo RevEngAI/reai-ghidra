@@ -5,7 +5,6 @@ import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
-import javax.swing.SwingWorker;
 
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
@@ -28,10 +27,13 @@ import ghidra.program.model.listing.Program;
 import ghidra.program.model.symbol.Namespace;
 import ghidra.program.model.symbol.SourceType;
 import ghidra.util.Msg;
+import ghidra.util.exception.CancelledException;
 import ghidra.util.exception.DuplicateNameException;
 import ghidra.util.exception.InvalidInputException;
 import ghidra.util.table.GhidraFilterTable;
+import ghidra.util.task.Task;
 import ghidra.util.task.TaskLauncher;
+import ghidra.util.task.TaskMonitor;
 
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
@@ -90,6 +92,17 @@ public class AutoAnalysisDockableDialog extends ComponentProviderAdapter {
                     var selectedRowObject = analysisResultsTable.getSelectedRowObject();
                     tool.getService(GhidraRevengService.class)
                             .openFunctionInPortal(selectedRowObject.functionMatch().nearest_neighbor_id());
+                })
+                .buildAndInstallLocal(this);
+
+        new ActionBuilder("Open Collection in Portal", getOwner())
+                .popupMenuPath("Open Collection in Portal")
+                .popupMenuIcon(ReaiPluginPackage.REVENG_16)
+                .enabledWhen(ac -> collectionsTable.getSelectedRowObject() != null)
+                .onAction(ac -> {
+                    var selectedRowObject = collectionsTable.getSelectedRowObject();
+                    tool.getService(GhidraRevengService.class)
+                            .openCollectionInPortal(selectedRowObject.getCollection());
                 })
                 .buildAndInstallLocal(this);
 
@@ -154,23 +167,18 @@ public class AutoAnalysisDockableDialog extends ComponentProviderAdapter {
         btnFetchCollections = new JButton("Load Matching Collections");
         btnFetchCollections.setEnabled(true);
         btnFetchCollections.addActionListener(e -> {
-            SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
+            tool.execute(new Task("Fetch Collections", false, false, false) {
                 @Override
-                protected Void doInBackground() throws Exception {
+                public void run(TaskMonitor monitor) throws CancelledException {
                     var serv = tool.getService(GhidraRevengService.class);
                     // Get all rows that are already selected to be included
-                    var selectedCollections = collectionsModel.getModelData().stream()
-                            .filter(CollectionRowObject::isInclude)
-                            .toList();
+                    var selectedCollections = collectionsModel.getModelData().stream().filter(CollectionRowObject::isInclude).toList();
 
-                    var selectedSet = selectedCollections.stream()
-                            .map(CollectionRowObject::getCollectionName)
-                            .collect(Collectors.toSet());
+                    var selectedSet = selectedCollections.stream().map(CollectionRowObject::getCollectionName).collect(Collectors.toSet());
                     collectionsModel.clearData();
 
                     var searchTerm = collectionSearchTextbox.getText();
-                    serv.getApi().collectionQuickSearch(searchTerm).forEach(
-                            collection -> {
+                    serv.getApi().searchCollections(searchTerm, null, 50, 0, null, null).forEach(collection -> {
                                 if (!selectedSet.contains(collection.collectionName())) {
                                     collectionsModel.addObject(new CollectionRowObject(collection, false));
                                 }
@@ -179,15 +187,9 @@ public class AutoAnalysisDockableDialog extends ComponentProviderAdapter {
                     );
 
                     // Add the previously selected models back
-                    selectedCollections.forEach(
-                            collection -> collectionsModel.addObject(collection)
-                    );
-
-                    return null;
+                    selectedCollections.forEach(collection -> collectionsModel.addObject(collection));
                 }
-            };
-            worker.execute();
-
+            }, 500);
         });
 
         var collectionBtnPnl = new JPanel(new FlowLayout(FlowLayout.CENTER));
