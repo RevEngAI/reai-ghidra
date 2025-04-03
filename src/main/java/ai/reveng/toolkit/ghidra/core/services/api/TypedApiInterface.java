@@ -9,6 +9,8 @@ import java.util.Optional;
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
 import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.InvalidAPIInfoException;
 
+import javax.annotation.Nullable;
+
 
 /**
  * Service for interacting with the RevEngAi API
@@ -103,6 +105,16 @@ public interface TypedApiInterface {
     List<ModelName> models();
 
     List<Collection> collectionQuickSearch(String searchTerm);
+
+    default List<Collection> searchCollections(String searchTerm,
+                                       @Nullable List<SearchFilter> filter,
+                                       int limit,
+                                       int offset,
+                                       @Nullable CollectionResultOrder orderBy,
+                                       @Nullable OrderDirection order
+    ) {
+        throw new UnsupportedOperationException("searchCollections not implemented yet");
+    }
 
     String getAnalysisLogs(BinaryID binID);
 

@@ -10,6 +10,7 @@ import ghidra.util.Msg;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -294,6 +295,52 @@ public class TypedApiImplementation implements TypedApiInterface {
                 o -> Collection.fromSmallJSONObject(o, new ModelName("Unknown")));
     }
 
+    private String queryParams(Map<String, String> params){
+        return "?" + params.entrySet().stream()
+                .filter(e -> e.getValue() != null)
+                .map(e -> e.getKey() + "=" + e.getValue())
+                .reduce((a, b) -> a + "&" + b)
+                .orElse("");
+    }
+    /**
+     * https://api.reveng.ai/v2/docs#tag/Collections/operation/list_collections_v2_collections_get
+     *
+     * Parameters are passed via query parameters
+     * @param searchTerm
+     * @return
+     */
+    @Override
+    public List<Collection> searchCollections(String searchTerm,
+                                              @Nullable List<SearchFilter> filter,
+                                              int limit,
+                                              int offset,
+                                              @Nullable CollectionResultOrder orderBy,
+                                              @Nullable OrderDirection order
+    ){
+        Map<String, String> params = new HashMap<>();
+        params.put("search_term", searchTerm);
+        params.put("limit", String.valueOf(limit));
+        params.put("offset", String.valueOf(offset));
+        if (filter != null){
+            params.put("filter", filter.stream().map(SearchFilter::name).reduce( (a, b) -> a + "," + b).orElse(null));
+        }
+        if (orderBy != null){
+            params.put("order_by", orderBy.name());
+        }
+        if (order != null){
+            params.put("order", order.name());
+        }
+        params.put("limit", String.valueOf(limit));
+
+        var request = requestBuilderForEndpoint(APIVersion.V2, "collections", queryParams(params))
+                .timeout(Duration.ofSeconds(10))
+                .method("GET", HttpRequest.BodyPublishers.ofString(params.toString()))
+                .header("Content-Type", "application/json" )
+                .build();
+        var response = sendVersion2Request(request);
+        return mapJSONArray(response.getJsonData().getJSONArray("results"), Collection::fromJSONObject);
+    }
+
     @Override
     public String getAnalysisLogs(BinaryID binID) {
         var request = requestBuilderForEndpoint(APIVersion.V1, "logs/" + binID.value())
@@ -339,7 +386,7 @@ public class TypedApiImplementation implements TypedApiInterface {
         } else {
             throw new RuntimeException("Unknown API version");
         }
-        String endpoint = String.join("/", endpointPaths);
+        String endpoint = String.join("/", endpointPaths).replace("/?", "?");
 
         try {
             uri = new URI(baseUrl + apiVersionPath + "/" + endpoint);

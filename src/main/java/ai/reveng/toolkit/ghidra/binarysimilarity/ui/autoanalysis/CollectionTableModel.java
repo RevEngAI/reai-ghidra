@@ -12,6 +12,8 @@ import ghidra.util.task.TaskMonitor;
 import java.util.ArrayList;
 import java.util.List;
 
+import static ai.reveng.toolkit.ghidra.Utils.addRowToDescriptor;
+
 public class CollectionTableModel extends ThreadedTableModelStub<CollectionRowObject> {
 	// column indexes
 	final static byte NAME = 0;
@@ -38,7 +40,12 @@ public class CollectionTableModel extends ThreadedTableModelStub<CollectionRowOb
 		TableColumnDescriptor<CollectionRowObject> descriptor = new TableColumnDescriptor<CollectionRowObject>();
 		descriptor.addVisibleColumn(new CollectionNameTableColumn());
 		descriptor.addVisibleColumn(new CollectionIncludeTableColumn());
-		
+		addRowToDescriptor(descriptor, "Scope", String.class, (row) -> row.getCollection().collectionScope());
+		addRowToDescriptor(descriptor, "Created", String.class, (row) -> row.getCollection().creationDate());
+		addRowToDescriptor(descriptor, "Model", String.class, (row) -> row.getCollection().modelName());
+		addRowToDescriptor(descriptor, "Description", String.class, (row) -> row.getCollection().description());
+		addRowToDescriptor(descriptor, "Owner", String.class, (row) -> row.getCollection().owner());
+
 		return descriptor;
 	}
 	

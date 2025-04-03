@@ -734,6 +734,10 @@ public class GhidraRevengService {
         openPortal(PORTAL_FUNCTIONS, String.valueOf(functionID.value()));
     }
 
+    public void openCollectionInPortal(Collection collection) {
+        openPortal("collections/", String.valueOf(collection.collectionID()));
+    }
+
     public void openPortal(String... subPath) {
         // For now this is hardcoded, but it should be configurable later
         // Potentially this will be provided by an endpoint in the API
