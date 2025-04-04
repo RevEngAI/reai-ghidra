@@ -18,7 +18,7 @@ import java.util.Map;
 
 public class UnimplementedAPI implements TypedApiInterface {
     @Override
-    public List<AnalysisResult> search(BinaryHash hash, String binaryName, Collection collection, AnalysisStatus state) {
+    public List<LegacyAnalysisResult> search(BinaryHash hash, String binaryName, LegacyCollection collection, AnalysisStatus state) {
         return List.of();
     }
 

@@ -1,6 +1,7 @@
-package ai.reveng.toolkit.ghidra.binarysimilarity.ui.autoanalysis;
+package ai.reveng.toolkit.ghidra.binarysimilarity.ui.collectiondialog;
 
 import ai.reveng.toolkit.ghidra.core.services.api.types.Collection;
+import ai.reveng.toolkit.ghidra.core.services.api.types.LegacyCollection;
 
 /**
  * Combined object for the immutable Collection record plus the mutable include flag.
@@ -27,7 +28,7 @@ public class CollectionRowObject {
 	public boolean isInclude() {
 		return include;
 	}
-	
+
 	public void setInclude(boolean isInclude) {
 		this.include = isInclude;
 	}

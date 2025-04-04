@@ -13,7 +13,7 @@ import ghidra.util.datastruct.Accumulator;
 import ghidra.util.exception.CancelledException;
 import ghidra.util.task.TaskMonitor;
 
-public class RecentAnalysesTableModel extends ThreadedTableModelStub<AnalysisResult> {
+public class RecentAnalysesTableModel extends ThreadedTableModelStub<LegacyAnalysisResult> {
     private final BinaryHash hash;
 
     public RecentAnalysesTableModel(PluginTool tool, BinaryHash hash) {
@@ -22,7 +22,7 @@ public class RecentAnalysesTableModel extends ThreadedTableModelStub<AnalysisRes
     }
 
     @Override
-    protected void doLoad(Accumulator<AnalysisResult> accumulator, TaskMonitor monitor) throws CancelledException {
+    protected void doLoad(Accumulator<LegacyAnalysisResult> accumulator, TaskMonitor monitor) throws CancelledException {
         var revEngAIService = serviceProvider.getService(GhidraRevengService.class);
         revEngAIService.searchForHash(hash).forEach(
                 result -> {
@@ -40,51 +40,51 @@ public class RecentAnalysesTableModel extends ThreadedTableModelStub<AnalysisRes
     }
 
     @Override
-    protected TableColumnDescriptor<AnalysisResult> createTableColumnDescriptor() {
-        TableColumnDescriptor<AnalysisResult> descriptor = new TableColumnDescriptor<>();
-        descriptor.addVisibleColumn(new AbstractDynamicTableColumn<AnalysisResult, BinaryID, Object>() {
+    protected TableColumnDescriptor<LegacyAnalysisResult> createTableColumnDescriptor() {
+        TableColumnDescriptor<LegacyAnalysisResult> descriptor = new TableColumnDescriptor<>();
+        descriptor.addVisibleColumn(new AbstractDynamicTableColumn<LegacyAnalysisResult, BinaryID, Object>() {
             @Override
             public String getColumnName() {
                 return "Analysis ID";
             }
 
             @Override
-            public BinaryID getValue(AnalysisResult rowObject, Settings settings, Object data, ServiceProvider serviceProvider) throws IllegalArgumentException {
+            public BinaryID getValue(LegacyAnalysisResult rowObject, Settings settings, Object data, ServiceProvider serviceProvider) throws IllegalArgumentException {
                 return rowObject.binary_id();
             }
         });
-        descriptor.addVisibleColumn(new AbstractDynamicTableColumn<AnalysisResult, String, Object>() {
+        descriptor.addVisibleColumn(new AbstractDynamicTableColumn<LegacyAnalysisResult, String, Object>() {
             @Override
             public String getColumnName() {
                 return "Binary Name";
             }
 
             @Override
-            public String getValue(AnalysisResult rowObject, Settings settings, Object data, ServiceProvider serviceProvider) throws IllegalArgumentException {
+            public String getValue(LegacyAnalysisResult rowObject, Settings settings, Object data, ServiceProvider serviceProvider) throws IllegalArgumentException {
                 return rowObject.binary_name();
             }
         });
 
-        descriptor.addVisibleColumn(new AbstractDynamicTableColumn<AnalysisResult, String, Object>() {
+        descriptor.addVisibleColumn(new AbstractDynamicTableColumn<LegacyAnalysisResult, String, Object>() {
             @Override
             public String getColumnName() {
                 return "Creation Time";
             }
 
             @Override
-            public String getValue(AnalysisResult rowObject, Settings settings, Object data, ServiceProvider serviceProvider) throws IllegalArgumentException {
+            public String getValue(LegacyAnalysisResult rowObject, Settings settings, Object data, ServiceProvider serviceProvider) throws IllegalArgumentException {
                 return rowObject.creation();
             }
         });
 
-        descriptor.addVisibleColumn(new AbstractDynamicTableColumn<AnalysisResult, AnalysisStatus, Object>() {
+        descriptor.addVisibleColumn(new AbstractDynamicTableColumn<LegacyAnalysisResult, AnalysisStatus, Object>() {
             @Override
             public String getColumnName() {
                 return "Status";
             }
 
             @Override
-            public AnalysisStatus getValue(AnalysisResult rowObject, Settings settings, Object data, ServiceProvider serviceProvider) throws IllegalArgumentException {
+            public AnalysisStatus getValue(LegacyAnalysisResult rowObject, Settings settings, Object data, ServiceProvider serviceProvider) throws IllegalArgumentException {
                 return rowObject.status();
             }
         });

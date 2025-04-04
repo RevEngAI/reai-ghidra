@@ -4,18 +4,15 @@ import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
-import javax.swing.JTextField;
 
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
-import ai.reveng.toolkit.ghidra.core.services.api.types.Collection;
 import ai.reveng.toolkit.ghidra.core.services.api.types.GhidraFunctionMatchWithSignature;
 import docking.ActionContext;
 import docking.action.DockingAction;
 import docking.action.ToggleDockingAction;
 import docking.action.ToolBarData;
 import docking.action.builder.ActionBuilder;
-import docking.widgets.table.GFilterTable;
 import generic.theme.GIcon;
 import ghidra.app.cmd.function.ApplyFunctionSignatureCmd;
 import ghidra.app.context.ProgramActionContext;
@@ -27,19 +24,15 @@ import ghidra.program.model.listing.Program;
 import ghidra.program.model.symbol.Namespace;
 import ghidra.program.model.symbol.SourceType;
 import ghidra.util.Msg;
-import ghidra.util.exception.CancelledException;
 import ghidra.util.exception.DuplicateNameException;
 import ghidra.util.exception.InvalidInputException;
 import ghidra.util.table.GhidraFilterTable;
-import ghidra.util.task.Task;
 import ghidra.util.task.TaskLauncher;
-import ghidra.util.task.TaskMonitor;
 
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.awt.event.MouseEvent;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static ai.reveng.toolkit.ghidra.binarysimilarity.BinarySimilarityPlugin.REVENG_AI_NAMESPACE;
 
@@ -54,12 +47,8 @@ public class AutoAnalysisDockableDialog extends ComponentProviderAdapter {
     private AutoAnalysisResultsTableModel autoanalysisResultsModel;
     private GhidraFilterTable<GhidraFunctionMatchWithSignature> analysisResultsTable;
 
-    private CollectionTableModel collectionsModel;
-    private GFilterTable<CollectionRowObject> collectionsTable;
-
     private JButton btnApplyAllFilteredResults;
     private JButton btnApplySelectedResults;
-    private JButton btnFetchCollections;
 
     public AutoAnalysisDockableDialog(PluginTool tool) {
         super(tool, ReaiPluginPackage.WINDOW_PREFIX + "Auto Analysis", ReaiPluginPackage.NAME);
@@ -69,9 +58,6 @@ public class AutoAnalysisDockableDialog extends ComponentProviderAdapter {
 
         JPanel resultsPanel = this.buildResultsPanel();
         tabbedPanel.addTab("Results", null, resultsPanel, null);
-
-        JPanel collectionsPanel = this.buildCollectionsPanel();
-        tabbedPanel.addTab("Collections", null, collectionsPanel, null);
 
         tool.addComponentProvider(this, false);
 
@@ -94,18 +80,6 @@ public class AutoAnalysisDockableDialog extends ComponentProviderAdapter {
                             .openFunctionInPortal(selectedRowObject.functionMatch().nearest_neighbor_id());
                 })
                 .buildAndInstallLocal(this);
-
-        new ActionBuilder("Open Collection in Portal", getOwner())
-                .popupMenuPath("Open Collection in Portal")
-                .popupMenuIcon(ReaiPluginPackage.REVENG_16)
-                .enabledWhen(ac -> collectionsTable.getSelectedRowObject() != null)
-                .onAction(ac -> {
-                    var selectedRowObject = collectionsTable.getSelectedRowObject();
-                    tool.getService(GhidraRevengService.class)
-                            .openCollectionInPortal(selectedRowObject.getCollection());
-                })
-                .buildAndInstallLocal(this);
-
 
     }
     @Override
@@ -155,66 +129,11 @@ public class AutoAnalysisDockableDialog extends ComponentProviderAdapter {
 
     }
 
-    private JPanel buildCollectionsPanel() {
-        var collectionsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        collectionsModel = new CollectionTableModel(tool);
-        collectionsPanel.setLayout(new BorderLayout(0, 0));
-        collectionsTable = new GFilterTable<>(collectionsModel);
-        collectionsPanel.add(collectionsTable);
-
-        var collectionSearchTextbox = new JTextField();
-        collectionSearchTextbox.setColumns(10);
-        btnFetchCollections = new JButton("Load Matching Collections");
-        btnFetchCollections.setEnabled(true);
-        btnFetchCollections.addActionListener(e -> {
-            tool.execute(new Task("Fetch Collections", false, false, false) {
-                @Override
-                public void run(TaskMonitor monitor) throws CancelledException {
-                    var serv = tool.getService(GhidraRevengService.class);
-                    // Get all rows that are already selected to be included
-                    var selectedCollections = collectionsModel.getModelData().stream().filter(CollectionRowObject::isInclude).toList();
-
-                    var selectedSet = selectedCollections.stream().map(CollectionRowObject::getCollectionName).collect(Collectors.toSet());
-                    collectionsModel.clearData();
-
-                    var searchTerm = collectionSearchTextbox.getText();
-                    serv.getApi().searchCollections(searchTerm, null, 50, 0, null, null).forEach(collection -> {
-                                if (!selectedSet.contains(collection.collectionName())) {
-                                    collectionsModel.addObject(new CollectionRowObject(collection, false));
-                                }
-                            }
-
-                    );
-
-                    // Add the previously selected models back
-                    selectedCollections.forEach(collection -> collectionsModel.addObject(collection));
-                }
-            }, 500);
-        });
-
-        var collectionBtnPnl = new JPanel(new FlowLayout(FlowLayout.CENTER));
-
-        collectionBtnPnl.add(collectionSearchTextbox);
-        collectionBtnPnl.add(btnFetchCollections);
-
-        collectionsPanel.add(collectionBtnPnl, BorderLayout.SOUTH);
-
-        return collectionsPanel;
-    }
-
     public void loadAutoRenameResults() {
         // Prepare the model with the configured values
         autoanalysisResultsModel.enableLoad();
         // TODO: Make configureable again
         autoanalysisResultsModel.setSimilarityThreshold(0.95);
-
-        // Get all collections that are selected
-        List<Collection> collections = collectionsModel.getModelData().stream()
-                .filter(CollectionRowObject::isInclude)
-                .map(CollectionRowObject::getCollection)
-                .toList();
-
-        autoanalysisResultsModel.setCollections(collections);
 
         // Clear data and reload
         autoanalysisResultsModel.clearData();

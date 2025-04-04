@@ -1,5 +1,6 @@
-package ai.reveng.toolkit.ghidra.binarysimilarity.ui.autoanalysis;
+package ai.reveng.toolkit.ghidra.binarysimilarity.ui.collectiondialog;
 
+import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import docking.widgets.table.AbstractDynamicTableColumn;
 import docking.widgets.table.TableColumnDescriptor;
 import docking.widgets.table.threaded.ThreadedTableModelStub;
@@ -8,9 +9,6 @@ import ghidra.framework.plugintool.PluginTool;
 import ghidra.framework.plugintool.ServiceProvider;
 import ghidra.util.datastruct.Accumulator;
 import ghidra.util.task.TaskMonitor;
-
-import java.util.ArrayList;
-import java.util.List;
 
 import static ai.reveng.toolkit.ghidra.Utils.addRowToDescriptor;
 
@@ -28,6 +26,12 @@ public class CollectionTableModel extends ThreadedTableModelStub<CollectionRowOb
 
 	@Override
 	protected void doLoad(Accumulator<CollectionRowObject> accumulator, TaskMonitor monitor){
+		monitor.setProgress(0);
+		monitor.setMessage("Loading collections");
+		serviceProvider.getService(GhidraRevengService.class).getActiveCollections().forEach(collection -> {
+			accumulator.add(new CollectionRowObject(collection, true));
+		});
+
 	}
 
 	@Override
@@ -42,13 +46,15 @@ public class CollectionTableModel extends ThreadedTableModelStub<CollectionRowOb
 		descriptor.addVisibleColumn(new CollectionIncludeTableColumn());
 		addRowToDescriptor(descriptor, "Scope", String.class, (row) -> row.getCollection().collectionScope());
 		addRowToDescriptor(descriptor, "Created", String.class, (row) -> row.getCollection().creationDate());
-		addRowToDescriptor(descriptor, "Model", String.class, (row) -> row.getCollection().modelName());
+//		addRowToDescriptor(descriptor, "Model", String.class, (row) -> row.getCollection().modelName());
 		addRowToDescriptor(descriptor, "Description", String.class, (row) -> row.getCollection().description());
-		addRowToDescriptor(descriptor, "Owner", String.class, (row) -> row.getCollection().owner());
+//		addRowToDescriptor(descriptor, "Owner", String.class, (row) -> row.getCollection().owner());
 
 		return descriptor;
 	}
-	
+
+
+
 	@Override
 	public boolean isCellEditable(int rowIndex, int columnIndex) {
 		switch(columnIndex) {
@@ -67,21 +73,26 @@ public class CollectionTableModel extends ThreadedTableModelStub<CollectionRowOb
 				CollectionRowObject ro = getRowObject(rowIndex);
 				ro.setInclude((Boolean) aValue);
 				fireTableRowsUpdated(rowIndex, rowIndex);
+				storeCollectionsInService();
 			}
 		default:
 			break;
 		}
 	}
-	
-	public List<String> getSelectedCollections() {
-		List<String> collections = new ArrayList<String>();
-		for (CollectionRowObject collection : getAllData()) {
-			if (collection.isInclude())
-				collections.add(collection.getCollectionName());
-		}
-		return collections;
+
+	public void storeCollectionsInService() {
+		serviceProvider
+				.getService(GhidraRevengService.class)
+				.setActiveCollections(
+						getModelData().stream()
+								.filter(CollectionRowObject::isInclude)
+								.map(CollectionRowObject::getCollection)
+								.toList()
+				);
+
 	}
-	
+
+
 	private class CollectionNameTableColumn extends AbstractDynamicTableColumn<CollectionRowObject, String, Object> {
 
 		@Override
