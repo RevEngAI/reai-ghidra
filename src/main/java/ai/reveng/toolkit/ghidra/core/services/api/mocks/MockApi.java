@@ -7,6 +7,7 @@ import ai.reveng.toolkit.ghidra.core.services.api.types.*;
 import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.APIAuthenticationException;
 import org.json.JSONObject;
 
+import javax.annotation.Nullable;
 import java.io.FileNotFoundException;
 import java.math.BigDecimal;
 import java.nio.file.Path;
@@ -17,7 +18,7 @@ import java.util.Map;
 public class MockApi implements TypedApiInterface {
 
     @Override
-    public List<AnalysisResult> search(BinaryHash hash, String binaryName, Collection collection, AnalysisStatus state) {
+    public List<LegacyAnalysisResult> search(BinaryHash hash, String binaryName, LegacyCollection collection, AnalysisStatus state) {
         return List.of();
     }
 
@@ -32,14 +33,14 @@ public class MockApi implements TypedApiInterface {
     }
 
     @Override
-    public List<AnalysisResult> recentAnalyses() {
+    public List<LegacyAnalysisResult> recentAnalyses() {
         return TypedApiInterface.super.recentAnalyses();
     }
 
     @Override
-    public List<AnalysisResult> search(BinaryHash hash) {
+    public List<LegacyAnalysisResult> search(BinaryHash hash) {
         if (hash.equals(new BinaryHash("b04c1259718dd16c0ffbd0931aeecf07746775cc2f1cda76e46d51af165f3ba6"))) {
-            return List.of(new AnalysisResult(
+            return List.of(new LegacyAnalysisResult(
                     new BinaryID(17920),
                     "true",
                     "no creation date",
@@ -53,7 +54,7 @@ public class MockApi implements TypedApiInterface {
     }
 
     @Override
-    public List<FunctionMatch> annSymbolsForFunctions(List<FunctionID> fID, int resultsPerFunction, double distance, boolean debug) {
+    public List<FunctionMatch> annSymbolsForFunctions(List<FunctionID> fID, int resultsPerFunction, @Nullable List<CollectionID> collections, @Nullable List<AnalysisID> analysisIDs, double distance, boolean debug) {
        var r = """
                {
                  "success": true,
@@ -172,37 +173,6 @@ public class MockApi implements TypedApiInterface {
     @Override
     public String healthMessage() {
         return "Mock Health Message";
-    }
-
-    @Override
-    public List<Collection> collectionQuickSearch(ModelName modelName) {
-        var r = """
-                {
-                  "success": true,
-                  "collections": [
-                    {
-                      "collection_name": "TestCollection",
-                      "collection_scope": "PRIVATE",
-                      "collection_name_1": "TestCollection"
-                    }
-                  ]
-                }""";
-        var jsonObject = new JSONObject(r);
-        var result = new ArrayList<Collection>();
-        jsonObject.getJSONArray("collections").forEach((Object o) -> {
-            result.add(Collection.fromSmallJSONObject((JSONObject) o, modelName));
-        });
-        return result;
-    }
-
-    @Override
-    public List<Collection> collectionQuickSearch(String searchTerm) {
-        return List.of();
-    }
-
-    @Override
-    public String getAnalysisLogs(BinaryID binID) {
-        return null;
     }
 
     @Override

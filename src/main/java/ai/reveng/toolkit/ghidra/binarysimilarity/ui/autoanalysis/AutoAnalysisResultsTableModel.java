@@ -2,7 +2,7 @@ package ai.reveng.toolkit.ghidra.binarysimilarity.ui.autoanalysis;
 
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.api.types.BoxPlot;
-import ai.reveng.toolkit.ghidra.core.services.api.types.Collection;
+import ai.reveng.toolkit.ghidra.core.services.api.types.LegacyCollection;
 import ai.reveng.toolkit.ghidra.core.services.api.types.GhidraFunctionMatch;
 import ai.reveng.toolkit.ghidra.core.services.api.types.GhidraFunctionMatchWithSignature;
 import docking.widgets.table.TableColumnDescriptor;
@@ -31,7 +31,7 @@ public class AutoAnalysisResultsTableModel extends ThreadedTableModelStub<Ghidra
 	private PluginTool tool;
 	private boolean allowReload = false;
 	private double similarityThreshold;
-	private List<Collection> collections;
+	private List<LegacyCollection> collections;
 	private boolean onlyNamed;
 	private boolean fetchSignatures;
 
@@ -55,8 +55,7 @@ public class AutoAnalysisResultsTableModel extends ThreadedTableModelStub<Ghidra
 					program,
 					1,
 					1 - similarityThreshold,
-					onlyNamed,
-					collections
+					onlyNamed
 			);
 
 			monitor.setMaximum(r.size());
@@ -148,10 +147,6 @@ public class AutoAnalysisResultsTableModel extends ThreadedTableModelStub<Ghidra
 
 	public void setSimilarityThreshold(double v) {
 		this.similarityThreshold = v;
-	}
-
-	public void setCollections(List<Collection> collections) {
-		this.collections = collections;
 	}
 
 	public void setOnlyShowNamed(boolean selected) {

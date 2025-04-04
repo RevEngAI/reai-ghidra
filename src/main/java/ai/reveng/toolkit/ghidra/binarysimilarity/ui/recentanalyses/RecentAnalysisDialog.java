@@ -1,7 +1,7 @@
 package ai.reveng.toolkit.ghidra.binarysimilarity.ui.recentanalyses;
 
 import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisStatusChangedEvent;
-import ai.reveng.toolkit.ghidra.core.services.api.types.AnalysisResult;
+import ai.reveng.toolkit.ghidra.core.services.api.types.LegacyAnalysisResult;
 import ai.reveng.toolkit.ghidra.core.services.api.types.BinaryHash;
 import ai.reveng.toolkit.ghidra.core.types.ProgramWithBinaryID;
 import docking.DialogComponentProvider;
@@ -14,12 +14,12 @@ import java.util.Comparator;
 
 
 /**
- * Shows a dialog with a table of {@link AnalysisResult} for a given {@link BinaryHash},
+ * Shows a dialog with a table of {@link LegacyAnalysisResult} for a given {@link BinaryHash},
  * and fires an event when the user picks an analysis
  */
 public class RecentAnalysisDialog extends DialogComponentProvider {
     private final RecentAnalysesTableModel recentAnalysesTableModel;
-    private final GhidraFilterTable<AnalysisResult> recentAnalysesTable;
+    private final GhidraFilterTable<LegacyAnalysisResult> recentAnalysesTable;
     private final PluginTool tool;
     private final Program program;
 
@@ -35,7 +35,7 @@ public class RecentAnalysisDialog extends DialogComponentProvider {
         pickMostRecentButton.setName("Pick most recent");
         pickMostRecentButton.addActionListener(e -> {
             var mostRecent = recentAnalysesTable.getModel().getModelData().stream().max(
-                    Comparator.comparing(AnalysisResult::creation)
+                    Comparator.comparing(LegacyAnalysisResult::creation)
             ).orElseThrow();
             pickAnalysis(mostRecent);
         });
@@ -53,7 +53,7 @@ public class RecentAnalysisDialog extends DialogComponentProvider {
 
     }
 
-    private void pickAnalysis(AnalysisResult result){
+    private void pickAnalysis(LegacyAnalysisResult result){
         tool.firePluginEvent(
                 new RevEngAIAnalysisStatusChangedEvent(
                         "Recent Analysis Dialog",
