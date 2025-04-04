@@ -25,10 +25,10 @@ import javax.annotation.Nullable;
  */
 public interface TypedApiInterface {
     // Analysis
-    List<AnalysisResult> search(
+    List<LegacyAnalysisResult> search(
             BinaryHash hash,
             String binaryName,
-            Collection collection,
+            LegacyCollection collection,
             AnalysisStatus state);
 
     BinaryID analyse(AnalysisOptionsBuilder binHash);
@@ -48,10 +48,23 @@ public interface TypedApiInterface {
         throw new UnsupportedOperationException("getFunctionInfo not implemented yet");
     }
 
-    default List<AnalysisResult> recentAnalyses() {
+    default List<LegacyAnalysisResult> recentAnalyses() {
         throw new UnsupportedOperationException("recentAnalyses not implemented yet");
     }
 
+
+    default List<FunctionMatch> annSymbolsForFunctions(List<FunctionID> fID,
+                                                       int resultsPerFunction,
+                                                       @Nullable
+                                                       List<CollectionID> collections,
+                                                       @Nullable List<AnalysisID> analysisIDs,
+                                                       double distance, boolean debug) {
+        throw new UnsupportedOperationException("annSymbolsForFunctions not implemented yet");
+    }
+
+    default List<FunctionMatch> getSimilarFunctions(FunctionID fID, int resultsPerFunction, double distance, boolean debug) {
+        throw new UnsupportedOperationException("getSimilarFunctions not implemented yet");
+    }
 
     default AnalysisStatus status(BinaryID binID){
         throw new UnsupportedOperationException("status not implemented yet");
@@ -60,20 +73,13 @@ public interface TypedApiInterface {
     /**
      * https://docs.reveng.ai/#/Utility/get_search
      */
-    default List<AnalysisResult> search(BinaryHash hash) {
+    default List<LegacyAnalysisResult> search(BinaryHash hash) {
         throw new UnsupportedOperationException("search not implemented yet");
     }
 
 
     default BinaryHash upload(Path binPath) throws FileNotFoundException {
         throw new UnsupportedOperationException("upload not implemented yet");
-    }
-
-    // ANN
-    default List<FunctionMatch> annSymbolsForFunctions(List<FunctionID> fID,
-                                                       int resultsPerFunction,
-                                                       double distance, boolean debug) {
-        throw new UnsupportedOperationException("annSymbolsForFunctions not implemented yet");
     }
 
     default List<FunctionMatch> annSymbolsForBinary(BinaryID binID, int resultsPerFunction, double distance, boolean debugMode){
@@ -107,13 +113,19 @@ public interface TypedApiInterface {
     List<ModelName> models();
 
     default List<Collection> searchCollections(String searchTerm,
-                                       @Nullable List<SearchFilter> filter,
-                                       int limit,
-                                       int offset,
-                                       @Nullable CollectionResultOrder orderBy,
-                                       @Nullable OrderDirection order
+                                                     @Nullable List<SearchFilter> filter,
+                                                     int limit,
+                                                     int offset,
+                                                     @Nullable CollectionResultOrder orderBy,
+                                                     @Nullable OrderDirection order
     ) {
         throw new UnsupportedOperationException("searchCollections not implemented yet");
+    }
+
+    default List<AnalysisID> searchBinaries(
+            String searchTerm
+    ) {
+        throw new UnsupportedOperationException("searchBinaries not implemented yet");
     }
 
     String getAnalysisLogs(AnalysisID analysisID);
@@ -133,6 +145,11 @@ public interface TypedApiInterface {
         throw new UnsupportedOperationException("getAnalysisIDfromBinaryID not implemented yet");
     }
 
+    default AnalysisResult getInfoForAnalysis(AnalysisID id) {
+        throw new UnsupportedOperationException("getInfoForAnalysis not implemented yet");
+    }
+
+
     default boolean triggerAIDecompilationForFunctionID(FunctionID functionID) {
         throw new UnsupportedOperationException("triggerAIDecompilationForFunctionID not implemented yet");
     }
@@ -147,5 +164,8 @@ public interface TypedApiInterface {
         throw new UnsupportedOperationException("getNameScore not implemented yet");
     }
 
+    default Collection getCollectionInfo(CollectionID id) {
+        throw new UnsupportedOperationException("getCollectionInfo not implemented yet");
+    };
 }
 

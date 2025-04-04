@@ -18,15 +18,14 @@ package ai.reveng.toolkit.ghidra.binarysimilarity;
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.aidecompiler.AIDecompiledWindow;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.autoanalysis.AutoAnalysisDockableDialog;
+import ai.reveng.toolkit.ghidra.binarysimilarity.ui.collectiondialog.DataSetControlPanelComponent;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.functionsimilarity.FunctionSimilarityAction;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.functionsimilarity.FunctionSimilarityComponent;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.misc.AnalysisLogComponent;
 import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisStatusChangedEvent;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.api.ModelName;
-import ai.reveng.toolkit.ghidra.core.services.api.types.AnalysisStatus;
-import ai.reveng.toolkit.ghidra.core.services.api.types.BinaryHash;
-import ai.reveng.toolkit.ghidra.core.services.api.types.FunctionID;
+import ai.reveng.toolkit.ghidra.core.services.api.types.*;
 import ai.reveng.toolkit.ghidra.core.types.ProgramWithBinaryID;
 import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoundariesService;
 import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
@@ -37,6 +36,7 @@ import ghidra.app.context.ProgramLocationActionContext;
 import ghidra.app.plugin.PluginCategoryNames;
 import ghidra.app.plugin.ProgramPlugin;
 import ghidra.app.services.ProgramManager;
+import ghidra.framework.options.SaveState;
 import ghidra.framework.plugintool.PluginInfo;
 import ghidra.framework.plugintool.PluginTool;
 import ghidra.framework.plugintool.util.PluginStatus;
@@ -47,6 +47,7 @@ import ghidra.util.Msg;
 import ghidra.util.task.RunManager;
 import ghidra.util.task.TaskLauncher;
 
+import java.util.Arrays;
 import java.util.Optional;
 
 /**
@@ -70,6 +71,7 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 	private final AutoAnalysisDockableDialog autoAnalyse;
 	private final AIDecompiledWindow decompiledWindow;
 	private final AnalysisLogComponent analysisLogComponent;
+	private final DataSetControlPanelComponent collectionsComponent;
 
 	public FunctionSimilarityComponent getFunctionSimilarityComponent() {
 		return functionSimilarityComponent;
@@ -118,6 +120,11 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 		// Install analysis log viewer
 		analysisLogComponent = new AnalysisLogComponent(tool);
 		tool.addComponentProvider(analysisLogComponent, false);
+
+		// Install Collections Control Panel
+		collectionsComponent = new DataSetControlPanelComponent(tool, REVENG_AI_NAMESPACE);
+		collectionsComponent.addToTool();
+//		tool.addComponentProvider(collectionsComponent, false);
 
 	}
 
@@ -288,6 +295,35 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 
 	}
 
+	@Override
+	public void readDataState(SaveState saveState) {
+		int[] rawCollectionIDs = saveState.getInts("collectionIDs", new int[0]);
+		var restoredCollections = Arrays.stream(rawCollectionIDs)
+				.mapToObj(CollectionID::new)
+				.map(cID -> apiService.getApi().getCollectionInfo(cID))
+				.toList();
+		apiService.setActiveCollections(restoredCollections);
+
+//		int[] rawAnalysisIDs = saveState.getInts("analysisIDs", new int[0]);
+//		var restoredAnalysisIDs = Arrays.stream(rawAnalysisIDs)
+//				.mapToObj(AnalysisID::new)
+//				.map(aID -> apiService.getApi().getInfoForAnalysis(aID))
+//				.toList();
+//		apiService.setAnalysisIDMatchFilter(restoredAnalysisIDs);
+//
+//		collectionsComponent.reloadFromService();
+
+
+	}
+
+	@Override
+	public void writeDataState(SaveState saveState) {
+		int[] collectionIDs = apiService.getActiveCollections().stream().map(Collection::collectionID).mapToInt(CollectionID::id).toArray();
+		saveState.putInts("collectionIDs", collectionIDs);
+
+//		int[] analysisIDs = apiService.getActiveAnalysisIDsFilter().stream().map(AnalysisResult::analysisID).mapToInt(AnalysisID::id).toArray();
+//		saveState.putInts("analysisIDs", analysisIDs);
+	}
 
 	private boolean functionHasAssociatedID(Function function){
 		return apiService.getFunctionIDFor(function).isPresent();

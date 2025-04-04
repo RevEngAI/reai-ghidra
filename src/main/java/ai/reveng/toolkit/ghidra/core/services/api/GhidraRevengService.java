@@ -6,6 +6,7 @@ import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisStatusChangedEvent;
 import ai.reveng.toolkit.ghidra.core.services.api.mocks.MockApi;
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
 import ai.reveng.toolkit.ghidra.core.services.api.types.Collection;
+import ai.reveng.toolkit.ghidra.core.services.api.types.LegacyCollection;
 import ai.reveng.toolkit.ghidra.core.services.api.types.binsync.*;
 import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.APIAuthenticationException;
 import ai.reveng.toolkit.ghidra.core.types.ProgramWithBinaryID;
@@ -60,6 +61,8 @@ public class GhidraRevengService {
 
     private TypedApiInterface api;
     private ApiInfo apiInfo;
+    private final List<Collection> collections = new ArrayList<>();
+    private final List<AnalysisResult> analysisIDFilter = new ArrayList<>();
 
     public TypedApiInterface getApi() {
         return api;
@@ -267,10 +270,10 @@ public class GhidraRevengService {
         return Optional.ofNullable(func);
     }
 
-    public List<AnalysisResult> searchForHash(BinaryHash hash){
+    public List<LegacyAnalysisResult> searchForHash(BinaryHash hash){
         return api.search(hash);
     }
-    public List<AnalysisResult> searchForProgram(Program program) {
+    public List<LegacyAnalysisResult> searchForProgram(Program program) {
         return searchForHash(hashOfProgram(program));
     }
 
@@ -303,7 +306,9 @@ public class GhidraRevengService {
         // Get the FunctionIDs for all the functions
         List<FunctionID> functionIDs = functions.stream().map(this::getFunctionIDFor).map(Optional::orElseThrow).toList();
         // Look up the matches via the API
-        List<FunctionMatch> matches = api.annSymbolsForFunctions(functionIDs, results, distance, debugMode);
+        var collections = this.getActiveCollections().stream().map(Collection::collectionID).toList();
+        List<AnalysisID> analysisIDs = this.getActiveAnalysisIDsFilter().stream().map(AnalysisResult::analysisID).toList();
+        List<FunctionMatch> matches = api.annSymbolsForFunctions(functionIDs, results, collections, analysisIDs, distance, debugMode);
 
         // Prepare the map from FunctionID -> Ghidra Function
         BiMap<FunctionID, Function> functionMap = getFunctionMap(functions.get(0).getProgram());
@@ -348,8 +353,10 @@ public class GhidraRevengService {
     }
 
     public Map<Function, List<GhidraFunctionMatch>> getSimilarFunctions(Program program, int results, Double distance, Boolean debugMode) {
-        return getSimilarFunctions(program, results, distance, debugMode, List.of());
+        var collections = this.getActiveCollections();
+        return getSimilarFunctions(program, results, distance, debugMode, collections);
     }
+
 
 
 
@@ -731,17 +738,34 @@ public class GhidraRevengService {
         openPortal(PORTAL_FUNCTIONS, String.valueOf(functionID.value()));
     }
 
-    public void openCollectionInPortal(Collection collection) {
-        openPortal("collections/", String.valueOf(collection.collectionID()));
+    public void openCollectionInPortal(LegacyCollection collection) {
+        openPortal("collections/", String.valueOf(collection.collectionID().id()));
     }
+    public void openCollectionInPortal(Collection collection) {
+        openPortal("collections/", String.valueOf(collection.collectionID().id()));
+    }
+
+    public void openPortalFor(Collection c){
+        openCollectionInPortal(c);
+    }
+    public void openPortalFor(FunctionID f){
+        openFunctionInPortal(f);
+    }
+
+    public void openPortalFor(AnalysisResult analysisResult) {
+        openPortal("analyses", String.valueOf(analysisResult.analysisID().id()));
+    }
+
 
     public void openPortal(String... subPath) {
         // For now this is hardcoded, but it should be configurable later
         // Potentially this will be provided by an endpoint in the API
-        StringBuilder sb = new StringBuilder("https://portal.reveng.ai/");
+        StringBuilder sb = new StringBuilder("https://portal.reveng.ai");
         for (String s : subPath) {
+            if (!s.startsWith("?")){
+                sb.append("/");
+            }
             sb.append(s);
-            sb.append("/");
         }
         openURI(URI.create(sb.toString()));
     }
@@ -771,4 +795,23 @@ public class GhidraRevengService {
         }
     }
 
+
+    public void setActiveCollections(List<Collection> collections){
+        Msg.info(this, "Setting active collections to %s".formatted(collections));
+        this.collections.clear();
+        this.collections.addAll(collections);
+    }
+
+    public List<Collection> getActiveCollections() {
+        return Collections.unmodifiableList(this.collections);
+    }
+
+    public void setAnalysisIDMatchFilter(List<AnalysisResult> analysisIDS) {
+        this.analysisIDFilter.clear();
+        this.analysisIDFilter.addAll(analysisIDS);
+    }
+
+    public List<AnalysisResult> getActiveAnalysisIDsFilter() {
+        return Collections.unmodifiableList(this.analysisIDFilter);
+    }
 }

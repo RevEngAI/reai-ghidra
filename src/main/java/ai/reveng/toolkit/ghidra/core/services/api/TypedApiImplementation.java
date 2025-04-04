@@ -2,6 +2,7 @@ package ai.reveng.toolkit.ghidra.core.services.api;
 
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
 import ai.reveng.toolkit.ghidra.core.services.api.types.Collection;
+import ai.reveng.toolkit.ghidra.core.services.api.types.LegacyCollection;
 import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.APIAuthenticationException;
 import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.APIConflictException;
 import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.InvalidAPIInfoException;
@@ -105,15 +106,15 @@ public class TypedApiImplementation implements TypedApiInterface {
     Not all parameters are required, for example /search?search=sha_256_hash:<hash> only searches for binaries and collection with hashes like <hash>.
 
      */
-    public List<AnalysisResult> search(BinaryHash hash) {
+    public List<LegacyAnalysisResult> search(BinaryHash hash) {
         return search(hash, null, null, null);
     }
 
     @Override
-    public List<AnalysisResult> search(
+    public List<LegacyAnalysisResult> search(
             BinaryHash hash,
             String binaryName,
-            Collection collection,
+            LegacyCollection collection,
             AnalysisStatus state){
 
         JSONObject parameters = new JSONObject();
@@ -137,7 +138,7 @@ public class TypedApiImplementation implements TypedApiInterface {
                         .header("Content-Type", "application/json" )
                         .build());
 
-        return mapJSONArray(json.getJSONArray("query_results"), AnalysisResult::fromJSONObject);
+        return mapJSONArray(json.getJSONArray("query_results"), LegacyAnalysisResult::fromJSONObject);
     }
 
     private V2Response sendVersion2Request(HttpRequest request){
@@ -211,14 +212,22 @@ public class TypedApiImplementation implements TypedApiInterface {
     @Override
     public List<FunctionMatch> annSymbolsForFunctions(List<FunctionID> fID,
                                                       int resultsPerFunction,
-                                                      double distance, boolean debug) {
+                                                      @Nullable List<CollectionID> collections,
+                                                      @Nullable List<AnalysisID> analysisIDs,
+                                                      double distance, boolean debug
+    ) {
 
-//        throw new UnsupportedOperationException("annSymbolsForFunctions not implemented yet");
         var params = new JSONObject();
         params.put("result_per_function", resultsPerFunction);
         params.put("distance", distance);
         params.put("debug_mode", debug);
         params.put("function_id_list", fID.stream().map(FunctionID::value).toList());
+        if (collections != null && !collections.isEmpty()){
+            params.put("collection_search_list", collections.stream().map(CollectionID::id).toList());
+        }
+        if (analysisIDs != null && !analysisIDs.isEmpty()){
+            params.put("binaries_search_list", analysisIDs.stream().map(AnalysisID::id).toList());
+        }
 
         var request = requestBuilderForEndpoint(APIVersion.V1, "ann/symbol/batch")
                 .POST(HttpRequest.BodyPublishers.ofString(params.toString()))
@@ -274,7 +283,7 @@ public class TypedApiImplementation implements TypedApiInterface {
                 .orElse("");
     }
     /**
-     * https://api.reveng.ai/v2/docs#tag/Collections/operation/list_collections_v2_collections_get
+     * <a href="https://api.reveng.ai/v2/docs#tag/Collections/operation/list_collections_v2_collections_get">...</a>
      *
      * Parameters are passed via query parameters
      * @param searchTerm
@@ -282,11 +291,11 @@ public class TypedApiImplementation implements TypedApiInterface {
      */
     @Override
     public List<Collection> searchCollections(String searchTerm,
-                                              @Nullable List<SearchFilter> filter,
-                                              int limit,
-                                              int offset,
-                                              @Nullable CollectionResultOrder orderBy,
-                                              @Nullable OrderDirection order
+                                                    @Nullable List<SearchFilter> filter,
+                                                    int limit,
+                                                    int offset,
+                                                    @Nullable CollectionResultOrder orderBy,
+                                                    @Nullable OrderDirection order
     ){
         Map<String, String> params = new HashMap<>();
         params.put("search_term", searchTerm);
@@ -309,7 +318,32 @@ public class TypedApiImplementation implements TypedApiInterface {
                 .header("Content-Type", "application/json" )
                 .build();
         var response = sendVersion2Request(request);
-        return mapJSONArray(response.getJsonData().getJSONArray("results"), Collection::fromJSONObject);
+        var resultAsLegacyCollections =  mapJSONArray(response.getJsonData().getJSONArray("results"), LegacyCollection::fromJSONObject);
+        return resultAsLegacyCollections.stream().map( legacyCollection -> this.getCollectionInfo(legacyCollection.collectionID())).toList();
+    }
+
+    /**
+     * <a href="https://api.reveng.ai/v2/docs#tag/Platform-Search/operation/search_binaries_v2_search_binaries_get">Binaries Search</a>
+     * @param searchTerm
+     * @return
+     */
+    @Override
+    public List<AnalysisID> searchBinaries(String searchTerm) {
+        Map<String, String> params = new HashMap<>();
+        params.put("partial_name", searchTerm);
+        params.put("page_size", "20");
+//        params.put("page", String.valueOf(offset));
+
+        var request = requestBuilderForEndpoint(APIVersion.V2, "search", "binaries", queryParams(params))
+                .timeout(Duration.ofSeconds(10))
+                .method("GET", HttpRequest.BodyPublishers.ofString(params.toString()))
+                .header("Content-Type", "application/json" )
+                .build();
+
+        var response = sendVersion2Request(request);
+        var resultIDs =  mapJSONArray(response.getJsonData().getJSONArray("results"), entry -> ((JSONObject) entry).getInt("analysis_id"))
+                .stream().map(AnalysisID::new).toList();
+        return resultIDs;
     }
 
     @Override
@@ -494,6 +528,21 @@ public class TypedApiImplementation implements TypedApiInterface {
     }
 
     /**
+     * <a href="https://api.reveng.ai/v2/docs#tag/Collections/operation/get_collection_v2_collections__collection_id__get">Collection Info</a>
+     *
+     * @param id
+     * @return
+     */
+    @Override
+    public Collection getCollectionInfo(CollectionID id) {
+        var request = requestBuilderForEndpoint(APIVersion.V2, "collections", String.valueOf(id.id()))
+                .GET()
+                .build();
+        var response = sendVersion2Request(request);
+        return Collection.fromJSONObject(response.getJsonData());
+    }
+
+    /**
      * https://api.reveng.ai/v2/docs#tag/Confidence-Scores/operation/function_threat_score_v2_confidence_functions_threat_score_post
      */
     public List<FunctionNameScore> getNameScores(List<FunctionMatch> matches, Boolean isDebug) {
@@ -515,6 +564,20 @@ public class TypedApiImplementation implements TypedApiInterface {
                 .build();
         JSONArray responseData = (JSONArray) sendVersion2Request(request).data();
         return mapJSONArray(responseData, FunctionNameScore::fromJSONObject);
+    }
+
+    /**
+     *
+     * @param id
+     * @return
+     */
+    @Override
+    public AnalysisResult getInfoForAnalysis(AnalysisID id) {
+        var request = requestBuilderForEndpoint(APIVersion.V2, "analyses", String.valueOf(id.id()))
+                .GET()
+                .build();
+        var response = sendVersion2Request(request);
+        return AnalysisResult.fromJSONObject(this, response.getJsonData());
     }
 }
 
