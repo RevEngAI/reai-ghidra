@@ -1,6 +1,7 @@
 package ai.reveng.toolkit.ghidra.binarysimilarity.ui.recentanalyses;
 
 import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisStatusChangedEvent;
+import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.api.types.LegacyAnalysisResult;
 import ai.reveng.toolkit.ghidra.core.services.api.types.BinaryHash;
 import ai.reveng.toolkit.ghidra.core.types.ProgramWithBinaryID;
@@ -54,10 +55,13 @@ public class RecentAnalysisDialog extends DialogComponentProvider {
     }
 
     private void pickAnalysis(LegacyAnalysisResult result){
+        var service = tool.getService(GhidraRevengService.class);
+        var analysisID = service.getApi().getAnalysisIDfromBinaryID(result.binary_id());
+
         tool.firePluginEvent(
                 new RevEngAIAnalysisStatusChangedEvent(
                         "Recent Analysis Dialog",
-                        new ProgramWithBinaryID(program, result.binary_id()),
+                        new ProgramWithBinaryID(program, result.binary_id(), analysisID),
                         result.status()
                 )
         );

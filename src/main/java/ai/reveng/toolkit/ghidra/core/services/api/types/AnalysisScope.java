@@ -5,7 +5,7 @@ public enum AnalysisScope {
     PUBLIC("PUBLIC"),
     ALL("ALL");
 
-    private final String scope;
+    public final String scope;
     AnalysisScope(final String scope) {
         this.scope = scope;
     }

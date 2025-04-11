@@ -1,3 +1,4 @@
+import ai.reveng.toolkit.ghidra.core.services.api.AnalysisOptionsBuilder;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.api.types.ApiInfo;
 import ai.reveng.toolkit.ghidra.core.services.api.types.BinaryID;
@@ -16,7 +17,8 @@ public class RevEngAutoRenamePostScript extends GhidraScript {
         // Services are not available in headless mode, so we have to instantiate it ourself
         var ghidraRevengService = new GhidraRevengService(ApiInfo.fromConfig());
         ghidraRevengService.upload(currentProgram);
-        var binID = ghidraRevengService.analyse(currentProgram);
+        AnalysisOptionsBuilder options = AnalysisOptionsBuilder.forProgram(currentProgram);
+        var binID = ghidraRevengService.analyse(currentProgram, options, monitor);
         // Wait for analysis to finish
         waitForAnalysis(ghidraRevengService, binID.binaryID());
 

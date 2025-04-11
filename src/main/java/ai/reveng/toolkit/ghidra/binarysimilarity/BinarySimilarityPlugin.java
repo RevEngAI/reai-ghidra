@@ -17,6 +17,7 @@ package ai.reveng.toolkit.ghidra.binarysimilarity;
 
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.aidecompiler.AIDecompiledWindow;
+import ai.reveng.toolkit.ghidra.binarysimilarity.ui.analysiscreation.RevEngAIAnalysisOptionsDialog;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.autoanalysis.AutoAnalysisDockableDialog;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.collectiondialog.DataSetControlPanelComponent;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.functionsimilarity.FunctionSimilarityAction;
@@ -35,6 +36,7 @@ import ghidra.app.context.ProgramActionContext;
 import ghidra.app.context.ProgramLocationActionContext;
 import ghidra.app.plugin.PluginCategoryNames;
 import ghidra.app.plugin.ProgramPlugin;
+import ghidra.app.plugin.core.analysis.AnalysisOptionsDialog;
 import ghidra.app.services.ProgramManager;
 import ghidra.framework.options.SaveState;
 import ghidra.framework.plugintool.PluginInfo;
@@ -136,72 +138,23 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 	}
 
 	private void setupActions() {
-
-//		uploadBinary.setMenuBarData(new MenuData(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Upload Binary" },
-//				ReaiPluginPackage.NAME));
-//		uploadBinary.setPopupMenuData(new MenuData(new String[] { "Upload Binary" }, ReaiPluginPackage.NAME));
-//		tool.addAction(uploadBinary);
-
-		new ActionBuilder("Upload Binary", this.getName())
-				.withContext(ProgramActionContext.class)
-				.enabledWhen(context -> context.getProgram() != null)
-				.onAction(context -> {
-					TaskLauncher.launchModal("Upload Binary", monitor -> {
-						monitor.setMessage("Uploading binary...");
-						BinaryHash hash = apiService.upload(context.getProgram());
-						Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Upload Binary",
-								"Binary uploaded with hash: " + hash.sha256());
-					});
-				})
-				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Upload Binary" })
-//				.popupMenuPath(new String[] { "Upload Binary" })
-				.buildAndInstall(tool);
-
 		new ActionBuilder("Create new RevEng.AI Analysis for Binary", this.getName())
-				.withContext(ProgramActionContext.class)
-				.enabledWhen(context -> context.getProgram() != null && !apiService.isKnownProgram(context.getProgram()))
+				.enabledWhen(context -> {
+					var currentProgram = tool.getService(ProgramManager.class).getCurrentProgram();
+					if (currentProgram == null) {
+						return false;
+					}
+                    return !apiService.isKnownProgram(currentProgram);
+                })
 				.onAction(context -> {
-					TaskLauncher.launchModal("Create new Analysis for Binary", monitor -> {
-						// Check if the program has been analyzed already
-//						isAnalyzed = options.getBoolean(Program.ANALYZED_OPTION_NAME, false);
-						if (!GhidraProgramUtilities.isAnalyzed(context.getProgram())) {
-							Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Create new Analysis for Binary",
-									"Program has not been auto-analyzed by Ghidra yet. Please run auto-analysis first.");
-							return;
-						}
-						// Get the available models
-						monitor.setMessage("Getting available models...");
-						var models = apiService.getAvailableModels();
-						var suggestedModel = apiService.getModelNameForProgram(context.getProgram(), models);
-						// Show user a dropdown menu to pick the model
-						var selectedModel = OptionDialog.showInputChoiceDialog(
-								null,
-								ReaiPluginPackage.WINDOW_PREFIX + "Create new Analysis for Binary",
-								"Select a model to use for analysis",
-								models.stream().map(ModelName::modelName).toArray(String[]::new),
-								suggestedModel.modelName(),
-								OptionDialog.QUESTION_MESSAGE);
-
-						if (selectedModel == null) {
-							// User canceled the model choice dialog, so we cancel the analysis task
-							return;
-						}
-						monitor.setMessage("Uploading binary...");
-						apiService.upload(context.getProgram());
-						monitor.setProgress(99);
-						monitor.setMessage("Launching Analysis");
-						ProgramWithBinaryID binID = apiService.analyse(context.getProgram(), new ModelName(selectedModel));
+					var program = tool.getService(ProgramManager.class).getCurrentProgram();
+					if (!GhidraProgramUtilities.isAnalyzed(program)) {
 						Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Create new Analysis for Binary",
-								"Analysis is running for: " + binID + "\n"
-										+ "You will be notified when the analysis is complete.");
-						apiService.addBinaryIDtoProgramOptions(context.getProgram(), binID.binaryID());
-						loggingService.info("Analysis started for " + binID);
-						spawnAnalysisStatusChecker(binID);
-						// Trigger a context refresh so the UI status of the actions gets updated
-						// because now other actions are available
-						tool.contextChanged(null);
-					});
-
+								"Program has not been auto-analyzed by Ghidra yet. Please run auto-analysis first.");
+						return;
+					}
+					var analysisOptionsDialog = new RevEngAIAnalysisOptionsDialog(this, program);
+					tool.showDialog(analysisOptionsDialog);
 				})
 				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Create new Analysis for Binary" })
 				.buildAndInstall(tool);
@@ -340,43 +293,13 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 		apiService = tool.getService(GhidraRevengService.class);
 	}
 
-	private void spawnAnalysisStatusChecker(ProgramWithBinaryID programWithBinaryID){
-		runMgr.runNext(monitor -> {
-            monitor.setMessage("Checking analysis status");
-			var binID = programWithBinaryID.binaryID();
-			var analysisID = apiService.getApi().getAnalysisIDfromBinaryID(binID);
-            // Check the status of the analysis every 500ms
-			// TODO: In the future this can be made smarter and e.g. wait longer if the analysis log hasn't changed
-            AnalysisStatus lastStatus = null;
-            while (true) {
-                AnalysisStatus currentStatus = apiService.pollStatus(programWithBinaryID.binaryID());
-				if (currentStatus != AnalysisStatus.Queued) {
-					// Analysis log endpoint only starts to return data after the analysis is processing
-					String logs = apiService.getAnalysisLog(analysisID);
-					analysisLogComponent.setLogs(logs);
-				}
-				loggingService.info("Analysis status: " + currentStatus);
-                if (currentStatus != lastStatus) {
-					loggingService.info("Sending RevEngAIAnalysisStatusChangedEvent for new status: " + currentStatus);
-                    tool.firePluginEvent(new RevEngAIAnalysisStatusChangedEvent("Checker", programWithBinaryID, currentStatus));
-                    lastStatus = currentStatus;
-                }
-
-				if (lastStatus == AnalysisStatus.Complete || lastStatus == AnalysisStatus.Error) {
-					// Show the UI message for the completion
-					Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Analysis Complete",
-							"Analysis for " + binID + " is complete with status: " + lastStatus);
-					// Open the auto analysis panel
-					autoAnalyse.triggerActivation();
-					break;
-				}
-
-                try {
-                    Thread.sleep(500);
-                } catch (InterruptedException e) {
-                    loggingService.error(e.getMessage());
-                }
-            }
-        }, "Checking analysis status", 0);
+	public void setLogs(String logs) {
+		analysisLogComponent.setLogs(logs);
 	}
+
+	public void triggerAutoAnalysisFetch() {
+		autoAnalyse.triggerActivation();
+	}
+
+
 }

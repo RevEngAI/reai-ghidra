@@ -102,14 +102,14 @@ public class RevEngMetadataProvider extends ComponentProviderAdapter {
     public void locationChanged(ProgramLocation loc) {
         functionID = null;
         if (loc != null) {
-            var api = tool.getService(GhidraRevengService.class);
-            serverField.setText(api.getServer().toString());
+            var revengService = tool.getService(GhidraRevengService.class);
+            serverField.setText(revengService.getServer().toString());
             var func = loc.getProgram().getFunctionManager().getFunctionContaining(loc.getAddress());
             if (func != null) {
                 function = func;
-                var kProg = api.getKnownProgram(loc.getProgram());
+                var kProg = revengService.getKnownProgram(loc.getProgram());
                 kProg.ifPresent(p -> {
-                    Optional<FunctionID> f = api.getFunctionIDFor(p, func);
+                    Optional<FunctionID> f = revengService.getFunctionIDFor(p, func);
                     f.ifPresent(functionID -> {
                         this.functionID = functionID;
                     });

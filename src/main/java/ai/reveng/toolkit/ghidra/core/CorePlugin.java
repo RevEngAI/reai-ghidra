@@ -44,6 +44,7 @@ import ghidra.app.context.ProgramActionContext;
 import ghidra.app.plugin.PluginCategoryNames;
 import ghidra.app.plugin.ProgramPlugin;
 import ghidra.app.services.ConsoleService;
+import ghidra.framework.options.SaveState;
 import ghidra.framework.plugintool.*;
 import docking.options.OptionsService;
 import docking.widgets.filechooser.GhidraFileChooser;
@@ -256,10 +257,11 @@ public class CorePlugin extends ProgramPlugin {
 			}
 			var binID = maybeBinID.get();
 			AnalysisStatus status = revengService.pollStatus(binID);
+			var analysisID = revengService.getApi().getAnalysisIDfromBinaryID(binID);
 			tool.firePluginEvent(
 					new RevEngAIAnalysisStatusChangedEvent(
 					"programActivated",
-							new ProgramWithBinaryID(program, binID),
+							new ProgramWithBinaryID(program, binID, analysisID),
 							status));
 		}
 	}
@@ -309,5 +311,4 @@ public class CorePlugin extends ProgramPlugin {
 		Msg.showInfo(outDir, null, ReaiPluginPackage.WINDOW_PREFIX + "Export Logs",
 				"Successfully exported logs to: " + outDir.toString());
 	}
-
 }
