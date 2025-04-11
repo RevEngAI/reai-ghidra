@@ -1,5 +1,6 @@
 package ai.reveng.toolkit.ghidra.core.types;
 
+import ai.reveng.toolkit.ghidra.core.services.api.types.AnalysisID;
 import ai.reveng.toolkit.ghidra.core.services.api.types.BinaryID;
 import ghidra.program.model.listing.Program;
 
@@ -10,6 +11,7 @@ import ghidra.program.model.listing.Program;
  */
 public record ProgramWithBinaryID(
         Program program,
-        BinaryID binaryID
+        BinaryID binaryID,
+        AnalysisID analysisID
 ) {
 }

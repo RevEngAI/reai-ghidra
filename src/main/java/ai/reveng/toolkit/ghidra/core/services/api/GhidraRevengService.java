@@ -1,6 +1,7 @@
 package ai.reveng.toolkit.ghidra.core.services.api;
 
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
+import ai.reveng.toolkit.ghidra.binarysimilarity.BinarySimilarityPlugin;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.aidecompiler.AIDecompiledWindow;
 import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisStatusChangedEvent;
 import ai.reveng.toolkit.ghidra.core.services.api.mocks.MockApi;
@@ -29,6 +30,7 @@ import ghidra.util.exception.InvalidInputException;
 import ghidra.util.exception.NoValueException;
 import ghidra.util.task.TaskMonitor;
 
+import javax.annotation.Nullable;
 import java.awt.*;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -170,6 +172,12 @@ public class GhidraRevengService {
                 .toList();
     }
 
+    /**
+     * Loads the function info into a dedicated user property map
+     *
+     * @param program
+     * @param binID
+     */
     private void loadFunctionInfo(Program program, BinaryID binID){
         List<FunctionInfo> functionInfo = api.getFunctionInfo(binID);
         var transactionID = program.startTransaction("Load Function Info");
@@ -373,26 +381,6 @@ public class GhidraRevengService {
     }
 
 
-    public ProgramWithBinaryID analyse(Program program) {
-        return analyse(program, getModelNameForProgram(program));
-    }
-
-    public ProgramWithBinaryID analyse(Program program, ModelName modelName){
-        if (isKnownProgram(program)){
-            return new ProgramWithBinaryID(program, getBinaryIDFor(program).orElseThrow());
-        }
-
-        AnalysisOptionsBuilder builder = new AnalysisOptionsBuilder();
-        builder.hash(hashOfProgram(program))
-                .functionBoundaries(program.getImageBase().getOffset(), exportFunctionBoundaries(program))
-                .modelName(modelName)
-                .fileName(program.getName());
-
-        var binID = api.analyse(builder);
-        statusCache.put(binID, AnalysisStatus.Queued);
-        return new ProgramWithBinaryID(program, binID);
-    }
-
     private ModelName getModelNameForProgram(Program program){
         return getModelNameForProgram(program, this.api.models());
     }
@@ -408,7 +396,7 @@ public class GhidraRevengService {
         return new ModelName(s.sorted(Collections.reverseOrder()).toList().get(0));
     }
 
-    private List<FunctionBoundary> exportFunctionBoundaries(Program program){
+    public static List<FunctionBoundary> exportFunctionBoundaries(Program program){
         List<FunctionBoundary> result = new ArrayList<>();
         Address imageBase = program.getImageBase();
         program.getFunctionManager().getFunctions(true).forEach(
@@ -527,9 +515,18 @@ public class GhidraRevengService {
 
         }
     }
+    public ProgramWithBinaryID analyse(Program program, AnalysisOptionsBuilder analysisOptionsBuilder, TaskMonitor monitor) throws CancelledException {
+        var programWithBinaryID = startAnalysis(program, analysisOptionsBuilder);
+        waitForFinishedAnalysis(monitor, programWithBinaryID, null);
+        return programWithBinaryID;
+    }
 
     public Optional<ProgramWithBinaryID> getKnownProgram(Program program) {
-        return getBinaryIDFor(program).map(binID -> new ProgramWithBinaryID(program, binID));
+        return getBinaryIDFor(program).map(binID -> {
+                    var analysisID = api.getAnalysisIDfromBinaryID(binID);
+                    return new ProgramWithBinaryID(program, binID, analysisID);
+                }
+        );
     }
 
     public Optional<FunctionDataTypeMessage> getFunctionSignatureArtifact(BinaryID binID, FunctionID functionID) {
@@ -814,4 +811,56 @@ public class GhidraRevengService {
     public List<AnalysisResult> getActiveAnalysisIDsFilter() {
         return Collections.unmodifiableList(this.analysisIDFilter);
     }
+
+    /**
+     * @return The final AnalysisStatus, should be either Complete or Error
+     */
+    public AnalysisStatus waitForFinishedAnalysis(TaskMonitor monitor, ProgramWithBinaryID programWithID,
+                                                  @Nullable BinarySimilarityPlugin plugin) throws CancelledException {
+        monitor.setMessage("Checking analysis status");
+        // Check the status of the analysis every 500ms
+        // TODO: In the future this can be made smarter and e.g. wait longer if the analysis log hasn't changed
+        AnalysisStatus lastStatus = null;
+        while (true) {
+            AnalysisStatus currentStatus = this.api.status(programWithID.analysisID());
+            if (currentStatus != AnalysisStatus.Queued) {
+                // Analysis log endpoint only starts to return data after the analysis is processing
+                String logs = this.getAnalysisLog(programWithID.analysisID());
+                if (plugin != null) {
+                    plugin.setLogs(logs);
+                }
+                var logsLines = logs.lines().toList();
+                var lastLine = logsLines.get(logsLines.size() - 1);
+                monitor.setMessage(lastLine);
+            }
+            if (currentStatus != lastStatus) {
+                lastStatus = currentStatus;
+            }
+
+            if (lastStatus == AnalysisStatus.Complete || lastStatus == AnalysisStatus.Error) {
+                // Show the UI message for the completion
+                Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Analysis Complete",
+                        "Analysis for " + programWithID + " finished with status: " + lastStatus);
+                // Open the auto analysis panel
+//                autoAnalyse.triggerActivation();
+                return lastStatus;
+            }
+            monitor.checkCancelled();
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                if (plugin != null) {
+                    plugin.loggingService.error(e.getMessage());
+                }
+            }
+        }
+    }
+
+    public ProgramWithBinaryID startAnalysis(Program program, AnalysisOptionsBuilder analysisOptionsBuilder) {
+        var binaryID = api.analyse(analysisOptionsBuilder);
+        AnalysisID analysisID = api.getAnalysisIDfromBinaryID(binaryID);
+        addBinaryIDtoProgramOptions(program, binaryID);
+        return new ProgramWithBinaryID(program, binaryID, analysisID);
+    }
+
 }
