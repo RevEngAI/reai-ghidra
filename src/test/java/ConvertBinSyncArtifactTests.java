@@ -2,6 +2,8 @@ import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.api.V2Response;
 import ai.reveng.toolkit.ghidra.core.services.api.types.FunctionDataTypeStatus;
 
+import ai.reveng.toolkit.ghidra.core.services.api.types.FunctionDataTypeStatusBatch;
+import ai.reveng.toolkit.ghidra.core.services.api.types.FunctionID;
 import ghidra.program.model.data.CategoryPath;
 import ghidra.program.model.data.DataType;
 import ghidra.program.model.data.Structure;
@@ -146,6 +148,15 @@ public class ConvertBinSyncArtifactTests extends AbstractGhidraHeadlessIntegrati
         assert !functionDataTypeStatus.completed();
         assert functionDataTypeStatus.data_types().isEmpty();
         assert functionDataTypeStatus.status().equals("pending");
+    }
+
+    @Test
+    public void testBatchResponse() {
+        var mockResponse = getMockResponseFromFile("data_types_batch_response.json");
+        FunctionDataTypeStatusBatch batchResponse = FunctionDataTypeStatusBatch.fromJson(mockResponse.getJsonData());
+
+        var r1 = batchResponse.statusForFunction(new FunctionID(266294328));
+        assert r1.data_types().orElseThrow().functionName().equals("sort_pairs_by_mtime");
     }
 
 
