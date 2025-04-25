@@ -3,6 +3,7 @@ package ai.reveng.toolkit.ghidra.core.services.api.types;
 import ai.reveng.toolkit.ghidra.core.services.api.types.binsync.FunctionDataTypeMessage;
 import org.json.JSONObject;
 
+import javax.annotation.Nullable;
 import java.util.Optional;
 
 /**
@@ -48,16 +49,25 @@ public record FunctionDataTypeStatus(
         boolean completed,
         Optional<FunctionDataTypeMessage> data_types,
 //        JSONObject data_types,
-        String status
-) {
+        String status,
+        @Nullable Integer dataTypesVersion,
+        @Nullable FunctionID functionID
+        ) {
 
     public static FunctionDataTypeStatus fromJson(JSONObject json) {
-
+        Integer dataTypesVersion;
+        if (json.has("data_types_version") && !json.isNull("data_types_version")) {
+            dataTypesVersion = json.getInt("data_types_version");
+        } else {
+            dataTypesVersion = null;
+        }
         return new FunctionDataTypeStatus(
                 json.getBoolean("completed"),
                 // Can be null if the function is not completed yet
                 !json.isNull("data_types") ? Optional.of(FunctionDataTypeMessage.fromJsonObject(json.getJSONObject("data_types"))) : Optional.empty(),
-                json.getString("status")
+                json.getString("status"),
+                dataTypesVersion,
+                json.has("function_id") ? new FunctionID(json.getInt("function_id")) : null
         );
     }
 }
