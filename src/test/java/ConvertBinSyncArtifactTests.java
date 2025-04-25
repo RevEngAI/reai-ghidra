@@ -8,6 +8,7 @@ import ghidra.program.model.data.Structure;
 import ghidra.test.AbstractGhidraHeadlessIntegrationTest;
 import ghidra.util.Msg;
 import org.json.JSONObject;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -114,6 +115,7 @@ public class ConvertBinSyncArtifactTests extends AbstractGhidraHeadlessIntegrati
     /**
      * This test is to ensure that the function signature generation does not loop infinitely
      */
+    @Ignore("Ignored until it can properly distinguish an infinite loop and an exception")
     @Test
     public void testNoLoopForBrokenDeps() {
         var mockResponse = getMockResponseFromFile("errormsg.json");

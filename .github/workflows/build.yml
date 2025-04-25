@@ -48,3 +48,6 @@ jobs:
 
       - name: Build
         run: gradle buildExtension
+
+      - name: Run tests
+        run: gradle test
