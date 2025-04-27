@@ -392,7 +392,7 @@ public class TypedApiImplementation implements TypedApiInterface {
         }
         var requestBuilder = HttpRequest.newBuilder(uri);
         headers.forEach(requestBuilder::header);
-        requestBuilder.timeout(Duration.ofSeconds(1));
+        requestBuilder.timeout(Duration.ofSeconds(5));
         return requestBuilder;
     }
     @Override
