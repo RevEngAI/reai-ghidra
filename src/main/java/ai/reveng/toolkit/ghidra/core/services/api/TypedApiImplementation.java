@@ -383,7 +383,7 @@ public class TypedApiImplementation implements TypedApiInterface {
         } else {
             throw new RuntimeException("Unknown API version");
         }
-        String endpoint = String.join("/", endpointPaths).replace("/?", "?");
+        String endpoint = String.join("/", endpointPaths).replace("/?", "?").replace("?/", "?");
 
         try {
             uri = new URI(baseUrl + apiVersionPath + "/" + endpoint);
@@ -425,7 +425,7 @@ public class TypedApiImplementation implements TypedApiInterface {
      * @return
      */
     @Override
-    public Object generateFunctionDataTypes(AnalysisID analysisID, List<FunctionID> functionIDS) throws APIConflictException{
+    public DataTypeList generateFunctionDataTypes(AnalysisID analysisID, List<FunctionID> functionIDS) throws APIConflictException{
         JSONObject params = new JSONObject();
         params.put("function_ids", functionIDS.stream().map(FunctionID::value).toList());
 
@@ -434,7 +434,20 @@ public class TypedApiImplementation implements TypedApiInterface {
                 .header("Content-Type", "application/json" )
                 .build();
 
-        return sendVersion2Request(request).data();
+        var response = sendVersion2Request(request);
+        return DataTypeList.fromJson(response.getJsonData().getJSONObject("data_types_list"));
+    }
+
+    @Override
+    public DataTypeList getFunctionDataTypes(List<FunctionID> functionIDS) {
+        String queryString = functionIDS.stream().map( f -> "function_ids=" + f.value() ).reduce((a, b) -> a + "&" + b).orElseThrow();
+
+        var request = requestBuilderForEndpoint(APIVersion.V2, "functions", "data_types?", queryString)
+                .GET()
+                .header("Content-Type", "application/json" )
+                .build();
+        var response = sendVersion2Request(request);
+        return DataTypeList.fromJson(response.getJsonData());
     }
 
     @Override
@@ -579,5 +592,20 @@ public class TypedApiImplementation implements TypedApiInterface {
         var response = sendVersion2Request(request);
         return AnalysisResult.fromJSONObject(this, response.getJsonData());
     }
+
+    /**
+     * https://api.reveng.ai/redoc#tag/Functions-overview/operation/function_detail_v2_functions__function_id__get
+     * @param id
+     * @return
+     */
+    @Override
+    public FunctionDetails getFunctionDetails(FunctionID id) {
+        var request = requestBuilderForEndpoint(APIVersion.V2, "functions", String.valueOf(id.value()))
+                .GET()
+                .build();
+        var response = sendVersion2Request(request);
+        return FunctionDetails.fromJSON(response.getJsonData());
+    }
+
 }
 

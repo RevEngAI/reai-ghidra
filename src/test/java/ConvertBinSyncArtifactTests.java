@@ -1,14 +1,19 @@
+import ai.reveng.toolkit.ghidra.binarysimilarity.cmds.ComputeTypeInfoTask;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.api.V2Response;
+import ai.reveng.toolkit.ghidra.core.services.api.mocks.TypeGenerationMock;
+import ai.reveng.toolkit.ghidra.core.services.api.types.AnalysisID;
 import ai.reveng.toolkit.ghidra.core.services.api.types.FunctionDataTypeStatus;
 
-import ai.reveng.toolkit.ghidra.core.services.api.types.FunctionDataTypeStatusBatch;
+import ai.reveng.toolkit.ghidra.core.services.api.types.DataTypeList;
 import ai.reveng.toolkit.ghidra.core.services.api.types.FunctionID;
 import ghidra.program.model.data.CategoryPath;
 import ghidra.program.model.data.DataType;
 import ghidra.program.model.data.Structure;
 import ghidra.test.AbstractGhidraHeadlessIntegrationTest;
 import ghidra.util.Msg;
+import ghidra.util.exception.CancelledException;
+import ghidra.util.task.TaskMonitor;
 import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -17,9 +22,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class ConvertBinSyncArtifactTests extends AbstractGhidraHeadlessIntegrationTest {
 
+    AnalysisID analysisID = new AnalysisID(1337);
     private V2Response getMockResponseFromFile(String filename) {
         String json = null;
         try {
@@ -153,11 +161,21 @@ public class ConvertBinSyncArtifactTests extends AbstractGhidraHeadlessIntegrati
     @Test
     public void testBatchResponse() {
         var mockResponse = getMockResponseFromFile("data_types_batch_response.json");
-        FunctionDataTypeStatusBatch batchResponse = FunctionDataTypeStatusBatch.fromJson(mockResponse.getJsonData());
+        DataTypeList batchResponse = DataTypeList.fromJson(mockResponse.getJsonData());
 
         var r1 = batchResponse.statusForFunction(new FunctionID(266294328));
         assert r1.data_types().orElseThrow().functionName().equals("sort_pairs_by_mtime");
     }
 
+    @Test
+    public void testDataTypeGenerationTask() throws CancelledException {
+        var mockApi = new TypeGenerationMock();
+        var task = new ComputeTypeInfoTask(
+                new GhidraRevengService(mockApi),
+                IntStream.range(0, 5).boxed().map(FunctionID::new).collect(Collectors.toList()), null
+                );
+        task.run(TaskMonitor.DUMMY);
+
+    }
 
 }

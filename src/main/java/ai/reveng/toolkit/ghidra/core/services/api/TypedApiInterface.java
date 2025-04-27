@@ -132,8 +132,12 @@ public interface TypedApiInterface {
 
     void authenticate() throws InvalidAPIInfoException;
 
-    default Object generateFunctionDataTypes(AnalysisID analysisID, List<FunctionID> functionIDS) {
+    default DataTypeList generateFunctionDataTypes(AnalysisID analysisID, List<FunctionID> functionIDS) {
         throw new UnsupportedOperationException("generateFunctionDataTypes not implemented yet");
+    }
+
+    default DataTypeList getFunctionDataTypes(List<FunctionID> functionIDS) {
+        throw new UnsupportedOperationException("getFunctionDataTypes not implemented yet");
     }
 
     default Optional<FunctionDataTypeStatus> getFunctionDataTypes(AnalysisID analysisID, FunctionID functionID) {
@@ -167,5 +171,9 @@ public interface TypedApiInterface {
     default Collection getCollectionInfo(CollectionID id) {
         throw new UnsupportedOperationException("getCollectionInfo not implemented yet");
     };
+
+    default FunctionDetails getFunctionDetails(FunctionID id) {
+        throw new UnsupportedOperationException("getFunctionInfo not implemented yet");
+    }
 }
 
