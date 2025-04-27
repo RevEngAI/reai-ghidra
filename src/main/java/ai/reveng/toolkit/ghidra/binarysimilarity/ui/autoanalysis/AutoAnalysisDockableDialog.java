@@ -6,7 +6,9 @@ import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
 
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
+import ai.reveng.toolkit.ghidra.binarysimilarity.cmds.ComputeTypeInfoTask;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
+import ai.reveng.toolkit.ghidra.core.services.api.types.FunctionID;
 import ai.reveng.toolkit.ghidra.core.services.api.types.GhidraFunctionMatchWithSignature;
 import docking.ActionContext;
 import docking.action.DockingAction;
@@ -33,6 +35,7 @@ import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.awt.event.MouseEvent;
 import java.util.List;
+import java.util.Map;
 
 import static ai.reveng.toolkit.ghidra.binarysimilarity.BinarySimilarityPlugin.REVENG_AI_NAMESPACE;
 
@@ -81,6 +84,24 @@ public class AutoAnalysisDockableDialog extends ComponentProviderAdapter {
                 })
                 .buildAndInstallLocal(this);
 
+        new ActionBuilder("Compute Type Information for Function(s)", getOwner())
+                .popupMenuPath("Compute Type Information")
+                .popupMenuIcon(ReaiPluginPackage.REVENG_16)
+                .enabledWhen(ac -> !analysisResultsTable.getSelectedRowObjects().isEmpty())
+                .onAction( ac -> {
+                            Map<FunctionID, GhidraFunctionMatchWithSignature> rowMap = autoanalysisResultsModel.getModelData().stream()
+                                    .collect(java.util.stream.Collectors.toMap(m -> m.functionMatch().nearest_neighbor_id(), m -> m));
+                            var task = new ComputeTypeInfoTask(tool.getService(GhidraRevengService.class),
+                                    analysisResultsTable.getSelectedRowObjects().stream().map( m -> m.functionMatch().nearest_neighbor_id()).toList(),
+                                    (f, t) -> {
+                                        var entry = rowMap.get(f);
+                                        entry.setSignature(t.data_types());
+                                        autoanalysisResultsModel.updateObject(entry);
+                                    } );
+                            tool.execute(task);
+                        }
+                )
+                .buildAndInstallLocal(this);
     }
     @Override
     public ActionContext getActionContext(MouseEvent event) {
