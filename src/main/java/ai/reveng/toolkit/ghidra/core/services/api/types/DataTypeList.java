@@ -5,13 +5,13 @@ import org.json.JSONObject;
 /**
  * Example in data_types_batch_response.json
  */
-public record FunctionDataTypeStatusBatch(
+public record DataTypeList(
         int totalCount,
         int totalDataTypesCount,
         FunctionDataTypeStatus[] dataTypes
 ) {
 
-    public static FunctionDataTypeStatusBatch fromJson(JSONObject json) {
+    public static DataTypeList fromJson(JSONObject json) {
         int totalCount = json.getInt("total_count");
         int totalDataTypesCount = json.getInt("total_data_types_count");
         var dataTypesJson = json.getJSONArray("items");
@@ -19,7 +19,7 @@ public record FunctionDataTypeStatusBatch(
         for (int i = 0; i < dataTypesJson.length(); i++) {
             dataTypes[i] = FunctionDataTypeStatus.fromJson(dataTypesJson.getJSONObject(i));
         }
-        return new FunctionDataTypeStatusBatch(totalCount, totalDataTypesCount, dataTypes);
+        return new DataTypeList(totalCount, totalDataTypesCount, dataTypes);
     }
 
     public FunctionDataTypeStatus statusForFunction(FunctionID functionID) {
