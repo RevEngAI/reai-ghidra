@@ -3,8 +3,11 @@ package ai.reveng.toolkit.ghidra.binarysimilarity.ui.functionsimilarity;
 import javax.swing.*;
 
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
+import ai.reveng.toolkit.ghidra.binarysimilarity.cmds.ComputeTypeInfoTask;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.settingsdialog.ANNSettingsDialog;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
+import ai.reveng.toolkit.ghidra.core.services.api.types.AnalysisID;
+import ai.reveng.toolkit.ghidra.core.services.api.types.FunctionID;
 import ai.reveng.toolkit.ghidra.core.services.api.types.GhidraFunctionMatchWithSignature;
 import docking.action.ToggleDockingAction;
 import docking.action.builder.ActionBuilder;
@@ -22,6 +25,7 @@ import ghidra.program.util.ProgramLocation;
 import ghidra.util.table.GhidraTable;
 
 import java.awt.*;
+import java.util.Map;
 
 /**
  * GUI component for renaming a function from a selection of candidate functions
@@ -70,6 +74,25 @@ public class FunctionSimilarityComponent extends ComponentProviderAdapter {
 								.openFunctionInPortal(match.functionMatch().nearest_neighbor_id());
 					}
 				})
+				.buildAndInstallLocal(this);
+
+		new ActionBuilder("Compute Type Information", getOwner())
+				.popupMenuPath("Compute Type Information")
+				.popupMenuIcon(REVENG_ICON)
+				.enabledWhen(ac -> canidateFunctionsTable.getSelectedRowCount() > 0)
+				.onAction( ac -> {
+                            Map<FunctionID, GhidraFunctionMatchWithSignature> rowMap = cfm.getModelData().stream()
+									.collect(java.util.stream.Collectors.toMap(m -> m.functionMatch().nearest_neighbor_id(), m -> m));
+							var task = new ComputeTypeInfoTask(tool.getService(GhidraRevengService.class),
+									cfm.getRowObjects(canidateFunctionsTable.getSelectedRows()).stream().map( m -> m.functionMatch().nearest_neighbor_id()).toList(),
+									(f, t) -> {
+										var entry = rowMap.get(f);
+										entry.setSignature(t.data_types());
+										cfm.updateObject(entry);
+									} );
+							tool.execute(task);
+						}
+						)
 				.buildAndInstallLocal(this);
 
 
