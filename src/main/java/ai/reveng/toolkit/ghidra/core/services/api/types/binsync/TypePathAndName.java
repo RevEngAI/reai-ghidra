@@ -16,7 +16,7 @@ public record TypePathAndName(
     }
 
     public CategoryPath toCategoryPath(){
-        return new CategoryPath(CategoryPath.ROOT, path);
+        return (path.length != 0) ? new CategoryPath(CategoryPath.ROOT, path) : CategoryPath.ROOT;
     }
 
 }

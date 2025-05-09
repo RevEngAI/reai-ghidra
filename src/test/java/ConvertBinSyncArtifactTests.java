@@ -9,6 +9,7 @@ import ai.reveng.toolkit.ghidra.core.services.api.types.DataTypeList;
 import ai.reveng.toolkit.ghidra.core.services.api.types.FunctionID;
 import ghidra.program.model.data.CategoryPath;
 import ghidra.program.model.data.DataType;
+import ghidra.program.model.data.DataTypeDependencyException;
 import ghidra.program.model.data.Structure;
 import ghidra.test.AbstractGhidraHeadlessIntegrationTest;
 import ghidra.util.Msg;
@@ -41,7 +42,7 @@ public class ConvertBinSyncArtifactTests extends AbstractGhidraHeadlessIntegrati
     }
 
     @Test
-    public void testSimpleGhidraSignatureGeneration() {
+    public void testSimpleGhidraSignatureGeneration() throws DataTypeDependencyException {
         V2Response mockResponse = getMockResponseFromFile("main_fdupes_77846709.json");
 
         FunctionDataTypeStatus functionDataTypeStatus = FunctionDataTypeStatus.fromJson(mockResponse.getJsonData());
@@ -83,7 +84,7 @@ public class ConvertBinSyncArtifactTests extends AbstractGhidraHeadlessIntegrati
     }
 
     @Test
-    public void testComplexGhidraSignatureGeneration() {
+    public void testComplexGhidraSignatureGeneration() throws DataTypeDependencyException {
         var mockResponse = getMockResponseFromFile("confirmmatch_fdupes_77846700.json");
 
         FunctionDataTypeStatus functionDataTypeStatus = FunctionDataTypeStatus.fromJson(mockResponse.getJsonData());
@@ -95,7 +96,7 @@ public class ConvertBinSyncArtifactTests extends AbstractGhidraHeadlessIntegrati
 
 
     @Test
-    public void testComplexGhidraSignatureGeneration2() {
+    public void testComplexGhidraSignatureGeneration2() throws DataTypeDependencyException {
         var mockResponse = getMockResponseFromFile("summarizematches_fdupes.json");
 
         FunctionDataTypeStatus functionDataTypeStatus = FunctionDataTypeStatus.fromJson(mockResponse.getJsonData());
@@ -106,7 +107,7 @@ public class ConvertBinSyncArtifactTests extends AbstractGhidraHeadlessIntegrati
     }
 
     @Test
-    public void testComplexGhidraSignatureGeneration3() {
+    public void testComplexGhidraSignatureGeneration3() throws DataTypeDependencyException {
         var mockResponse = getMockResponseFromFile("md5_process_fdupes.json");
 
         FunctionDataTypeStatus functionDataTypeStatus = FunctionDataTypeStatus.fromJson(mockResponse.getJsonData());
@@ -127,7 +128,7 @@ public class ConvertBinSyncArtifactTests extends AbstractGhidraHeadlessIntegrati
      */
     @Ignore("Ignored until it can properly distinguish an infinite loop and an exception")
     @Test
-    public void testNoLoopForBrokenDeps() {
+    public void testNoLoopForBrokenDeps() throws DataTypeDependencyException {
         var mockResponse = getMockResponseFromFile("errormsg.json");
 
         FunctionDataTypeStatus functionDataTypeStatus = FunctionDataTypeStatus.fromJson(mockResponse.getJsonData());
@@ -143,7 +144,7 @@ public class ConvertBinSyncArtifactTests extends AbstractGhidraHeadlessIntegrati
      * The function is `registerpair` from `fdupes`: <a href="https://portal.reveng.ai/function/77846706?tab=Disassembly">registerpair</a>
      */
     @Test
-    public void testFunctionPointerArgument() {
+    public void testFunctionPointerArgument() throws DataTypeDependencyException {
         var mockResponse = getMockResponseFromFile("complex_pointer.json");
         FunctionDataTypeStatus functionDataTypeStatus = FunctionDataTypeStatus.fromJson(mockResponse.getJsonData());
         var signature = GhidraRevengService.getFunctionSignature(functionDataTypeStatus.data_types().get());

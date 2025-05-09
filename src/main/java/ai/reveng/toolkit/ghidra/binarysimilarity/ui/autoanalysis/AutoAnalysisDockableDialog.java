@@ -6,6 +6,7 @@ import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
 
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
+import ai.reveng.toolkit.ghidra.binarysimilarity.cmds.ApplyMatchesCmd;
 import ai.reveng.toolkit.ghidra.binarysimilarity.cmds.ComputeTypeInfoTask;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.api.types.FunctionID;
@@ -16,28 +17,19 @@ import docking.action.ToggleDockingAction;
 import docking.action.ToolBarData;
 import docking.action.builder.ActionBuilder;
 import generic.theme.GIcon;
-import ghidra.app.cmd.function.ApplyFunctionSignatureCmd;
 import ghidra.app.context.ProgramActionContext;
 import ghidra.app.services.ProgramManager;
 import ghidra.framework.plugintool.ComponentProviderAdapter;
 import ghidra.framework.plugintool.PluginTool;
-import ghidra.program.model.listing.CircularDependencyException;
 import ghidra.program.model.listing.Program;
-import ghidra.program.model.symbol.Namespace;
-import ghidra.program.model.symbol.SourceType;
 import ghidra.util.Msg;
-import ghidra.util.exception.DuplicateNameException;
-import ghidra.util.exception.InvalidInputException;
 import ghidra.util.table.GhidraFilterTable;
 import ghidra.util.task.TaskLauncher;
 
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.awt.event.MouseEvent;
-import java.util.List;
 import java.util.Map;
-
-import static ai.reveng.toolkit.ghidra.binarysimilarity.BinarySimilarityPlugin.REVENG_AI_NAMESPACE;
 
 /**
  * Provides a GUI for selecting the similarity threshold for auto renaming of functions
@@ -134,13 +126,19 @@ public class AutoAnalysisDockableDialog extends ComponentProviderAdapter {
         btnApplySelectedResults = new JButton("Apply Selected Results");
         btnApplySelectedResults.setEnabled(false);
         btnApplySelectedResults.addActionListener(
-                e -> applyAutoRenameResults(autoanalysisResultsModel.getLastSelectedObjects())
+                e -> {
+                    var program = tool.getService(ProgramManager.class).getCurrentProgram();
+                    tool.executeBackgroundCommand(new ApplyMatchesCmd(autoanalysisResultsModel.getLastSelectedObjects()), program);
+                }
         );
 
         btnApplyAllFilteredResults = new JButton("Apply Filtered Results");
         btnApplyAllFilteredResults.setEnabled(false);
         btnApplyAllFilteredResults.addActionListener(
-                e -> applyAutoRenameResults(autoanalysisResultsModel.getModelData())
+                e -> {
+                    var program = tool.getService(ProgramManager.class).getCurrentProgram();
+                    tool.executeBackgroundCommand(new ApplyMatchesCmd(autoanalysisResultsModel.getModelData()), program);
+                }
         );
         actionPanel.add(btnApplySelectedResults, BorderLayout.WEST);
         actionPanel.add(btnApplyAllFilteredResults, BorderLayout.CENTER);
@@ -175,63 +173,6 @@ public class AutoAnalysisDockableDialog extends ComponentProviderAdapter {
         this.setVisible(true);
         this.loadAutoRenameResults();
     }
-
-    private void applyAutoRenameResults(List<GhidraFunctionMatchWithSignature> matchesToApply) {
-        ProgramManager programManager = tool.getService(ProgramManager.class);
-
-        Program currentProgram = programManager.getCurrentProgram();
-
-        int transactionID = currentProgram.startTransaction(
-                "RevEng.AI: Rename %s functions from best match".formatted(matchesToApply.size())
-        );
-
-        Namespace revengMatchNamespace = null;
-        try {
-            revengMatchNamespace = currentProgram.getSymbolTable().getOrCreateNameSpace(
-                    currentProgram.getGlobalNamespace(),
-                    REVENG_AI_NAMESPACE,
-                    SourceType.ANALYSIS
-            );
-        } catch (DuplicateNameException | InvalidInputException e) {
-            throw new RuntimeException(e);
-        }
-
-        Namespace finalRevengMatchNamespace = revengMatchNamespace;
-
-        matchesToApply.forEach(
-                row -> applyMatch(currentProgram, row, finalRevengMatchNamespace)
-        );
-
-        currentProgram.endTransaction(transactionID, true);
-        autoanalysisResultsModel.refresh();
-    }
-
-    private void applyMatch(Program program, GhidraFunctionMatchWithSignature row, Namespace revengMatchNamespace) {
-        try {
-            var func = row.function();
-            var libraryNamespace = program.getSymbolTable().getOrCreateNameSpace(
-                    revengMatchNamespace,
-                    row.functionMatch().nearest_neighbor_binary_name(),
-                    SourceType.USER_DEFINED);
-
-
-            func.setParentNamespace(libraryNamespace);
-
-            if (row.signature().isPresent()) {
-				var signature = GhidraRevengService.getFunctionSignature(row.signature().get());
-                var cmd = new ApplyFunctionSignatureCmd(func.getEntryPoint(), signature, SourceType.USER_DEFINED);
-                cmd.applyTo(program);
-			} else {
-                func.setName(row.functionMatch().nearest_neighbor_function_name(), SourceType.USER_DEFINED);
-            }
-
-
-        } catch (DuplicateNameException | InvalidInputException | CircularDependencyException e) {
-            Msg.showError(this, null,
-                    ReaiPluginPackage.WINDOW_PREFIX + "Rename Function Error", e.getMessage(), e);
-        }
-    }
-
 
     private class ToggleNamedOnlyAction extends ToggleDockingAction {
 
