@@ -543,7 +543,7 @@ public class GhidraRevengService {
      * @param functionDataTypeMessage The message containing the function signature, received from the API
      * @return Self-contained signature for the function
      */
-    public static FunctionDefinitionDataType getFunctionSignature(FunctionDataTypeMessage functionDataTypeMessage){
+    public static FunctionDefinitionDataType getFunctionSignature(FunctionDataTypeMessage functionDataTypeMessage) throws DataTypeDependencyException {
 
         // TODO: Do we need the program or data type manager?
         // Or can we just create a new one with all the necessary types and then they get merged?
@@ -577,11 +577,7 @@ public class GhidraRevengService {
         f.setArguments(args);
 
         DataType returnType = null;
-        try {
-            returnType = loadDataType(dtm, functionDataTypeMessage.func_types().header().type(), functionDataTypeMessage.func_deps());
-        } catch (DataTypeDependencyException e) {
-            throw new RuntimeException(e);
-        }
+        returnType = loadDataType(dtm, functionDataTypeMessage.func_types().header().type(), functionDataTypeMessage.func_deps());
         f.setReturnType(returnType);
 
 
@@ -607,11 +603,10 @@ public class GhidraRevengService {
         Arrays.stream(dependencies.structs()).forEach(
                 struct -> {
 //                        CategoryPath path = new CategoryPath(CategoryPath.ROOT, struct.name().split("/"));
-                        var path = TypePathAndName.fromString(struct.name());
-
+                        var typePathAndName = TypePathAndName.fromString(struct.name());
                         StructureDataType structDataType = new StructureDataType(
-                                new CategoryPath(CategoryPath.ROOT, path.path()),
-                                path.name(),
+                                typePathAndName.toCategoryPath(),
+                                typePathAndName.name(),
                                 struct.size(),
                                 dtm);
                         dtm.addDataType(structDataType, DataTypeConflictHandler.REPLACE_EMPTY_STRUCTS_OR_RENAME_AND_ADD_HANDLER);

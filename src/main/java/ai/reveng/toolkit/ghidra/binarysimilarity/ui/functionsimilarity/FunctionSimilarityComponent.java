@@ -3,24 +3,19 @@ package ai.reveng.toolkit.ghidra.binarysimilarity.ui.functionsimilarity;
 import javax.swing.*;
 
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
+import ai.reveng.toolkit.ghidra.binarysimilarity.cmds.ApplyMatchCmd;
 import ai.reveng.toolkit.ghidra.binarysimilarity.cmds.ComputeTypeInfoTask;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.settingsdialog.ANNSettingsDialog;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
-import ai.reveng.toolkit.ghidra.core.services.api.types.AnalysisID;
 import ai.reveng.toolkit.ghidra.core.services.api.types.FunctionID;
 import ai.reveng.toolkit.ghidra.core.services.api.types.GhidraFunctionMatchWithSignature;
 import docking.action.ToggleDockingAction;
 import docking.action.builder.ActionBuilder;
 import docking.action.builder.ToggleActionBuilder;
 import generic.theme.GIcon;
-import ghidra.app.cmd.function.ApplyFunctionSignatureCmd;
-import ghidra.app.cmd.label.RenameLabelCmd;
-import ghidra.framework.cmd.Command;
 import ghidra.framework.plugintool.ComponentProviderAdapter;
 import ghidra.framework.plugintool.PluginTool;
 import ghidra.program.model.listing.Function;
-import ghidra.program.model.listing.FunctionSignature;
-import ghidra.program.model.symbol.SourceType;
 import ghidra.program.util.ProgramLocation;
 import ghidra.util.table.GhidraTable;
 
@@ -59,7 +54,7 @@ public class FunctionSimilarityComponent extends ComponentProviderAdapter {
 				.popupMenuIcon(REVENG_ICON)
 //				.toolBarIcon(EDIT_ICON)
 				.enabledWhen(ac -> canidateFunctionsTable.getSelectedRowCount() == 1)
-				.onAction(ac -> applyMatch())
+				.onAction(ac -> new ApplyMatchCmd(cfm.getRowObject(canidateFunctionsTable.getSelectedRow())).applyWithTransaction())
 				.buildAndInstallLocal(this);
 
 		new ActionBuilder("Open Function in Portal", getOwner())
@@ -136,22 +131,6 @@ public class FunctionSimilarityComponent extends ComponentProviderAdapter {
 				.buildAndInstallLocal(this);
 
 
-	}
-
-	private void applyMatch(){
-		GhidraFunctionMatchWithSignature match = cfm.getRowObject(canidateFunctionsTable.getSelectedRow());
-		if (match != null) {
-			Command cmd;
-			var program = match.function().getProgram();
-			if (match.signature().isPresent()){
-				FunctionSignature signature = GhidraRevengService.getFunctionSignature(match.signature().get());
-				cmd = new ApplyFunctionSignatureCmd(match.function().getEntryPoint(), signature, SourceType.USER_DEFINED);
-			} else {
-				cmd = new RenameLabelCmd(match.function().getSymbol(), match.functionMatch().name(), SourceType.USER_DEFINED);
-			}
-			program.withTransaction("Apply Similar Function Information", () -> cmd.applyTo(program));
-
-		}
 	}
 
 	private JPanel buildPanel(PluginTool tool) {
