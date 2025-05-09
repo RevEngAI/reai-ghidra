@@ -1,6 +1,5 @@
 package ai.reveng.toolkit.ghidra.core.services.api.types;
 
-import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.api.types.binsync.FunctionDataTypeMessage;
 import ghidra.program.model.listing.Function;
 
@@ -42,12 +41,6 @@ public class GhidraFunctionMatchWithSignature {
 
     public GhidraFunctionMatchWithSignature(GhidraFunctionMatch functionMatch, FunctionDataTypeMessage signature, BoxPlot nameScore) {
         this(functionMatch.function(), functionMatch.functionMatch(), Optional.ofNullable(signature), Optional.ofNullable(nameScore));
-    }
-
-    public static GhidraFunctionMatchWithSignature createWith(GhidraFunctionMatch functionMatch, GhidraRevengService apiService) {
-        var signature = apiService.getFunctionSignatureArtifact(functionMatch.functionMatch().nearest_neighbor_binary_id(), functionMatch.functionMatch().nearest_neighbor_id());
-        BoxPlot nameScore = apiService.getNameScoreForMatch(functionMatch);
-        return new GhidraFunctionMatchWithSignature(functionMatch, signature.orElse(null), nameScore);
     }
 
     public Function function() {

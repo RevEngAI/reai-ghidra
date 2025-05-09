@@ -392,7 +392,7 @@ public class TypedApiImplementation implements TypedApiInterface {
         }
         var requestBuilder = HttpRequest.newBuilder(uri);
         headers.forEach(requestBuilder::header);
-        requestBuilder.timeout(Duration.ofSeconds(1));
+        requestBuilder.timeout(Duration.ofSeconds(20));
         return requestBuilder;
     }
     @Override
@@ -558,6 +558,7 @@ public class TypedApiImplementation implements TypedApiInterface {
     /**
      * https://api.reveng.ai/v2/docs#tag/Confidence-Scores/operation/function_threat_score_v2_confidence_functions_threat_score_post
      */
+    @Override
     public List<FunctionNameScore> getNameScores(List<FunctionMatch> matches, Boolean isDebug) {
         JSONObject params = new JSONObject();
         params.put("is_debug", isDebug);

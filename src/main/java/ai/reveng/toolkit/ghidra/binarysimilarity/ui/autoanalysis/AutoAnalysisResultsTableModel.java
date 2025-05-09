@@ -1,10 +1,7 @@
 package ai.reveng.toolkit.ghidra.binarysimilarity.ui.autoanalysis;
 
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
-import ai.reveng.toolkit.ghidra.core.services.api.types.BoxPlot;
-import ai.reveng.toolkit.ghidra.core.services.api.types.LegacyCollection;
-import ai.reveng.toolkit.ghidra.core.services.api.types.GhidraFunctionMatch;
-import ai.reveng.toolkit.ghidra.core.services.api.types.GhidraFunctionMatchWithSignature;
+import ai.reveng.toolkit.ghidra.core.services.api.types.*;
 import docking.widgets.table.TableColumnDescriptor;
 import docking.widgets.table.threaded.ThreadedTableModelStub;
 import ghidra.app.services.ProgramManager;
@@ -20,8 +17,11 @@ import ghidra.util.exception.CancelledException;
 import ghidra.util.table.ProgramTableModel;
 import ghidra.util.task.TaskMonitor;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static ai.reveng.toolkit.ghidra.Utils.addRowToDescriptor;
 
@@ -51,31 +51,46 @@ public class AutoAnalysisResultsTableModel extends ThreadedTableModelStub<Ghidra
 			monitor.setMessage("Searching for Matches");
 			monitor.setProgress(0);
 			this.program = programManager.getCurrentProgram();
-			Map<Function, List<GhidraFunctionMatch>> r = apiService.getSimilarFunctions(
+			monitor.setMessage("Fetching Matches");
+			Map<Function, GhidraFunctionMatch> bestMatches = apiService.getSimilarFunctions(
 					program,
 					1,
 					1 - similarityThreshold,
 					onlyNamed
-			);
-
-			monitor.setMaximum(r.size());
-				r.values().stream()
+			).entrySet()
+					.stream()
+					.collect(Collectors.toMap(
+                            Map.Entry::getKey,
+							// Get the best match. Not using `getFirst` instead of `get(0)` for JDK 17 compatibility
+							entry -> entry.getValue().get(0)
+					));
+			monitor.setMessage("Fetching Signatures");
+			List<FunctionID> functionIDs = bestMatches.values().stream()
+					.map(GhidraFunctionMatch::nearest_neighbor_id)
+					.toList();
+			// Fetch all Signatures for the functions in the collections at once, then pack them into a map based on the
+			// function ID. This is done to avoid multiple API calls for each function.
+            Map<FunctionID, FunctionDataTypeStatus> signatureMap = Arrays.stream(apiService.getApi().getFunctionDataTypes(functionIDs).dataTypes())
+                    .collect(Collectors.toMap(
+                            FunctionDataTypeStatus::functionID,
+                            status -> status
+                    ));
+            monitor.setMessage("Calculating Confidence Scores");
+			// Fetch the confidence score for the names via batch request
+			Map<FunctionID, BoxPlot> nameScoreMap = apiService.getNameScores(bestMatches.values());
+			monitor.setMaximum(bestMatches.size());
+				bestMatches.values().stream()
 						.takeWhile(t -> !monitor.isCancelled())
 						.peek(t -> monitor.incrementProgress(1))
 						// Filter out functions that have no matches
-						.filter(list -> !list.isEmpty())
-						// Get the best match. Not using `getFirst` instead of `get(0)` for JDK 17 compatibility
-						.map(ghidraFunctionMatches -> ghidraFunctionMatches.get(0))
 						// Filter out matches that are below the threshold
 						.filter(match -> match.similarity() >= similarityThreshold)
-						.map((match) -> {
-									if (fetchSignatures) {
-										return GhidraFunctionMatchWithSignature.createWith(match, apiService);
-									} else {
-										BoxPlot nameScore = apiService.getNameScoreForMatch(match);
-										return new GhidraFunctionMatchWithSignature(match, null, nameScore);
-									}
-								}
+						.map((match) -> new GhidraFunctionMatchWithSignature(
+										match,
+										Optional.ofNullable(signatureMap.get(match.functionMatch().nearest_neighbor_id()))
+												.flatMap(FunctionDataTypeStatus::data_types).orElse(null),
+										nameScoreMap.get(match.functionMatch().nearest_neighbor_id())
+								)
 						)
 						// Add the best matches to the table
 						.forEachOrdered(accumulator::add);

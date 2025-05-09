@@ -20,6 +20,9 @@ public record GhidraFunctionMatch(
         return functionMatch.nearest_neighbor_binary_name();
     }
 
+    public FunctionID nearest_neighbor_id() {
+        return functionMatch.nearest_neighbor_id();
+    }
     public double similarity() {
         return functionMatch.similarity();
     }

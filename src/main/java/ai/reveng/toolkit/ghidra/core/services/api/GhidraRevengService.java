@@ -863,4 +863,8 @@ public class GhidraRevengService {
         return new ProgramWithBinaryID(program, binaryID, analysisID);
     }
 
+    public Map<FunctionID, BoxPlot> getNameScores(java.util.Collection<GhidraFunctionMatch> values) {
+        List<FunctionNameScore> r =  api.getNameScores(values.stream().map(GhidraFunctionMatch::functionMatch).toList(), false);
+        return r.stream().collect(Collectors.toMap(FunctionNameScore::functionID, FunctionNameScore::score));
+    }
 }
