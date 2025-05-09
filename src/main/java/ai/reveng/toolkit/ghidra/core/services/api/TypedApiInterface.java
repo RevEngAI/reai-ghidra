@@ -167,6 +167,9 @@ public interface TypedApiInterface {
     default FunctionNameScore getNameScore(FunctionMatch match) {
         throw new UnsupportedOperationException("getNameScore not implemented yet");
     }
+    default List<FunctionNameScore> getNameScores(List<FunctionMatch> matches, Boolean isDebug) {
+        throw new UnsupportedOperationException("getNameScores not implemented yet");
+    }
 
     default Collection getCollectionInfo(CollectionID id) {
         throw new UnsupportedOperationException("getCollectionInfo not implemented yet");
