@@ -157,6 +157,7 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 					tool.showDialog(analysisOptionsDialog);
 				})
 				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Create new Analysis for Binary" })
+				.popupMenuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Create new Analysis for Binary" })
 				.buildAndInstall(tool);
 
 
@@ -232,6 +233,7 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 					});
 				})
 				.popupMenuPath(new String[] { "Decompile via RevEng.AI" })
+				.popupMenuIcon(ReaiPluginPackage.REVENG_16)
 				.popupMenuGroup(ReaiPluginPackage.NAME)
 				.buildAndInstall(tool);
 
