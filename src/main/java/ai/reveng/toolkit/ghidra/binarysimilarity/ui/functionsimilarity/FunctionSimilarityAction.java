@@ -2,6 +2,7 @@ package ai.reveng.toolkit.ghidra.binarysimilarity.ui.functionsimilarity;
 
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.binarysimilarity.BinarySimilarityPlugin;
+import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import docking.ActionContext;
 import docking.action.DockingAction;
 import docking.action.MenuData;
@@ -18,14 +19,15 @@ public class FunctionSimilarityAction extends DockingAction {
 
     @Override
     public boolean isEnabledForContext(ActionContext ctx) {
-        return ctx instanceof ProgramLocationActionContext context;
-//            var func = context.getProgram().getFunctionManager().getFunctionContaining(context.getAddress());
-//            var apiService = plugin.getTool().getService(GhidraRevengService.class);
-//            return func != null
-//                    && apiService.isKnownProgram(context.getProgram())
-//                    && apiService.isProgramAnalysed(context.getProgram());
-//        }
-//        return false;
+        if (ctx instanceof ProgramLocationActionContext context) {
+            var func = context.getProgram().getFunctionManager().getFunctionContaining(context.getAddress());
+            var apiService = plugin.getTool().getService(GhidraRevengService.class);
+            return func != null
+                    && apiService.isKnownProgram(context.getProgram())
+                    && apiService.isProgramAnalysed(context.getProgram());
+        } else {
+            return false;
+        }
     }
 
     /**
