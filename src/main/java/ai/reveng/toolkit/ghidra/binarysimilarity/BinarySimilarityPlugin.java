@@ -17,41 +17,31 @@ package ai.reveng.toolkit.ghidra.binarysimilarity;
 
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.aidecompiler.AIDecompiledWindow;
-import ai.reveng.toolkit.ghidra.binarysimilarity.ui.analysiscreation.RevEngAIAnalysisOptionsDialog;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.autoanalysis.AutoAnalysisDockableDialog;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.collectiondialog.DataSetControlPanelComponent;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.functionsimilarity.FunctionSimilarityAction;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.functionsimilarity.FunctionSimilarityComponent;
-import ai.reveng.toolkit.ghidra.binarysimilarity.ui.misc.AnalysisLogComponent;
 import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisStatusChangedEvent;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
-import ai.reveng.toolkit.ghidra.core.services.api.ModelName;
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
-import ai.reveng.toolkit.ghidra.core.types.ProgramWithBinaryID;
 import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoundariesService;
 import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
 import docking.action.builder.ActionBuilder;
-import docking.widgets.OptionDialog;
-import ghidra.app.context.ProgramActionContext;
 import ghidra.app.context.ProgramLocationActionContext;
+import ghidra.app.events.ProgramLocationPluginEvent;
 import ghidra.app.plugin.PluginCategoryNames;
 import ghidra.app.plugin.ProgramPlugin;
-import ghidra.app.plugin.core.analysis.AnalysisOptionsDialog;
 import ghidra.app.services.ProgramManager;
 import ghidra.framework.options.SaveState;
 import ghidra.framework.plugintool.PluginEvent;
 import ghidra.framework.plugintool.PluginInfo;
 import ghidra.framework.plugintool.PluginTool;
 import ghidra.framework.plugintool.util.PluginStatus;
-import ghidra.program.model.listing.Function;
-import ghidra.program.util.GhidraProgramUtilities;
 import ghidra.program.util.ProgramLocation;
 import ghidra.util.Msg;
-import ghidra.util.task.RunManager;
 import ghidra.util.task.TaskLauncher;
 
 import java.util.Arrays;
-import java.util.Optional;
 
 /**
  * This plugin provides features for performing binary code similarity using the
@@ -68,7 +58,7 @@ import java.util.Optional;
 	shortDescription = "Support for Binary Similarity Featrues of RevEng.AI Toolkit.",
 	description = "Enable features that support binary similarity operations, including binary upload, and auto-renaming",
 	servicesRequired = { GhidraRevengService.class, ProgramManager.class, ExportFunctionBoundariesService.class, ReaiLoggingService.class },
-	eventsConsumed = { RevEngAIAnalysisStatusChangedEvent.class}
+	eventsConsumed = { RevEngAIAnalysisStatusChangedEvent.class, }
 )
 //@formatter:on
 public class BinarySimilarityPlugin extends ProgramPlugin {
@@ -86,10 +76,12 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 
 	public final static String REVENG_AI_NAMESPACE = "RevEng.AI";
 
+
 	@Override
 	protected void locationChanged(ProgramLocation loc) {
 		super.locationChanged(loc);
 		functionSimilarityComponent.locationChanged(loc);
+		decompiledWindow.locationChanged(loc);
 	}
 
 	/**
@@ -184,7 +176,7 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 					// Spawn Task to decompile the function
 					TaskLauncher.launchNonModal("Decompile via RevEng.AI", monitor -> {
 						monitor.setMessage("Decompiling function...");
-						loggingService.info("Requested AI Decompilation for function" + func.getName());
+						loggingService.info("Requested AI Decompilation for function " + func.getName());
 						var result = apiService.decompileFunctionViaAI(func, monitor, decompiledWindow);
 					});
 				})
@@ -241,6 +233,9 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 			if (analysisStatusChangedEvent.getStatus() == AnalysisStatus.Complete){
 				autoAnalyse.triggerActivation();
 			}
+		}
+		if (event instanceof ProgramLocationPluginEvent programLocationPluginEvent) {
+			locationChanged(programLocationPluginEvent.getLocation());
 		}
 	}
 }

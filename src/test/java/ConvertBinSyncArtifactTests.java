@@ -26,20 +26,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-public class ConvertBinSyncArtifactTests extends AbstractGhidraHeadlessIntegrationTest {
+public class ConvertBinSyncArtifactTests extends AbstractRevEngIntegrationTest {
 
     AnalysisID analysisID = new AnalysisID(1337);
-    private V2Response getMockResponseFromFile(String filename) {
-        String json = null;
-        try {
-            json = new String(getClass().getClassLoader().getResourceAsStream(filename).readAllBytes());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        JSONObject jsonObject = new JSONObject(json);
-        return V2Response.fromJSONObject(jsonObject);
 
-    }
 
     @Test
     public void testSimpleGhidraSignatureGeneration() throws DataTypeDependencyException {
