@@ -1,8 +1,8 @@
 package ai.reveng.toolkit.ghidra.core.services.api;
 
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
-import ai.reveng.toolkit.ghidra.binarysimilarity.BinarySimilarityPlugin;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.aidecompiler.AIDecompiledWindow;
+import ai.reveng.toolkit.ghidra.core.CorePlugin;
 import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisStatusChangedEvent;
 import ai.reveng.toolkit.ghidra.core.services.api.mocks.MockApi;
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
@@ -10,6 +10,7 @@ import ai.reveng.toolkit.ghidra.core.services.api.types.Collection;
 import ai.reveng.toolkit.ghidra.core.services.api.types.LegacyCollection;
 import ai.reveng.toolkit.ghidra.core.services.api.types.binsync.*;
 import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.APIAuthenticationException;
+import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
 import ai.reveng.toolkit.ghidra.core.types.ProgramWithBinaryID;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -88,16 +89,11 @@ public class GhidraRevengService {
         return this.apiInfo.hostURI();
     }
 
-    public void handleAnalysisCompletion(RevEngAIAnalysisStatusChangedEvent event){
-        if (event.getStatus() != AnalysisStatus.Complete){
-            throw new RuntimeException("Method should only be called when analysis is complete");
-        }
-        statusCache.put(event.getProgramWithBinaryID().binaryID(), AnalysisStatus.Complete);
-        Program program = event.getProgram();
-        BinaryID binID = event.getBinaryID();
+    public void registerFinishedAnalysisForProgram(ProgramWithBinaryID programWithBinaryID) {
+        statusCache.put(programWithBinaryID.binaryID(), AnalysisStatus.Complete);
 
-        loadFunctionInfo(program, binID);
-        addBinaryIDtoProgramOptions(program, binID);
+        loadFunctionInfo(programWithBinaryID.program(), programWithBinaryID.binaryID());
+        addBinaryIDtoProgramOptions(programWithBinaryID.program(), programWithBinaryID.binaryID());
     }
 
     public void addBinaryIDtoProgramOptions(Program program, BinaryID binID){
@@ -811,7 +807,7 @@ public class GhidraRevengService {
      * @return The final AnalysisStatus, should be either Complete or Error
      */
     public AnalysisStatus waitForFinishedAnalysis(TaskMonitor monitor, ProgramWithBinaryID programWithID,
-                                                  @Nullable BinarySimilarityPlugin plugin) throws CancelledException {
+                                                  @Nullable CorePlugin plugin) throws CancelledException {
         monitor.setMessage("Checking analysis status");
         // Check the status of the analysis every 500ms
         // TODO: In the future this can be made smarter and e.g. wait longer if the analysis log hasn't changed
@@ -836,8 +832,7 @@ public class GhidraRevengService {
                 // Show the UI message for the completion
                 Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Analysis Complete",
                         "Analysis for " + programWithID + " finished with status: " + lastStatus);
-                // Open the auto analysis panel
-//                autoAnalyse.triggerActivation();
+                this.registerFinishedAnalysisForProgram(programWithID);
                 return lastStatus;
             }
             monitor.checkCancelled();
@@ -845,7 +840,7 @@ public class GhidraRevengService {
                 Thread.sleep(500);
             } catch (InterruptedException e) {
                 if (plugin != null) {
-                    plugin.loggingService.error(e.getMessage());
+                    plugin.getTool().getService(ReaiLoggingService.class).error(e.getMessage());
                 }
             }
         }

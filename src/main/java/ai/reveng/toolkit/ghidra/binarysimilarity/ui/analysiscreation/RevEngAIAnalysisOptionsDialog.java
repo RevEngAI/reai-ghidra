@@ -2,6 +2,7 @@ package ai.reveng.toolkit.ghidra.binarysimilarity.ui.analysiscreation;
 
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.binarysimilarity.BinarySimilarityPlugin;
+import ai.reveng.toolkit.ghidra.core.CorePlugin;
 import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisStatusChangedEvent;
 import ai.reveng.toolkit.ghidra.core.services.api.AnalysisOptionsBuilder;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
@@ -12,6 +13,7 @@ import ai.reveng.toolkit.ghidra.core.services.api.types.AnalysisStatus;
 import ai.reveng.toolkit.ghidra.core.services.api.types.BinaryID;
 import ai.reveng.toolkit.ghidra.core.types.ProgramWithBinaryID;
 import docking.DialogComponentProvider;
+import ghidra.app.plugin.ProgramPlugin;
 import ghidra.framework.cmd.BackgroundCommand;
 import ghidra.framework.model.DomainObject;
 import ghidra.framework.plugintool.AutoService;
@@ -32,7 +34,7 @@ public class RevEngAIAnalysisOptionsDialog extends DialogComponentProvider {
     private final JCheckBox dynamicExecutionCheckBox;
     private final Program program;
     private final PluginTool tool;
-    private final BinarySimilarityPlugin plugin;
+    private final CorePlugin plugin;
     private final JRadioButton privateScope;
     private final JRadioButton publicScope;
     private final JTextField tagsTextBox;
@@ -42,7 +44,7 @@ public class RevEngAIAnalysisOptionsDialog extends DialogComponentProvider {
     private final JCheckBox generateSBOMCheckBox;
     private final JComboBox<String> architectureComboBox;
 
-    public RevEngAIAnalysisOptionsDialog(BinarySimilarityPlugin plugin, Program program) {
+    public RevEngAIAnalysisOptionsDialog(CorePlugin plugin, Program program) {
         super("Configure Analysis for %s".formatted(program.getName()), true, false, true, true);
         this.program = program;
         this.tool = plugin.getTool();
@@ -233,7 +235,6 @@ public class RevEngAIAnalysisOptionsDialog extends DialogComponentProvider {
                         // Create a new ProgramWithBinaryID
                         var finalAnalysisStatus = reService.waitForFinishedAnalysis(monitor, programWithBinaryID, plugin);
                         tool.firePluginEvent(new RevEngAIAnalysisStatusChangedEvent("RevEng.AI Analysis", programWithBinaryID, finalAnalysisStatus));
-                        plugin.triggerAutoAnalysisFetch();
                     }
                 }, 0
         );

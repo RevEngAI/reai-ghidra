@@ -20,6 +20,8 @@ import java.io.FileNotFoundException;
 import java.util.Optional;
 
 import ai.reveng.toolkit.ghidra.binarysimilarity.BinarySimilarityPlugin;
+import ai.reveng.toolkit.ghidra.binarysimilarity.ui.analysiscreation.RevEngAIAnalysisOptionsDialog;
+import ai.reveng.toolkit.ghidra.binarysimilarity.ui.misc.AnalysisLogComponent;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.recentanalyses.RecentAnalysisDialog;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.api.mocks.ProcessingLimboApi;
@@ -30,7 +32,6 @@ import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoundariesService;
 import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoundariesServiceImpl;
 import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
-import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingServiceImpl;
 import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingToConsole;
 import ai.reveng.toolkit.ghidra.core.types.ProgramWithBinaryID;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardManager;
@@ -41,16 +42,19 @@ import docking.widgets.OptionDialog;
 import docking.wizard.WizardManager;
 import docking.wizard.WizardState;
 import ghidra.app.context.ProgramActionContext;
+import ghidra.app.context.ProgramLocationActionContext;
 import ghidra.app.plugin.PluginCategoryNames;
 import ghidra.app.plugin.ProgramPlugin;
 import ghidra.app.services.ConsoleService;
-import ghidra.framework.options.SaveState;
+import ghidra.app.services.ProgramManager;
 import ghidra.framework.plugintool.*;
 import docking.options.OptionsService;
 import docking.widgets.filechooser.GhidraFileChooser;
 import docking.widgets.filechooser.GhidraFileChooserMode;
 import ghidra.framework.plugintool.util.PluginStatus;
+import ghidra.program.model.listing.Function;
 import ghidra.program.model.listing.Program;
+import ghidra.program.util.GhidraProgramUtilities;
 import ghidra.util.Msg;
 
 /**
@@ -82,10 +86,15 @@ import ghidra.util.Msg;
 public class CorePlugin extends ProgramPlugin {
 	public static final String REAI_WIZARD_RUN_PREF = "REAISetupWizardRun";
 	public static final String REAI_OPTIONS_CATEGORY = "RevEngAI Options";
+	private static final String REAI_ANALYSIS_MANAGEMENT_MENU_GROUP = "RevEng.AI Analysis Management";
+	private static final String REAI_PLUGIN_SETUP_MENU_GROUP = "RevEng.AI Setup";
+	private static final String REAI_PLUGIN_PORTAL_MENU_GROUP = "RevEng.AI Portal";
 
 	private GhidraRevengService revengService;
 	private ExportFunctionBoundariesService exportFunctionBoundariesService;
 	private ReaiLoggingService loggingService;
+	private final AnalysisLogComponent analysisLogComponent;
+
 
 	private PluginTool tool;
 	private ApiInfo apiInfo;
@@ -139,22 +148,16 @@ public class CorePlugin extends ProgramPlugin {
 		exportFunctionBoundariesService = new ExportFunctionBoundariesServiceImpl(tool);
 		registerServiceProvided(ExportFunctionBoundariesService.class, exportFunctionBoundariesService);
 
+		// Install analysis log viewer
+		analysisLogComponent = new AnalysisLogComponent(tool);
+		tool.addComponentProvider(analysisLogComponent, false);
+
 		setupActions();
 
 		loggingService.info("CorePlugin initialized");
 
 	}
 
-	@Override
-	public void processEvent(PluginEvent event) {
-		super.processEvent(event);
-		if (event instanceof RevEngAIAnalysisStatusChangedEvent pickedEvent) {
-			if (pickedEvent.getStatus() == AnalysisStatus.Complete) {
-				Msg.info(this, "Finished analysis became available for: " + pickedEvent.getProgramWithBinaryID());
-				revengService.handleAnalysisCompletion(pickedEvent);
-			}
-		}
-	}
 
 	private Optional<ApiInfo> getApiInfoFromToolOptions(){
 		var apikey = tool.getOptions(REAI_OPTIONS_CATEGORY).getString(ReaiPluginPackage.OPTION_KEY_APIKEY, "invalid");
@@ -190,13 +193,8 @@ public class CorePlugin extends ProgramPlugin {
 					runSetupWizard();
 				})
 				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Run Setup Wizard" })
+				.menuGroup(CorePlugin.REAI_PLUGIN_SETUP_MENU_GROUP)
 				.buildAndInstall(tool);
-
-//		new ActionBuilder("Export Plugin Logs", getName())
-//				.onAction(context -> exportLogs())
-//				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Export Logs" })
-//				.buildAndInstall(tool);
-
 
 		new ActionBuilder("Connect to existing analysis", this.toString())
 				.withContext(ProgramActionContext.class)
@@ -206,8 +204,10 @@ public class CorePlugin extends ProgramPlugin {
 					tool.showDialog(dialog);
 				})
 				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Connect to existing analysis" })
+				.menuGroup(REAI_ANALYSIS_MANAGEMENT_MENU_GROUP)
 				// Also add this to the context action submenu to make it clear that this still needs to be done
-				.popupMenuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Connect to existing analysis" })
+				.popupMenuPath(new String[] { "Connect to existing analysis" })
+				.popupMenuGroup(REAI_ANALYSIS_MANAGEMENT_MENU_GROUP)
 				.popupMenuIcon(ReaiPluginPackage.REVENG_16)
 				.buildAndInstall(tool);
 
@@ -231,6 +231,25 @@ public class CorePlugin extends ProgramPlugin {
 
 				})
 				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Remove analysis association" })
+				.menuGroup(REAI_ANALYSIS_MANAGEMENT_MENU_GROUP)
+				.buildAndInstall(tool);
+
+		new ActionBuilder("Check Analysis Status", this.getName())
+				.withContext(ProgramActionContext.class)
+				.enabledWhen(context -> context.getProgram() != null && revengService.isKnownProgram(context.getProgram()))
+				.onAction(context -> {
+					var binID = revengService.getBinaryIDFor(context.getProgram()).orElseThrow();
+					var analysisID = revengService.getApi().getAnalysisIDfromBinaryID(binID);
+					var logs = revengService.getAnalysisLog(analysisID);
+					analysisLogComponent.setLogs(logs);
+					AnalysisStatus status = revengService.pollStatus(binID);
+					loggingService.info("Check Status: " + status);
+					Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Check Analysis Status",
+							"Status of " + binID + ": " + status);
+				})
+				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Check Analysis Status" })
+				.menuGroup(REAI_ANALYSIS_MANAGEMENT_MENU_GROUP)
+//				.popupMenuPath(new String[] { "Check Analysis Status" })
 				.buildAndInstall(tool);
 
 		new ActionBuilder("Push Function names to portal", this.toString())
@@ -244,6 +263,47 @@ public class CorePlugin extends ProgramPlugin {
 					}
 				})
 				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Push Function names to portal" })
+				.menuGroup(REAI_PLUGIN_PORTAL_MENU_GROUP)
+				.buildAndInstall(tool);
+
+		new ActionBuilder("Open Function in RevEng.AI Portal", this.getName())
+				.withContext(ProgramLocationActionContext.class)
+				.enabledWhen(context -> getFunctionFromContext(context).flatMap(revengService::getFunctionIDFor).isPresent())
+				.onAction(context -> {
+					FunctionID fid = getFunctionFromContext(context).flatMap(revengService::getFunctionIDFor).orElseThrow();
+					revengService.openFunctionInPortal(fid);
+
+				})
+				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Open Function in RevEng.AI Portal" })
+				.menuGroup(REAI_PLUGIN_PORTAL_MENU_GROUP)
+				.popupMenuIcon(ReaiPluginPackage.REVENG_16)
+				.popupMenuGroup(REAI_PLUGIN_PORTAL_MENU_GROUP)
+				.popupMenuPath(new String[] { "Open Function in RevEng.AI Portal" })
+				.buildAndInstall(tool);
+
+		new ActionBuilder("Create new RevEng.AI Analysis for Binary", this.getName())
+				.enabledWhen(context -> {
+					var currentProgram = tool.getService(ProgramManager.class).getCurrentProgram();
+					if (currentProgram == null) {
+						return false;
+					}
+					return !revengService.isKnownProgram(currentProgram);
+				})
+				.onAction(context -> {
+					var program = tool.getService(ProgramManager.class).getCurrentProgram();
+					if (!GhidraProgramUtilities.isAnalyzed(program)) {
+						Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Create new Analysis for Binary",
+								"Program has not been auto-analyzed by Ghidra yet. Please run auto-analysis first.");
+						return;
+					}
+					var analysisOptionsDialog = new RevEngAIAnalysisOptionsDialog(this, program);
+					tool.showDialog(analysisOptionsDialog);
+				})
+				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Create new Analysis for Binary" })
+				.menuGroup(REAI_ANALYSIS_MANAGEMENT_MENU_GROUP)
+				.popupMenuGroup(REAI_ANALYSIS_MANAGEMENT_MENU_GROUP)
+				.popupMenuPath(new String[] { "Create new Analysis for Binary" })
+				.popupMenuIcon(ReaiPluginPackage.REVENG_16)
 				.buildAndInstall(tool);
 
 	}
@@ -313,5 +373,13 @@ public class CorePlugin extends ProgramPlugin {
 
 		Msg.showInfo(outDir, null, ReaiPluginPackage.WINDOW_PREFIX + "Export Logs",
 				"Successfully exported logs to: " + outDir.toString());
+	}
+
+	private Optional<Function> getFunctionFromContext(ProgramLocationActionContext context) {
+		return Optional.ofNullable(context.getProgram().getFunctionManager().getFunctionContaining(context.getAddress()));
+	}
+
+	public void setLogs(String logs) {
+		analysisLogComponent.setLogs(logs);
 	}
 }

@@ -26,7 +26,6 @@ public class ReaiPluginPackage extends PluginPackage {
 	public static final Integer INVALID_BINARY_ID = -1;
 
 	public static final Icon REVENG_16 = ResourceManager.loadImage("images/reveng_16.png");
-	public static final Icon REVENG_32 = ResourceManager.loadImage("images/reveng_32.png");
 
 
 	/**

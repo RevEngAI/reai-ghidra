@@ -39,6 +39,7 @@ import ghidra.app.plugin.ProgramPlugin;
 import ghidra.app.plugin.core.analysis.AnalysisOptionsDialog;
 import ghidra.app.services.ProgramManager;
 import ghidra.framework.options.SaveState;
+import ghidra.framework.plugintool.PluginEvent;
 import ghidra.framework.plugintool.PluginInfo;
 import ghidra.framework.plugintool.PluginTool;
 import ghidra.framework.plugintool.util.PluginStatus;
@@ -66,13 +67,13 @@ import java.util.Optional;
 	category = PluginCategoryNames.COMMON,
 	shortDescription = "Support for Binary Similarity Featrues of RevEng.AI Toolkit.",
 	description = "Enable features that support binary similarity operations, including binary upload, and auto-renaming",
-	servicesRequired = { GhidraRevengService.class, ProgramManager.class, ExportFunctionBoundariesService.class, ReaiLoggingService.class }
+	servicesRequired = { GhidraRevengService.class, ProgramManager.class, ExportFunctionBoundariesService.class, ReaiLoggingService.class },
+	eventsConsumed = { RevEngAIAnalysisStatusChangedEvent.class}
 )
 //@formatter:on
 public class BinarySimilarityPlugin extends ProgramPlugin {
 	private final AutoAnalysisDockableDialog autoAnalyse;
 	private final AIDecompiledWindow decompiledWindow;
-	private final AnalysisLogComponent analysisLogComponent;
 	private final DataSetControlPanelComponent collectionsComponent;
 
 	public FunctionSimilarityComponent getFunctionSimilarityComponent() {
@@ -82,7 +83,6 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 	protected final FunctionSimilarityComponent functionSimilarityComponent;
 	private GhidraRevengService apiService;
 	public ReaiLoggingService loggingService;
-	private RunManager runMgr;
 
 	public final static String REVENG_AI_NAMESPACE = "RevEng.AI";
 
@@ -99,7 +99,6 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 	 */
 	public BinarySimilarityPlugin(PluginTool tool) {
 		super(tool);
-		runMgr = new RunManager();
 
 		loggingService = tool.getService(ReaiLoggingService.class);
 		if (loggingService == null) {
@@ -119,10 +118,6 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 		functionSimilarityComponent.addToTool();
 
 
-		// Install analysis log viewer
-		analysisLogComponent = new AnalysisLogComponent(tool);
-		tool.addComponentProvider(analysisLogComponent, false);
-
 		// Install Collections Control Panel
 		collectionsComponent = new DataSetControlPanelComponent(tool, REVENG_AI_NAMESPACE);
 		collectionsComponent.addToTool();
@@ -138,45 +133,7 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 	}
 
 	private void setupActions() {
-		new ActionBuilder("Create new RevEng.AI Analysis for Binary", this.getName())
-				.enabledWhen(context -> {
-					var currentProgram = tool.getService(ProgramManager.class).getCurrentProgram();
-					if (currentProgram == null) {
-						return false;
-					}
-                    return !apiService.isKnownProgram(currentProgram);
-                })
-				.onAction(context -> {
-					var program = tool.getService(ProgramManager.class).getCurrentProgram();
-					if (!GhidraProgramUtilities.isAnalyzed(program)) {
-						Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Create new Analysis for Binary",
-								"Program has not been auto-analyzed by Ghidra yet. Please run auto-analysis first.");
-						return;
-					}
-					var analysisOptionsDialog = new RevEngAIAnalysisOptionsDialog(this, program);
-					tool.showDialog(analysisOptionsDialog);
-				})
-				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Create new Analysis for Binary" })
-				.popupMenuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Create new Analysis for Binary" })
-				.buildAndInstall(tool);
 
-
-		new ActionBuilder("Check Analysis Status", this.getName())
-				.withContext(ProgramActionContext.class)
-				.enabledWhen(context -> context.getProgram() != null && apiService.isKnownProgram(context.getProgram()))
-				.onAction(context -> {
-					var binID = apiService.getBinaryIDFor(context.getProgram()).orElseThrow();
-					var analysisID = apiService.getApi().getAnalysisIDfromBinaryID(binID);
-					var logs = apiService.getAnalysisLog(analysisID);
-					analysisLogComponent.setLogs(logs);
-					AnalysisStatus status = apiService.pollStatus(binID);
-					loggingService.info("Check Status: " + status);
-					Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Check Analysis Status",
-							"Status of " + binID + ": " + status);
-				})
-				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Check Analysis Status" })
-//				.popupMenuPath(new String[] { "Check Analysis Status" })
-				.buildAndInstall(tool);
 
 		tool.addAction(new FunctionSimilarityAction(this));
 
@@ -187,15 +144,14 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 //				.withContext(ProgramActionContext.class)
 //				.enabledWhen(context -> apiService.isKnownProgram(context.getProgram()))
 				.enabledWhen(context -> {
-					var program = tool.getService(ProgramManager.class).getCurrentProgram();
-					if (program != null) {
-						return apiService.isKnownProgram(program);
-					} else {
-						return false;
-					}
-				}
+							var program = tool.getService(ProgramManager.class).getCurrentProgram();
+							if (program != null) {
+								return apiService.isKnownProgram(program);
+							} else {
+								return false;
+							}
+						}
 				)
-
 				.onAction(context -> {
 					var program = tool.getService(ProgramManager.class).getCurrentProgram();
 					if (!apiService.isProgramAnalysed(program)) {
@@ -234,19 +190,10 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 				})
 				.popupMenuPath(new String[] { "Decompile via RevEng.AI" })
 				.popupMenuIcon(ReaiPluginPackage.REVENG_16)
-				.popupMenuGroup(ReaiPluginPackage.NAME)
+				.popupMenuGroup(ReaiPluginPackage.MENU_GROUP_NAME)
 				.buildAndInstall(tool);
 
-		new ActionBuilder("Open Function in RevEng.AI Portal", this.getName())
-				.withContext(ProgramLocationActionContext.class)
-				.enabledWhen(context -> getFunctionFromContext(context).flatMap(apiService::getFunctionIDFor).isPresent())
-				.onAction(context -> {
-                    FunctionID fid = getFunctionFromContext(context).flatMap(apiService::getFunctionIDFor).orElseThrow();
-					apiService.openFunctionInPortal(fid);
 
-				})
-				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Open Function in RevEng.AI Portal" })
-				.buildAndInstall(tool);
 
 	}
 
@@ -280,13 +227,6 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 //		saveState.putInts("analysisIDs", analysisIDs);
 	}
 
-	private boolean functionHasAssociatedID(Function function){
-		return apiService.getFunctionIDFor(function).isPresent();
-	}
-
-	private Optional<Function> getFunctionFromContext(ProgramLocationActionContext context){
-		return Optional.ofNullable(context.getProgram().getFunctionManager().getFunctionContaining(context.getAddress()));
-	}
 
 	@Override
 	public void init() {
@@ -295,13 +235,12 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 		apiService = tool.getService(GhidraRevengService.class);
 	}
 
-	public void setLogs(String logs) {
-		analysisLogComponent.setLogs(logs);
+	@Override
+	public void processEvent(PluginEvent event) {
+		if (event instanceof RevEngAIAnalysisStatusChangedEvent analysisStatusChangedEvent) {
+			if (analysisStatusChangedEvent.getStatus() == AnalysisStatus.Complete){
+				autoAnalyse.triggerActivation();
+			}
+		}
 	}
-
-	public void triggerAutoAnalysisFetch() {
-		autoAnalyse.triggerActivation();
-	}
-
-
 }
