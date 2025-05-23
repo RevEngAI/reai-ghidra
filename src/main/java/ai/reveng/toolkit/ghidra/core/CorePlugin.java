@@ -206,6 +206,9 @@ public class CorePlugin extends ProgramPlugin {
 					tool.showDialog(dialog);
 				})
 				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Connect to existing analysis" })
+				// Also add this to the context action submenu to make it clear that this still needs to be done
+				.popupMenuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Connect to existing analysis" })
+				.popupMenuIcon(ReaiPluginPackage.REVENG_16)
 				.buildAndInstall(tool);
 
 		new ActionBuilder("Remove analysis association", this.toString())
