@@ -15,7 +15,7 @@ public class AIDecompiledWindow extends ComponentProviderAdapter {
     private RSyntaxTextArea textArea;
     private RTextScrollPane sp;
     public AIDecompiledWindow(PluginTool tool, String owner) {
-        super(tool, "AI Decompiler", owner);
+        super(tool, ReaiPluginPackage.WINDOW_PREFIX + "AI Decompiler", owner);
         setIcon(ReaiPluginPackage.REVENG_16);
         textArea = buildComponent();
     }
