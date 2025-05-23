@@ -489,7 +489,7 @@ public class TypedApiImplementation implements TypedApiInterface {
     @Override
     public AIDecompilationStatus pollAIDecompileStatus(FunctionID functionID) {
 
-        HttpRequest request = requestBuilderForEndpoint(APIVersion.V2, "ai-decompilation/" + functionID.value())
+        HttpRequest request = requestBuilderForEndpoint(APIVersion.V2, "ai-decompilation/" + functionID.value(), "?summarise=true")
                 .GET()
                 .build();
         return AIDecompilationStatus.fromJSONObject(sendVersion2Request(request).getJsonData());

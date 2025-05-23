@@ -483,7 +483,7 @@ public class GhidraRevengService {
                 return "Decompilation cancelled";
             }
             var status = api.pollAIDecompileStatus(fID);
-            window.setStatus(status.status());
+            window.setStatus(function, status);
 
             switch (status.status()) {
                 case "pending":
@@ -499,7 +499,7 @@ public class GhidraRevengService {
                     break;
                 case "success":
                     monitor.setProgress(monitor.getMaximum());
-                    window.setCode(status.decompilation());
+                    window.setStatus(function, status);
                     return status.decompilation();
                 case "error":
                     return "Decompilation failed: %s".formatted(status.decompilation());
