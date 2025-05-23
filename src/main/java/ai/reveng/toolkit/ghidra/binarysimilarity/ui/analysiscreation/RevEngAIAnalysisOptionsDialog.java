@@ -167,13 +167,13 @@ public class RevEngAIAnalysisOptionsDialog extends DialogComponentProvider {
         generateSBOMCheckBox = new JCheckBox("Generate SBOM");
         generateSBOMCheckBox.setToolTipText("Generate a Software Bill of Materials (SBOM) for the binary");
 
-        checkBoxPanel.add(dynamicExecutionCheckBox);
-        checkBoxPanel.add(advancedAnalysisCheckBox);
-        checkBoxPanel.add(scrapeExternalTagsBox);
-        checkBoxPanel.add(identifyCapabilitiesCheckBox);
-        checkBoxPanel.add(identifyCVECheckBox);
-        checkBoxPanel.add(generateSBOMCheckBox);
-        workPanel.add(checkBoxPanel);
+//        checkBoxPanel.add(dynamicExecutionCheckBox);
+//        checkBoxPanel.add(advancedAnalysisCheckBox);
+//        checkBoxPanel.add(scrapeExternalTagsBox);
+//        checkBoxPanel.add(identifyCapabilitiesCheckBox);
+//        checkBoxPanel.add(identifyCVECheckBox);
+//        checkBoxPanel.add(generateSBOMCheckBox);
+//        workPanel.add(checkBoxPanel);
 
         // Add custom tags field
         workPanel.add(new JSeparator(SwingConstants.HORIZONTAL));
