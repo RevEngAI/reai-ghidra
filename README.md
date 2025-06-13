@@ -40,7 +40,22 @@ and use it for Binary Code Similarity to help you Reverse Engineer stripped bina
 
 ## Installation
 
-The latest stable version of the RevEng.AI Toolkit for Ghidra can be downloaded from the [Releases](https://github.com/revengai/reait-ghidra/releases/latest) page.
+The builds for latest stable version of the RevEng.AI Toolkit for common Ghidra versions can be downloaded from the [Releases](https://github.com/revengai/reait-ghidra/releases/latest) page.
+
+### Supported Ghidra Versions
+
+We support all versions compatible with Ghidra 11.
+
+The CI builds for all patch versions of the latest major version (11.3.X), and for the latest patch for each major (11.0.3, 11.1.2, 11.2.1).
+In practice the plugin should work.
+
+#### Building your own Plugin (For custom Ghidra Forks and Versions)
+
+If you are using a custom version of Ghidra (e.g. nightly builds), then you need to build your own version of the plugin against it,
+otherwise Ghidra complains about a version mismatch when trying to install the plugin.
+You can do this via `./gradlew -PGHIDRA_INSTALL_DIR=/opt/ghidra buildExtension`, and then use the zip from the `dist/` folder.
+
+
 
 ### Loading the Plugin
 
