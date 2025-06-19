@@ -164,6 +164,8 @@ public interface TypedApiInterface {
 
     void renameFunctions(Map<FunctionID, String> renameDict);
 
+    void renameFunction(FunctionID id, String newName);
+
     default FunctionNameScore getNameScore(FunctionMatch match) {
         throw new UnsupportedOperationException("getNameScore not implemented yet");
     }

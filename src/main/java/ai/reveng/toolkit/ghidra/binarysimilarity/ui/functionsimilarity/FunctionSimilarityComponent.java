@@ -54,7 +54,10 @@ public class FunctionSimilarityComponent extends ComponentProviderAdapter {
 				.popupMenuIcon(REVENG_ICON)
 //				.toolBarIcon(EDIT_ICON)
 				.enabledWhen(ac -> canidateFunctionsTable.getSelectedRowCount() == 1)
-				.onAction(ac -> new ApplyMatchCmd(cfm.getRowObject(canidateFunctionsTable.getSelectedRow())).applyWithTransaction())
+				.onAction(ac -> {
+					var service = tool.getService(GhidraRevengService.class);
+                    new ApplyMatchCmd(service, cfm.getRowObject(canidateFunctionsTable.getSelectedRow())).applyWithTransaction();
+                })
 				.buildAndInstallLocal(this);
 
 		new ActionBuilder("Open Function in Portal", getOwner())

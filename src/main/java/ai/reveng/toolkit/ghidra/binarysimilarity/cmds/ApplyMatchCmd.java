@@ -15,6 +15,8 @@ import ghidra.program.model.symbol.SourceType;
 import ghidra.util.Msg;
 import ghidra.util.exception.DuplicateNameException;
 import ghidra.util.exception.InvalidInputException;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 
 import static ai.reveng.toolkit.ghidra.binarysimilarity.BinarySimilarityPlugin.REVENG_AI_NAMESPACE;
@@ -24,11 +26,15 @@ public class ApplyMatchCmd implements Command {
 
     private final Program program;
     private final GhidraFunctionMatchWithSignature match;
+    @Nullable private final GhidraRevengService service;
 
-    public ApplyMatchCmd(GhidraFunctionMatchWithSignature match) {
+    public ApplyMatchCmd(
+            @Nullable GhidraRevengService service,
+            @NotNull GhidraFunctionMatchWithSignature match) {
         super();
         this.program = match.function().getProgram();
         this.match = match;
+        this.service = service;
     }
     @Override
     public boolean applyTo(DomainObject obj) {
@@ -68,7 +74,11 @@ public class ApplyMatchCmd implements Command {
             var renameCmd = new RenameLabelCmd(match.function().getSymbol(), match.functionMatch().name(), SourceType.USER_DEFINED);
             renameCmd.applyTo(program);
         }
-
+        // If we have a service then push the name. If not then it was explicitly not provided, i.e. the caller
+        // is responsible for pushing the names in batch
+        if (service != null) {
+            service.getApi().renameFunction(match.functionMatch().origin_function_id(), match.functionMatch().name());
+        }
 
 
         return false;

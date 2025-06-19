@@ -67,6 +67,9 @@ dependencies {
 	testImplementation('junit:junit:4.13.1')
 	testRuntimeOnly("org.junit.vintage:junit-vintage-engine:5.8.2")
 
+	// https://mvnrepository.com/artifact/org.jetbrains/annotations
+	implementation group: 'org.jetbrains', name: 'annotations', version: '26.0.2'
+
 }
 test {
 	maxParallelForks = 3
