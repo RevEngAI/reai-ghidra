@@ -20,6 +20,7 @@ import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.net.http.HttpTimeoutException;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.*;
@@ -149,12 +150,20 @@ public class TypedApiImplementation implements TypedApiInterface {
         Msg.info(this, "Sending request to: " + request.uri());
         HttpResponse<String> response = null;
 
-        try {
-            response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+        var retryAttempts = 3;
+        while (response == null && retryAttempts > 0) {
+            try {
+                response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            } catch (HttpTimeoutException timeout) {
+                // Sometimes the API hangs, and works again shortly after, so we just try again
+                Msg.info(this, "Timed out waiting for response from: " + request.uri());
+                Msg.info(this, "Trying again: " + request.uri());
+                retryAttempts--;
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
         }
 
         switch (response.statusCode()){
