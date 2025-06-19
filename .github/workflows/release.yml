@@ -45,6 +45,9 @@ jobs:
           auth_token: ${{ secrets.GITHUB_TOKEN }}
           version: ${{ matrix.ghidra }}
 
+      - name: Inject GH release info into plugin
+        run: echo ${{github.event.release.tag_name}} > src/main/resources/reai_ghidra_plugin_version.txt
+
       - name: Build plugin via gradle
         run: gradle buildExtension
 
