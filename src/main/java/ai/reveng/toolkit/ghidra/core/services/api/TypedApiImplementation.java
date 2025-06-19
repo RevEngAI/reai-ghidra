@@ -7,9 +7,12 @@ import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.APIAuthentica
 import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.APIConflictException;
 import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.InvalidAPIInfoException;
 import com.google.common.primitives.Bytes;
+import ghidra.framework.Application;
+import ghidra.framework.Platform;
 import ghidra.util.Msg;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import resources.ResourceManager;
 
 import javax.annotation.Nullable;
 import java.io.File;
@@ -21,6 +24,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpTimeoutException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.*;
@@ -54,7 +58,18 @@ public class TypedApiImplementation implements TypedApiInterface {
                 .build();
         headers = new HashMap<>();
         headers.put("Authorization", this.apiKey);
-        headers.put("User-Agent", "REAIT Java Proxy");
+        String pluginVersion = "unknown";
+        try {
+            // This file comes from the release.yml running in the CI
+            var inputStream = ResourceManager.getResourceAsStream("reai_ghidra_plugin_version.txt");
+            pluginVersion = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8).trim();
+            inputStream.close();
+        } catch (IOException e) {
+
+        }
+        // Looks like:
+        // Ghidra/11.3.2-PUBLIC (LINUX(Linux) X86_64(amd64)) RevEng.AI_Plugin/v0.15
+        headers.put("User-Agent", "%s/%s-%s (%s) RevEng.AI_Plugin/%s".formatted(Application.getName(), Application.getApplicationVersion(), Platform.CURRENT_PLATFORM, Application.getApplicationReleaseName(), pluginVersion));
         // TODO: Actually implement support for some encodings and then accept them
 //        headers.put("Accept-Encoding", "gzip, deflate, br");
     }
