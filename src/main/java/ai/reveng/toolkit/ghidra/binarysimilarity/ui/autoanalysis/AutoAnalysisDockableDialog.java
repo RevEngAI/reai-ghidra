@@ -128,7 +128,8 @@ public class AutoAnalysisDockableDialog extends ComponentProviderAdapter {
         btnApplySelectedResults.addActionListener(
                 e -> {
                     var program = tool.getService(ProgramManager.class).getCurrentProgram();
-                    tool.executeBackgroundCommand(new ApplyMatchesCmd(autoanalysisResultsModel.getLastSelectedObjects()), program);
+                    var service = tool.getService(GhidraRevengService.class);
+                    tool.executeBackgroundCommand(new ApplyMatchesCmd(service, autoanalysisResultsModel.getLastSelectedObjects()), program);
                 }
         );
 
@@ -137,7 +138,8 @@ public class AutoAnalysisDockableDialog extends ComponentProviderAdapter {
         btnApplyAllFilteredResults.addActionListener(
                 e -> {
                     var program = tool.getService(ProgramManager.class).getCurrentProgram();
-                    tool.executeBackgroundCommand(new ApplyMatchesCmd(autoanalysisResultsModel.getModelData()), program);
+                    var service = tool.getService(GhidraRevengService.class);
+                    tool.executeBackgroundCommand(new ApplyMatchesCmd(service, autoanalysisResultsModel.getModelData()), program);
                 }
         );
         actionPanel.add(btnApplySelectedResults, BorderLayout.WEST);

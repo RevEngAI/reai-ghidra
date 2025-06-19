@@ -48,6 +48,11 @@ public class UnimplementedAPI implements TypedApiInterface {
     }
 
     @Override
+    public void renameFunction(FunctionID id, String newName) {
+
+    }
+
+    @Override
     public BinaryHash upload(Path binPath) throws FileNotFoundException {
         // Calculate the SHA256 hash of the binary at the path
         try {
