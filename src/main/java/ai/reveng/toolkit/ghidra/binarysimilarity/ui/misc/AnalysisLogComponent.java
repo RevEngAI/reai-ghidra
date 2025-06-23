@@ -13,7 +13,6 @@ import static ghidra.lifecycle.Unfinished.TODO;
 
 public class AnalysisLogComponent extends ComponentProviderAdapter {
     private final JTextArea textArea;
-    private final DockingAction refreshLogAction;
     private final JScrollPane scroll;
 
     public AnalysisLogComponent(PluginTool tool) {
@@ -23,17 +22,9 @@ public class AnalysisLogComponent extends ComponentProviderAdapter {
         // Simple text area for now
         textArea = new JTextArea();
         textArea.setEditable(false);
+        textArea.setText("No logs yet. Use `Check Analysis Status` to fetch them or create a new analysis");
 
         scroll = new JScrollPane(textArea);
-
-        refreshLogAction = new ActionBuilder("Refresh Log", getOwner())
-                .toolBarIcon(new GIcon("icon.search"))
-                .menuPath("Refresh Log")
-                .description("Refresh the analysis log")
-                .enabledWhen(ac -> true)
-                .onAction(ac -> TODO())
-                .buildAndInstallLocal(this);
-
     }
 
 //    private void refreshLog() {
