@@ -220,7 +220,7 @@ public class TypedApiImplementation implements TypedApiInterface {
         params.put("distance", distance);
         params.put("debug_mode", false);
 
-        if (collections != null){
+        if (collections != null && !collections.isEmpty()) {
             params.put("collection", collections.stream().map(Collection::collectionName).toList());
         }
 

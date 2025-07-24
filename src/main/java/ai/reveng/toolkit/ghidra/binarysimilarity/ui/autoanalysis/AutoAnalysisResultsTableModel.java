@@ -17,11 +17,9 @@ import ghidra.util.exception.CancelledException;
 import ghidra.util.table.ProgramTableModel;
 import ghidra.util.task.TaskMonitor;
 
-import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import static ai.reveng.toolkit.ghidra.Utils.addRowToDescriptor;
 
@@ -52,50 +50,11 @@ public class AutoAnalysisResultsTableModel extends ThreadedTableModelStub<Ghidra
 			monitor.setProgress(0);
 			this.program = programManager.getCurrentProgram();
 			monitor.setMessage("Fetching Matches");
-			Map<Function, GhidraFunctionMatch> bestMatches = apiService.getSimilarFunctions(
-					program,
-					1,
-					1 - similarityThreshold,
-					onlyNamed
-			).entrySet()
-					.stream()
-					.collect(Collectors.toMap(
-                            Map.Entry::getKey,
-							// Get the best match. Not using `getFirst` instead of `get(0)` for JDK 17 compatibility
-							entry -> entry.getValue().get(0)
-					));
-			monitor.setMessage("Fetching Signatures");
-			List<FunctionID> functionIDs = bestMatches.values().stream()
-					.map(GhidraFunctionMatch::nearest_neighbor_id)
-					.toList();
-			// Fetch all Signatures for the functions in the collections at once, then pack them into a map based on the
-			// function ID. This is done to avoid multiple API calls for each function.
-            Map<FunctionID, FunctionDataTypeStatus> signatureMap = Arrays.stream(apiService.getApi().getFunctionDataTypes(functionIDs).dataTypes())
-                    .collect(Collectors.toMap(
-                            FunctionDataTypeStatus::functionID,
-                            status -> status
-                    ));
-            monitor.setMessage("Calculating Confidence Scores");
-			// Fetch the confidence score for the names via batch request
-			Map<FunctionID, BoxPlot> nameScoreMap = apiService.getNameScores(bestMatches.values());
-			monitor.setMaximum(bestMatches.size());
-				bestMatches.values().stream()
-						.takeWhile(t -> !monitor.isCancelled())
-						.peek(t -> monitor.incrementProgress(1))
-						// Filter out functions that have no matches
-						// Filter out matches that are below the threshold
-						.filter(match -> match.similarity() >= similarityThreshold)
-						.map((match) -> new GhidraFunctionMatchWithSignature(
-										match,
-										Optional.ofNullable(signatureMap.get(match.functionMatch().nearest_neighbor_id()))
-												.flatMap(FunctionDataTypeStatus::data_types).orElse(null),
-										nameScoreMap.get(match.functionMatch().nearest_neighbor_id())
-								)
-						)
-						// Add the best matches to the table
-						.forEachOrdered(accumulator::add);
+			Collection<GhidraFunctionMatchWithSignature> matches = apiService.getSimilarFunctionsWithConfidenceAndTypes(
+					program, 1 - similarityThreshold, onlyNamed, fetchSignatures, monitor
+			);
 
-			// Block automatic reloads again until the user explicitly triggers it
+			accumulator.addAll(matches);
 			allowReload = false;
 		}
 		return;
