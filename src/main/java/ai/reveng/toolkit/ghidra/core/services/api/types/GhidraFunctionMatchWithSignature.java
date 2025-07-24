@@ -62,4 +62,8 @@ public class GhidraFunctionMatchWithSignature {
     public Optional<BoxPlot> nameScore() {
         return nameScore;
     }
+
+    public FunctionID nearest_neighbor_id() {
+        return functionMatch.nearest_neighbor_id();
+    }
 }

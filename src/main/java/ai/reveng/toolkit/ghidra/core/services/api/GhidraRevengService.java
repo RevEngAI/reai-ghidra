@@ -3,7 +3,6 @@ package ai.reveng.toolkit.ghidra.core.services.api;
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.aidecompiler.AIDecompiledWindow;
 import ai.reveng.toolkit.ghidra.core.CorePlugin;
-import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisStatusChangedEvent;
 import ai.reveng.toolkit.ghidra.core.services.api.mocks.MockApi;
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
 import ai.reveng.toolkit.ghidra.core.services.api.types.Collection;
@@ -14,6 +13,7 @@ import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
 import ai.reveng.toolkit.ghidra.core.types.ProgramWithBinaryID;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.google.common.collect.Maps;
 import ghidra.app.util.opinion.ElfLoader;
 import ghidra.app.util.opinion.PeLoader;
 import ghidra.program.model.address.Address;
@@ -338,7 +338,7 @@ public class GhidraRevengService {
             List<Collection> collections
     ){
         BinaryID binID = getBinaryIDFor(program).orElseThrow();
-        var functionMap = getFunctionMap(program);
+        BiMap<FunctionID, Function> functionMap = getFunctionMap(program);
         var r = api.annSymbolsForBinary(binID, results, distance, debugMode, collections)
                 .stream()
                 .map(
@@ -359,6 +359,41 @@ public class GhidraRevengService {
     public Map<Function, List<GhidraFunctionMatch>> getSimilarFunctions(Program program, int results, Double distance, Boolean debugMode) {
         var collections = this.getActiveCollections();
         return getSimilarFunctions(program, results, distance, debugMode, collections);
+    }
+
+    public Map<Function, GhidraFunctionMatch> getSimilarFunctions(Program program, Double distance, Boolean debugMode) {
+        var collections = this.getActiveCollections();
+        return Maps.transformValues(getSimilarFunctions(program, 1, distance, debugMode, collections), list -> list.get(0));
+    }
+
+    public java.util.Collection<GhidraFunctionMatchWithSignature> getSimilarFunctionsWithConfidenceAndTypes(
+            Program program,
+            Double distance,
+            Boolean debugMode,
+            Boolean includeSignatures,
+            TaskMonitor monitor
+    ) {
+        // First, get all the basic matches
+        java.util.Collection<GhidraFunctionMatch> basicMatches = getSimilarFunctions(program, distance, debugMode).values();
+
+        if (basicMatches.isEmpty()) {
+            // Something went wrong
+            Msg.showError(this, null, "Failed to find any matches", "Failed to find any matches");
+            return List.of();
+        }
+        // If only debug functions were searched, we can compute the confidence of the matches
+        Map<GhidraFunctionMatch, BoxPlot> confidence = debugMode ? getNameScores(basicMatches) : Map.of();
+
+        // Get all the signatures
+        Map<GhidraFunctionMatch, FunctionDataTypeMessage> signatures = includeSignatures ? this.getSignatures(basicMatches) : Map.of();
+
+        // Pack into a common object
+        return basicMatches.stream().map(
+                m -> new GhidraFunctionMatchWithSignature(
+                        m,
+                        signatures.get(m),
+                        confidence.get(m))
+        ).toList();
     }
 
 
@@ -853,8 +888,39 @@ public class GhidraRevengService {
         return new ProgramWithBinaryID(program, binaryID, analysisID);
     }
 
-    public Map<FunctionID, BoxPlot> getNameScores(java.util.Collection<GhidraFunctionMatch> values) {
+    public Map<GhidraFunctionMatch, BoxPlot> getNameScores(java.util.Collection<GhidraFunctionMatch> values) {
+        // Get the confidence scores for each match in the input
         List<FunctionNameScore> r =  api.getNameScores(values.stream().map(GhidraFunctionMatch::functionMatch).toList(), false);
-        return r.stream().collect(Collectors.toMap(FunctionNameScore::functionID, FunctionNameScore::score));
+        // Collect to a Map from the FunctionID to the actual score
+        Map<FunctionID, BoxPlot> plots = r.stream().collect(Collectors.toMap(FunctionNameScore::functionID, FunctionNameScore::score));
+        return values.stream().collect(Collectors.toMap(
+                match -> match,
+                match -> plots.get(match.functionMatch().origin_function_id())
+        ));
     }
+
+    /**
+     * Collects the signatures for the matched functions, if they have already been computed (and finished)
+     * @param values
+     * @return
+     */
+    public Map<GhidraFunctionMatch, FunctionDataTypeMessage> getSignatures(java.util.Collection<GhidraFunctionMatch> values) {
+
+        DataTypeList dataTypesList = this.api.getFunctionDataTypes(values.stream().map(GhidraFunctionMatch::nearest_neighbor_id).toList());
+        Map<FunctionID, FunctionDataTypeMessage> signatureMap = Arrays.stream(dataTypesList.dataTypes())
+                .filter(FunctionDataTypeStatus::completed)
+                .filter(status -> status.data_types().isPresent())
+                .collect(Collectors.toMap(
+                        FunctionDataTypeStatus::functionID,
+                        status -> status.data_types().get()
+                ));
+
+        return values.stream()
+                .filter(match -> signatureMap.containsKey(match.functionMatch().nearest_neighbor_id()))
+                .collect(Collectors.toMap(
+                match -> match,
+                match -> signatureMap.get(match.functionMatch().nearest_neighbor_id())
+        ));
+    }
+
 }
