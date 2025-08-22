@@ -53,7 +53,7 @@ jobs:
         run: echo ${{github.event.release.tag_name}} > src/main/resources/reai_ghidra_plugin_version.txt
 
       - name: Build plugin via gradle
-        run: gradle buildExtension
+        run: ./gradlew buildExtension
 
       - name: Rename ZIP for upload
         run: mv dist/*_${{matrix.ghidra}}_*.zip dist/ghidra_${{matrix.ghidra}}_reai-ghidra.zip
