@@ -53,7 +53,7 @@ jobs:
           version: ${{ matrix.ghidra }}
 
       - name: Build
-        run: gradle buildExtension
+        run: ./gradlew buildExtension
 
       - name: Run tests
-        run: gradle test
+        run: ./gradlew test
