@@ -346,8 +346,8 @@ public class CorePlugin extends ProgramPlugin {
 
 	private void runSetupWizard() {
 		loggingService.info("First time running setup wizard");
-		SetupWizardManager setupManager = new SetupWizardManager(new WizardState<SetupWizardStateKey>(), getTool(),
-				loggingService);
+		SetupWizardManager setupManager = new SetupWizardManager(new WizardState<SetupWizardStateKey>(), getTool()
+        );
 		WizardManager wizardManager = new WizardManager("RevEng.ai Setup Wizard", true, setupManager);
 		wizardManager.showWizard(tool.getToolFrame());
 
