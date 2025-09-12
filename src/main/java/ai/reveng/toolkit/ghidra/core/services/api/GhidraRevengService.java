@@ -287,13 +287,23 @@ public class GhidraRevengService {
     }
 
     public void removeProgramAssociation(Program program){
-        var binID = getBinaryIDFor(program);
-        if (binID.isEmpty()){
-            throw new RuntimeException("Program has no binary ID associated with it");
+        BinaryID binID;
+        try {
+            var maybebinID = getBinaryIDfromOptions(program);
+            if (maybebinID.isEmpty()){
+                Msg.warn(this, "No binary ID found for program, cannot remove association");
+                return;
+            }
+            binID = maybebinID.get();
+        } catch (InvalidBinaryID e) {
+            // The program has an invalid binary ID, which can happen if the server was changed
+            // This is a very good reason to remove the association, so we unpack the id from the error
+            binID = e.getBinaryID();
         }
         // Clear all function ID data
+
         program.getUsrPropertyManager().removePropertyMap(REAI_FUNCTION_PROP_MAP);
-        statusCache.remove(binID.get());
+        statusCache.remove(binID);
         program.getOptions(REAI_OPTIONS_CATEGORY).setLong(ReaiPluginPackage.OPTION_KEY_BINID, ReaiPluginPackage.INVALID_BINARY_ID);
     }
 
