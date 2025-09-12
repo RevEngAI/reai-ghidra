@@ -74,6 +74,8 @@ dependencies {
 test {
 	maxParallelForks = 3
 	useJUnitPlatform()
+    jvmArgs '--add-exports=java.desktop/sun.awt=ALL-UNNAMED'
+    systemProperty 'java.awt.headless', 'true'
 }
 // Exclude additional files from the built extension
 // Ex: buildExtension.exclude '.idea/**'

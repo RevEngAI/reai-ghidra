@@ -26,9 +26,9 @@ import static ai.reveng.toolkit.ghidra.core.CorePlugin.REAI_WIZARD_RUN_PREF;
 
 public class SetupWizardManager extends AbstractMagePanelManager<SetupWizardStateKey> {
 	private PluginTool tool;
-	private ReaiLoggingService loggingService;
+//	private ReaiLoggingService loggingService;
 
-	public SetupWizardManager(WizardState<SetupWizardStateKey> initialState, PluginTool tool, ReaiLoggingService loggingService) {
+	public SetupWizardManager(WizardState<SetupWizardStateKey> initialState, PluginTool tool) {
 		super(initialState);
 		this.tool = tool;
 	}
