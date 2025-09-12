@@ -269,7 +269,9 @@ public class GhidraRevengService {
     }
 
     public Optional<Function> getFunctionFor(FunctionInfo functionInfo, Program program){
-        var funcAddress = program.getImageBase().add(functionInfo.functionVirtualAddress());
+        // These addresses used to be relative, but are now absolute again
+        var defaultAddressSpace = program.getAddressFactory().getDefaultAddressSpace();
+        var funcAddress = defaultAddressSpace.getAddress(functionInfo.functionVirtualAddress());
         var func = program.getFunctionManager().getFunctionAt(funcAddress);
         return Optional.ofNullable(func);
     }
