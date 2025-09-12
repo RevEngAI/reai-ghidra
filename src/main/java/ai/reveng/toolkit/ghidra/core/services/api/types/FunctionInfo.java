@@ -5,6 +5,7 @@ import org.json.JSONObject;
 public record FunctionInfo(
         FunctionID functionID,
         String functionName,
+        // This is an absolute address
         Long functionVirtualAddress,
         Integer functionSize
 ) {
