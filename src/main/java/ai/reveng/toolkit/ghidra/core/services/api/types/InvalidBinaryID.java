@@ -14,4 +14,8 @@ public class InvalidBinaryID extends Exception{
         this.binaryID = binaryID;
         this.config = config;
     }
+
+    public BinaryID getBinaryID() {
+        return binaryID;
+    }
 };
