@@ -21,7 +21,7 @@ public class RevEngAutoRenamePostScript extends GhidraScript {
         ghidraRevengService.upload(currentProgram);
 
         AnalysisOptionsBuilder options = AnalysisOptionsBuilder.forProgram(currentProgram);
-        var binID = ghidraRevengService.analyse(currentProgram, options, monitor);
+        var binID = ghidraRevengService.analyse(currentProgram, options, monitor, null);
         // Wait for analysis to finish
         ghidraRevengService.waitForFinishedAnalysis(monitor, binID, null);
 

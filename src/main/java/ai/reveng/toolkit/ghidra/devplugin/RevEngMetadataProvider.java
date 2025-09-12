@@ -83,7 +83,7 @@ public class RevEngMetadataProvider extends ComponentProviderAdapter {
         var kProg = api.getKnownProgram(program);
         kProg.ifPresent(p -> {
             binaryID = p.binaryID();
-            analysisID = api.getApi().getAnalysisIDfromBinaryID(binaryID);
+            analysisID = p.analysisID();
         });
         refresh();
 

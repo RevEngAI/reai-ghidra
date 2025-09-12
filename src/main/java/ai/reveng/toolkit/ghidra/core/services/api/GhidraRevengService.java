@@ -2,6 +2,7 @@ package ai.reveng.toolkit.ghidra.core.services.api;
 
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.aidecompiler.AIDecompiledWindow;
+import ai.reveng.toolkit.ghidra.core.AnalysisLogConsumer;
 import ai.reveng.toolkit.ghidra.core.CorePlugin;
 import ai.reveng.toolkit.ghidra.core.services.api.mocks.MockApi;
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
@@ -9,13 +10,10 @@ import ai.reveng.toolkit.ghidra.core.services.api.types.Collection;
 import ai.reveng.toolkit.ghidra.core.services.api.types.LegacyCollection;
 import ai.reveng.toolkit.ghidra.core.services.api.types.binsync.*;
 import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.APIAuthenticationException;
-import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
 import ai.reveng.toolkit.ghidra.core.types.ProgramWithBinaryID;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
-import ghidra.app.util.opinion.ElfLoader;
-import ghidra.app.util.opinion.PeLoader;
 import ghidra.program.model.address.Address;
 import ghidra.program.model.data.*;
 import ghidra.program.model.listing.Function;
@@ -424,20 +422,6 @@ public class GhidraRevengService {
     }
 
 
-    private ModelName getModelNameForProgram(Program program){
-        return getModelNameForProgram(program, this.api.models());
-    }
-
-    public ModelName getModelNameForProgram(Program program, List<ModelName> models){
-        var s = models.stream().map (ModelName::modelName);
-        var format = program.getOptions("Program Information").getString("Executable Format", null);
-        if (format.equals(ElfLoader.ELF_NAME)){
-            s = s.filter(modelName -> modelName.contains("linux"));
-        } else if (format.equals(PeLoader.PE_NAME)) {
-            s = s.filter(modelName -> modelName.contains("windows"));
-        }
-        return new ModelName(s.sorted(Collections.reverseOrder()).toList().get(0));
-    }
 
     public static List<FunctionBoundary> exportFunctionBoundaries(Program program){
         List<FunctionBoundary> result = new ArrayList<>();
@@ -558,9 +542,9 @@ public class GhidraRevengService {
 
         }
     }
-    public ProgramWithBinaryID analyse(Program program, AnalysisOptionsBuilder analysisOptionsBuilder, TaskMonitor monitor) throws CancelledException {
+    public ProgramWithBinaryID analyse(Program program, AnalysisOptionsBuilder analysisOptionsBuilder, TaskMonitor monitor, @Nullable AnalysisLogConsumer consumer) throws CancelledException {
         var programWithBinaryID = startAnalysis(program, analysisOptionsBuilder);
-        waitForFinishedAnalysis(monitor, programWithBinaryID, null);
+        waitForFinishedAnalysis(monitor, programWithBinaryID, consumer);
         return programWithBinaryID;
     }
 
@@ -854,41 +838,43 @@ public class GhidraRevengService {
      * @return The final AnalysisStatus, should be either Complete or Error
      */
     public AnalysisStatus waitForFinishedAnalysis(TaskMonitor monitor, ProgramWithBinaryID programWithID,
-                                                  @Nullable CorePlugin plugin) throws CancelledException {
+                                                  @Nullable AnalysisLogConsumer logConsumer) throws CancelledException {
         monitor.setMessage("Checking analysis status");
         // Check the status of the analysis every 500ms
         // TODO: In the future this can be made smarter and e.g. wait longer if the analysis log hasn't changed
         AnalysisStatus lastStatus = null;
+        String lastLogLine = null;
         while (true) {
             AnalysisStatus currentStatus = this.api.status(programWithID.analysisID());
             if (currentStatus != AnalysisStatus.Queued) {
                 // Analysis log endpoint only starts to return data after the analysis is processing
                 String logs = this.getAnalysisLog(programWithID.analysisID());
-                if (plugin != null) {
-                    plugin.setLogs(logs);
+                if (logConsumer != null) {
+                    logConsumer.consumeLogs(logs);
                 }
                 var logsLines = logs.lines().toList();
-                var lastLine = logsLines.get(logsLines.size() - 1);
-                monitor.setMessage(lastLine);
+                lastLogLine = logsLines.get(logsLines.size() - 1);
+                monitor.setMessage(lastLogLine);
             }
             if (currentStatus != lastStatus) {
                 lastStatus = currentStatus;
             }
 
-            if (lastStatus == AnalysisStatus.Complete || lastStatus == AnalysisStatus.Error) {
+            if (lastStatus == AnalysisStatus.Complete) {
                 // Show the UI message for the completion
                 Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Analysis Complete",
                         "Analysis for " + programWithID + " finished with status: " + lastStatus);
                 this.registerFinishedAnalysisForProgram(programWithID);
+                return lastStatus;
+            } else if (lastStatus == AnalysisStatus.Error) {
+                Msg.showError(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Analysis Error",
+                        "Analysis for " + programWithID + " errored: " + lastLogLine );
                 return lastStatus;
             }
             monitor.checkCancelled();
             try {
                 Thread.sleep(500);
             } catch (InterruptedException e) {
-                if (plugin != null) {
-                    plugin.getTool().getService(ReaiLoggingService.class).error(e.getMessage());
-                }
             }
         }
     }

@@ -33,6 +33,7 @@ import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoun
 import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoundariesServiceImpl;
 import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
 import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingToConsole;
+import ai.reveng.toolkit.ghidra.core.tasks.AnalysisTask;
 import ai.reveng.toolkit.ghidra.core.types.ProgramWithBinaryID;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardManager;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardStateKey;
@@ -56,6 +57,9 @@ import ghidra.program.model.listing.Function;
 import ghidra.program.model.listing.Program;
 import ghidra.program.util.GhidraProgramUtilities;
 import ghidra.util.Msg;
+import ghidra.util.task.Task;
+import ghidra.util.task.TaskBuilder;
+import ghidra.util.task.TaskListener;
 
 /**
  * CorePlugin for accessing the RevEng.AI Platform
@@ -296,8 +300,38 @@ public class CorePlugin extends ProgramPlugin {
 								"Program has not been auto-analyzed by Ghidra yet. Please run auto-analysis first.");
 						return;
 					}
-					var analysisOptionsDialog = new RevEngAIAnalysisOptionsDialog(this, program);
+					var analysisOptionsDialog = RevEngAIAnalysisOptionsDialog.withModelsFromServer(program, revengService);
 					tool.showDialog(analysisOptionsDialog);
+                    var options = analysisOptionsDialog.getOptionsFromUI();
+                    if (options == null) {
+                        loggingService.info("Analysis creation cancelled");
+                        return;
+                    }
+                    var reService = tool.getService(GhidraRevengService.class);
+
+                    var task = new AnalysisTask(program, options, reService, analysisLogComponent);
+                    task.addTaskListener(new TaskListener() {
+                        @Override
+                        public void taskCompleted(Task task) {
+                            AnalysisTask at = (AnalysisTask) task;
+                            analysisLogComponent.analysisFinished();
+                            tool.firePluginEvent(
+                                    new RevEngAIAnalysisStatusChangedEvent(
+                                            "RevEng.AI Analysis",
+                                            at.getProgramWithBinaryID(),
+                                            at.getFinalAnalysisStatus())
+                            );
+                        }
+
+                        @Override
+                        public void taskCancelled(Task task) {
+
+                        }
+                    });
+
+                    var builder = TaskBuilder.withTask(task);
+                    analysisLogComponent.setVisible(true);
+                    builder.launchInBackground(analysisLogComponent.getTaskMonitor());
 				})
 				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Create new Analysis for Binary" })
 				.menuGroup(REAI_ANALYSIS_MANAGEMENT_MENU_GROUP)
@@ -377,9 +411,5 @@ public class CorePlugin extends ProgramPlugin {
 
 	private Optional<Function> getFunctionFromContext(ProgramLocationActionContext context) {
 		return Optional.ofNullable(context.getProgram().getFunctionManager().getFunctionContaining(context.getAddress()));
-	}
-
-	public void setLogs(String logs) {
-		analysisLogComponent.setLogs(logs);
 	}
 }
