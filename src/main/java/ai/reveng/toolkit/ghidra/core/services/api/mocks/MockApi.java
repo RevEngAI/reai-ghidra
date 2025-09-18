@@ -16,12 +16,6 @@ import java.util.List;
 import java.util.Map;
 
 public class MockApi implements TypedApiInterface {
-
-    @Override
-    public List<LegacyAnalysisResult> search(BinaryHash hash, String binaryName, LegacyCollection collection, AnalysisStatus state) {
-        return List.of();
-    }
-
     @Override
     public BinaryHash upload(Path binPath) throws FileNotFoundException {
         return new BinaryHash("b04c1259718dd16c0ffbd0931aeecf07746775cc2f1cda76e46d51af165f3ba6");
@@ -47,7 +41,9 @@ public class MockApi implements TypedApiInterface {
                     1,
                     "model name",
                     hash,
-                    AnalysisStatus.Complete
+                    AnalysisStatus.Complete,
+                    123456,
+                    "b48f61e85bcbc7866d78a8f0b72acd8c0c177ebd15cea466d1edb67409fca269"
             ));
         }
         return List.of();

@@ -3,37 +3,62 @@ package ai.reveng.toolkit.ghidra.binarysimilarity.ui.recentanalyses;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
 import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.APIAuthenticationException;
+import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoundariesService;
+import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
 import docking.widgets.table.AbstractDynamicTableColumn;
 import docking.widgets.table.TableColumnDescriptor;
 import docking.widgets.table.threaded.ThreadedTableModelStub;
 import ghidra.docking.settings.Settings;
 import ghidra.framework.plugintool.PluginTool;
 import ghidra.framework.plugintool.ServiceProvider;
+import ghidra.program.model.address.Address;
 import ghidra.util.datastruct.Accumulator;
 import ghidra.util.exception.CancelledException;
 import ghidra.util.task.TaskMonitor;
 
 public class RecentAnalysesTableModel extends ThreadedTableModelStub<LegacyAnalysisResult> {
     private final BinaryHash hash;
+    private final Address imageBase;
 
-    public RecentAnalysesTableModel(PluginTool tool, BinaryHash hash) {
+    public RecentAnalysesTableModel(PluginTool tool, BinaryHash hash, Address imageBase) {
         super("Recent Analyses Table Model", tool);
         this.hash = hash;
+        this.imageBase = imageBase;
     }
 
     @Override
     protected void doLoad(Accumulator<LegacyAnalysisResult> accumulator, TaskMonitor monitor) throws CancelledException {
         var revEngAIService = serviceProvider.getService(GhidraRevengService.class);
+        var functionBoundariesService = serviceProvider.getService(ExportFunctionBoundariesService.class);
+        var loggingService = serviceProvider.getService(ReaiLoggingService.class);
+
+        // The search endpoint only returns analyses we have access to so there is no need to filter them.
         revEngAIService.searchForHash(hash).forEach(
                 result -> {
-                    try {
-                        // We don't know if we own this Analysis, so we check if we can get the status
-                        // if it fails with an APIAuthenticationException, we don't own it
-                        revEngAIService.getApi().status(result.binary_id());
-                    } catch (APIAuthenticationException e) {
-                        // We got an exception, don't add this result to the list
+                    // Filter out analyses that are not Complete
+                    if (result.status() != AnalysisStatus.Complete) {
+                        loggingService.info("[RevEng] Skipping analysis for " + result.binary_id() + " as status is " + result.status());
                         return;
                     }
+
+                    // Filter out analyses where the base address does not match our program
+                    if (result.base_address() != imageBase.getOffset()) {
+                        loggingService.info(
+                            "[RevEng] Skipping analysis for " + result.binary_id() + " as base address does not match. Expected " +
+                            imageBase.getOffset() + " but got " + result.base_address());
+                        return;
+                    }
+
+                    // Filter out analyses where the function boundaries hash does not match our program
+                    var functionBoundariesHash = functionBoundariesService.getFunctionBoundariesHash();
+                    if (!result.function_boundaries_hash().equals(functionBoundariesHash)) {
+                        loggingService.info(
+                            "[RevEng] Skipping analysis for " + result.binary_id() + " as function boundaries hash does" +
+                            " not match. Expected " + functionBoundariesHash + " but got " +
+                            result.function_boundaries_hash());
+                        return;
+                    }
+
                     accumulator.add(result);
                 }
         );

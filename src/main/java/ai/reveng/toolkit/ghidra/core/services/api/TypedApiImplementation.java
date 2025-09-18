@@ -123,38 +123,16 @@ public class TypedApiImplementation implements TypedApiInterface {
 
      */
     public List<LegacyAnalysisResult> search(BinaryHash hash) {
-        return search(hash, null, null, null);
-    }
-
-    @Override
-    public List<LegacyAnalysisResult> search(
-            BinaryHash hash,
-            String binaryName,
-            LegacyCollection collection,
-            AnalysisStatus state){
-
-        JSONObject parameters = new JSONObject();
-        if (hash != null){
-            parameters.put("sha_256_hash", hash.sha256());
-        }
-        if (binaryName != null){
-            parameters.put("binary_name", binaryName);
-        }
-        if (collection != null){
-            parameters.put("collection_name", collection.collectionName());
-        }
-        if (state != null){
-            parameters.put("state", state.name());
-        }
-
+        Map<String, String> params = new HashMap<>();
+        params.put("sha256_hash", hash.sha256());
 
         JSONObject json = sendRequest(
-                requestBuilderForEndpoint(APIVersion.V1, "search")
-                        .method("GET", HttpRequest.BodyPublishers.ofString(parameters.toString()))
+                requestBuilderForEndpoint(APIVersion.V2, "analyses", "list",  queryParams(params))
+                        .GET()
                         .header("Content-Type", "application/json" )
                         .build());
 
-        return mapJSONArray(json.getJSONArray("query_results"), LegacyAnalysisResult::fromJSONObject);
+        return mapJSONArray(json.getJSONObject("data").getJSONArray("results"), LegacyAnalysisResult::fromJSONObject);
     }
 
     private V2Response sendVersion2Request(HttpRequest request){

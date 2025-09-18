@@ -1,6 +1,5 @@
 package ai.reveng.toolkit.ghidra.core.services.api.types;
 
-
 import org.json.JSONObject;
 
 /*
@@ -15,8 +14,9 @@ public record LegacyAnalysisResult(
         int model_id,
         String model_name,
         BinaryHash sha_256_hash,
-        AnalysisStatus status
-//        AnalysisScope analysis_scope,
+        AnalysisStatus status,
+        long base_address,
+        String function_boundaries_hash
 ) {
     public static LegacyAnalysisResult fromJSONObject(JSONObject json) {
         return new LegacyAnalysisResult(
@@ -26,7 +26,9 @@ public record LegacyAnalysisResult(
                 json.getInt("model_id"),
                 json.getString("model_name"),
                 new BinaryHash(json.getString("sha_256_hash")),
-                AnalysisStatus.valueOf(json.getString("status"))
+                AnalysisStatus.valueOf(json.getString("status")),
+                json.getLong("base_address"),
+                json.getString("function_boundaries_hash")
         );
     }
 }

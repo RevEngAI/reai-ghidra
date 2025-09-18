@@ -18,11 +18,6 @@ import java.util.Map;
 
 public class UnimplementedAPI implements TypedApiInterface {
     @Override
-    public List<LegacyAnalysisResult> search(BinaryHash hash, String binaryName, LegacyCollection collection, AnalysisStatus state) {
-        return List.of();
-    }
-
-    @Override
     public BinaryID analyse(AnalysisOptionsBuilder binHash) {
         return new BinaryID(1337);
     }

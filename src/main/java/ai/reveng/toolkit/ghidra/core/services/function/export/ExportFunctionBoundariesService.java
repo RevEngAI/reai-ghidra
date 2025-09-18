@@ -29,4 +29,11 @@ public interface ExportFunctionBoundariesService {
 	 * @return
 	 */
 	public JSONArray getFunctionsArray();
+
+    /**
+     * Return a hash of the function boundaries for change detection
+     * Note that this algorithm must match that used on the API server side!
+     * @return
+     */
+    public String getFunctionBoundariesHash();
 }

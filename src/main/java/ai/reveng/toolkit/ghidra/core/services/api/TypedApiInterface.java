@@ -25,14 +25,7 @@ import javax.annotation.Nullable;
  */
 public interface TypedApiInterface {
     // Analysis
-    List<LegacyAnalysisResult> search(
-            BinaryHash hash,
-            String binaryName,
-            LegacyCollection collection,
-            AnalysisStatus state);
-
     BinaryID analyse(AnalysisOptionsBuilder binHash);
-
 
 
     default Object delete(BinaryID binID) {

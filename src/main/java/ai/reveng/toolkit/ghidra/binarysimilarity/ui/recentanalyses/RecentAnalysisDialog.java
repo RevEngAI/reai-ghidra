@@ -29,7 +29,7 @@ public class RecentAnalysisDialog extends DialogComponentProvider {
         this.tool = tool;
         this.program = program;
         var hash = new BinaryHash(program.getExecutableSHA256());
-        recentAnalysesTableModel = new RecentAnalysesTableModel(tool, hash);
+        recentAnalysesTableModel = new RecentAnalysesTableModel(tool, hash, this.program.getImageBase());
         recentAnalysesTable = new GhidraFilterTable<>(recentAnalysesTableModel);
 
         JButton pickMostRecentButton = new JButton("Pick most recent");
