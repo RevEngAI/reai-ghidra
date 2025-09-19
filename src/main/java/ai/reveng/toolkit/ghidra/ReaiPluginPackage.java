@@ -11,9 +11,9 @@ import javax.swing.*;
 public class ReaiPluginPackage extends PluginPackage {
 	public static final String NAME = "RevEng.AI";
 	public static final String PREFIX = "RevEngAI.";
-	public static final String MENU_GROUP_NAME = "RevEngAI Toolkit";
+	public static final String MENU_GROUP_NAME = "RevEng.AI";
 	public static final String DEV_TOOLING_MENU_GROUP_NAME = "RevEng.AI Dev";
-	public static final String WINDOW_PREFIX = "RevEng.AI Toolkit: ";
+	public static final String WINDOW_PREFIX = "RevEng.AI: ";
 	/*
 	 * Below are the keys used to store/retrieve key-value pairs in Ghidra
 	 * preferences
