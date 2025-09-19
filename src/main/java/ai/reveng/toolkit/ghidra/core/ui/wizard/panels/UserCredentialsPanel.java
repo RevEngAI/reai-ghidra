@@ -16,7 +16,9 @@ import javax.swing.event.DocumentListener;
 
 public class UserCredentialsPanel extends AbstractMageJPanel<SetupWizardStateKey> {
 	private static final long serialVersionUID = -9045013459967405703L;
-	private JTextField tfApiKey;
+    private final JButton validateButton;
+    private InvalidAPIInfoException apiInfoException = null;
+    private JTextField tfApiKey;
 	private JTextField tfHostname;
 	private Boolean credentialsValidated = false;
 
@@ -80,8 +82,8 @@ public class UserCredentialsPanel extends AbstractMageJPanel<SetupWizardStateKey
 		hostnamePanel.add(tfHostname);
 		tfHostname.setColumns(20);
 
-		JButton runTestsButton = new JButton("Validate Credentials");
-		runTestsButton.addActionListener(e -> {
+		validateButton = new JButton("Validate Credentials");
+		validateButton.addActionListener(e -> {
 			var apiInfo = new ApiInfo(tfHostname.getText(), tfApiKey.getText());
 			try {
 				apiInfo.checkCredentials();
@@ -91,11 +93,12 @@ public class UserCredentialsPanel extends AbstractMageJPanel<SetupWizardStateKey
 
 			} catch (InvalidAPIInfoException ex) {
 				credentialsValidated = false;
+                apiInfoException = ex;
 				notifyListenersOfStatusMessage("Problem with user info:\n" + ex.getMessage());
 			}
 
 		});
-		userDetailsPanel.add(runTestsButton);
+		userDetailsPanel.add(validateButton);
 
 
 	}
@@ -164,4 +167,8 @@ public class UserCredentialsPanel extends AbstractMageJPanel<SetupWizardStateKey
 	@Override
 	public void initialize() {
 	}
+
+    public InvalidAPIInfoException getApiInfoException() {
+        return apiInfoException;
+    }
 }

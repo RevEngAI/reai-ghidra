@@ -25,6 +25,7 @@ import javax.annotation.Nullable;
  */
 public interface TypedApiInterface {
     // Analysis
+
     BinaryID analyse(AnalysisOptionsBuilder binHash);
 
 
