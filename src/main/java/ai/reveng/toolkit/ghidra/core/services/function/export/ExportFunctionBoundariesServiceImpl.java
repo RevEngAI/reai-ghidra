@@ -110,9 +110,7 @@ public class ExportFunctionBoundariesServiceImpl implements ExportFunctionBounda
             long startAddrInt = Long.parseUnsignedLong(startAddrHex.substring(2), 16);
             long endAddrInt = Long.parseUnsignedLong(endAddrHex.substring(2), 16);
 
-            boundariesStr.append(b.getString("name"))
-                         .append(":")
-                         .append(startAddrInt)
+            boundariesStr.append(startAddrInt)
                          .append("-")
                          .append(endAddrInt);
         }
