@@ -16,7 +16,6 @@
 package ai.reveng.toolkit.ghidra.core;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.util.Optional;
 
 import ai.reveng.toolkit.ghidra.binarysimilarity.BinarySimilarityPlugin;
@@ -24,8 +23,6 @@ import ai.reveng.toolkit.ghidra.binarysimilarity.ui.analysiscreation.RevEngAIAna
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.misc.AnalysisLogComponent;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.recentanalyses.RecentAnalysisDialog;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
-import ai.reveng.toolkit.ghidra.core.services.api.mocks.ProcessingLimboApi;
-import ai.reveng.toolkit.ghidra.core.services.api.mocks.SimpleMatchesApi;
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
 
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
@@ -35,13 +32,8 @@ import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
 import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingToConsole;
 import ai.reveng.toolkit.ghidra.core.tasks.AnalysisTask;
 import ai.reveng.toolkit.ghidra.core.types.ProgramWithBinaryID;
-import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardManager;
-import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardStateKey;
-import docking.ActionContext;
 import docking.action.builder.ActionBuilder;
 import docking.widgets.OptionDialog;
-import docking.wizard.WizardManager;
-import docking.wizard.WizardState;
 import ghidra.app.context.ProgramActionContext;
 import ghidra.app.context.ProgramLocationActionContext;
 import ghidra.app.plugin.PluginCategoryNames;
@@ -82,26 +74,20 @@ import ghidra.util.task.TaskListener;
 	category = PluginCategoryNames.COMMON,
 	shortDescription = "Toolkit for using the RevEng.AI API",
 	description = "Toolkit for using RevEng.AI API",
-	servicesRequired = { OptionsService.class, ConsoleService.class},
-	servicesProvided = { GhidraRevengService.class, ExportFunctionBoundariesService.class, ReaiLoggingService.class },
-	eventsConsumed = { RevEngAIAnalysisStatusChangedEvent.class}
+	servicesRequired = { OptionsService.class, ConsoleService.class, GhidraRevengService.class},
+	servicesProvided = { ExportFunctionBoundariesService.class, ReaiLoggingService.class },
+    eventsConsumed = { RevEngAIAnalysisStatusChangedEvent.class}
 )
 //@formatter:on
 public class CorePlugin extends ProgramPlugin {
 	public static final String REAI_WIZARD_RUN_PREF = "REAISetupWizardRun";
 	public static final String REAI_OPTIONS_CATEGORY = "RevEngAI Options";
 	private static final String REAI_ANALYSIS_MANAGEMENT_MENU_GROUP = "RevEng.AI Analysis Management";
-	private static final String REAI_PLUGIN_SETUP_MENU_GROUP = "RevEng.AI Setup";
 	private static final String REAI_PLUGIN_PORTAL_MENU_GROUP = "RevEng.AI Portal";
 
-	private GhidraRevengService revengService;
 	private ExportFunctionBoundariesService exportFunctionBoundariesService;
 	private ReaiLoggingService loggingService;
 	private final AnalysisLogComponent analysisLogComponent;
-
-
-	private PluginTool tool;
-	private ApiInfo apiInfo;
 
 	@Override
 	public void serviceAdded(Class<?> interfaceClass, Object service) {
@@ -111,43 +97,18 @@ public class CorePlugin extends ProgramPlugin {
 		}
 	}
 
+    public GhidraRevengService getRevengService() {
+        return tool.getService(GhidraRevengService.class);
+    }
+
 	public CorePlugin(PluginTool tool) {
 		super(tool);
 
-		this.tool = tool;
 
 		var toolOptions =  tool;
 		tool.getOptions(REAI_OPTIONS_CATEGORY).registerOption(REAI_WIZARD_RUN_PREF, "false", null, "If the setup wizard has been run");
 		loggingService = new ReaiLoggingToConsole(tool.getService(ConsoleService.class));
 		registerServiceProvided(ReaiLoggingService.class, loggingService);
-
-
-
-		// Try to get the API info from the local config, if it's not there, run the setup wizard
-		getApiInfoFromConfig().ifPresentOrElse(
-				info -> apiInfo = info,
-				() -> { runSetupWizard(); apiInfo = getApiInfoFromConfig().orElseThrow();}
-		);
-		// Check if the System Property to use a Mock is set
-		String mock;
-		if ((mock = System.getProperty("reai.mock")) != null) {
-			loggingService.warn("Using Mock API: " + mock);
-			apiInfo = new ApiInfo("mock", "mock");
-			switch (mock) {
-				case "limbo":
-					revengService = new GhidraRevengService(new ProcessingLimboApi());
-					break;
-				case "simpleMatches":
-					revengService = new GhidraRevengService(new SimpleMatchesApi());
-					break;
-				default:
-					throw new UnsupportedOperationException("Unknown mock type: " + mock);
-			}
-			revengService = new GhidraRevengService(new ProcessingLimboApi());
-		} else {
-			revengService = new GhidraRevengService(apiInfo);
-		}
-		registerServiceProvided(GhidraRevengService.class, revengService);
 
 		exportFunctionBoundariesService = new ExportFunctionBoundariesServiceImpl(tool);
 		registerServiceProvided(ExportFunctionBoundariesService.class, exportFunctionBoundariesService);
@@ -162,47 +123,12 @@ public class CorePlugin extends ProgramPlugin {
 
 	}
 
-
-	private Optional<ApiInfo> getApiInfoFromToolOptions(){
-		var apikey = tool.getOptions(REAI_OPTIONS_CATEGORY).getString(ReaiPluginPackage.OPTION_KEY_APIKEY, "invalid");
-		var hostname = tool.getOptions(REAI_OPTIONS_CATEGORY).getString(ReaiPluginPackage.OPTION_KEY_HOSTNAME, "unknown");
-		if (apikey.equals("invalid") || hostname.equals("unknown")) {
-			return Optional.empty();
-		}
-		var apiInfo = new ApiInfo(hostname, apikey);
-//		apiInfo.checkValidity();
-		return Optional.of(apiInfo);
-	}
-
-	/**
-	 * Attempts to generate an {@link ApiInfo} object from the config file
-	 * @return
-	 */
-	private Optional<ApiInfo> getApiInfoFromConfig(){
-        try {
-            return Optional.of(ApiInfo.fromConfig());
-        } catch (FileNotFoundException e) {
-			loggingService.error(e.getMessage());
-			Msg.showError(this, null, "Load Config", "Unable to find RevEng config file");
-            return Optional.empty();
-        }
-
-    }
-
 	private void setupActions() {
 
-		new ActionBuilder("Re-Run Setup Wizard", this.toString())
-				.withContext(ActionContext.class)
-				.onAction(context ->  {
-					runSetupWizard();
-				})
-				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Run Setup Wizard" })
-				.menuGroup(CorePlugin.REAI_PLUGIN_SETUP_MENU_GROUP)
-				.buildAndInstall(tool);
 
 		new ActionBuilder("Connect to existing analysis", this.toString())
 				.withContext(ProgramActionContext.class)
-				.enabledWhen(c -> !revengService.isKnownProgram(c.getProgram()))
+				.enabledWhen(c -> !getRevengService().isKnownProgram(c.getProgram()))
 				.onAction(context -> {
 					RecentAnalysisDialog dialog = new RecentAnalysisDialog(tool, context.getProgram());
 					tool.showDialog(dialog);
@@ -217,7 +143,7 @@ public class CorePlugin extends ProgramPlugin {
 
 		new ActionBuilder("Remove analysis association", this.toString())
 				.withContext(ProgramActionContext.class)
-				.enabledWhen(c -> revengService.isKnownProgram(c.getProgram()))
+				.enabledWhen(c -> getRevengService().isKnownProgram(c.getProgram()))
 				.onAction(context -> {
 					var result = OptionDialog.showOptionDialogWithCancelAsDefaultButton(
 							tool.getToolFrame(),
@@ -230,7 +156,7 @@ public class CorePlugin extends ProgramPlugin {
 						// If this changes, the RevEngAIAnalysisStatusChanged event should be changed to accommodate
 						// this kind of event
 						var program = context.getProgram();
-						program.withTransaction("Undo binary association", () -> revengService.removeProgramAssociation(program));
+						program.withTransaction("Undo binary association", () -> getRevengService().removeProgramAssociation(program));
 					}
 
 				})
@@ -240,8 +166,9 @@ public class CorePlugin extends ProgramPlugin {
 
 		new ActionBuilder("Check Analysis Status", this.getName())
 				.withContext(ProgramActionContext.class)
-				.enabledWhen(context -> context.getProgram() != null && revengService.isKnownProgram(context.getProgram()))
+				.enabledWhen(context -> context.getProgram() != null && getRevengService().isKnownProgram(context.getProgram()))
 				.onAction(context -> {
+                    var revengService = getRevengService();
 					var binID = revengService.getBinaryIDFor(context.getProgram()).orElseThrow();
 					var analysisID = revengService.getApi().getAnalysisIDfromBinaryID(binID);
 					var logs = revengService.getAnalysisLog(analysisID);
@@ -259,7 +186,7 @@ public class CorePlugin extends ProgramPlugin {
 		new ActionBuilder("Push Function names to portal", this.toString())
 				.withContext(ProgramActionContext.class)
 				.onAction(context -> {
-					var renameMap = revengService.pushUserFunctionNamesToBackend(context.getProgram());
+					var renameMap = getRevengService().pushUserFunctionNamesToBackend(context.getProgram());
 					if (renameMap.isEmpty()){
 						Msg.showInfo(this, null, "Push Function names to portal", "No functions were renamed");
 					} else {
@@ -272,10 +199,10 @@ public class CorePlugin extends ProgramPlugin {
 
 		new ActionBuilder("Open Function in RevEng.AI Portal", this.getName())
 				.withContext(ProgramLocationActionContext.class)
-				.enabledWhen(context -> getFunctionFromContext(context).flatMap(revengService::getFunctionIDFor).isPresent())
+				.enabledWhen(context -> getFunctionFromContext(context).flatMap(getRevengService()::getFunctionIDFor).isPresent())
 				.onAction(context -> {
-					FunctionID fid = getFunctionFromContext(context).flatMap(revengService::getFunctionIDFor).orElseThrow();
-					revengService.openFunctionInPortal(fid);
+					FunctionID fid = getFunctionFromContext(context).flatMap(getRevengService()::getFunctionIDFor).orElseThrow();
+                    getRevengService().openFunctionInPortal(fid);
 
 				})
 				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Open Function in RevEng.AI Portal" })
@@ -291,7 +218,7 @@ public class CorePlugin extends ProgramPlugin {
 					if (currentProgram == null) {
 						return false;
 					}
-					return !revengService.isKnownProgram(currentProgram);
+					return !getRevengService().isKnownProgram(currentProgram);
 				})
 				.onAction(context -> {
 					var program = tool.getService(ProgramManager.class).getCurrentProgram();
@@ -300,7 +227,7 @@ public class CorePlugin extends ProgramPlugin {
 								"Program has not been auto-analyzed by Ghidra yet. Please run auto-analysis first.");
 						return;
 					}
-					var analysisOptionsDialog = RevEngAIAnalysisOptionsDialog.withModelsFromServer(program, revengService);
+					var analysisOptionsDialog = RevEngAIAnalysisOptionsDialog.withModelsFromServer(program, getRevengService());
 					tool.showDialog(analysisOptionsDialog);
                     var options = analysisOptionsDialog.getOptionsFromUI();
                     if (options == null) {
@@ -346,15 +273,15 @@ public class CorePlugin extends ProgramPlugin {
 	protected void programActivated(Program program) {
 		super.programActivated(program);
 
-		if (!revengService.isKnownProgram(program)){
-			var maybeBinID = revengService.getBinaryIDFor(program);
+		if (!getRevengService().isKnownProgram(program)){
+			var maybeBinID = getRevengService().getBinaryIDFor(program);
 			if (maybeBinID.isEmpty()){
 				Msg.info(this, "Program has no saved binary ID");
 				return;
 			}
 			var binID = maybeBinID.get();
-			AnalysisStatus status = revengService.pollStatus(binID);
-			var analysisID = revengService.getApi().getAnalysisIDfromBinaryID(binID);
+			AnalysisStatus status = getRevengService().pollStatus(binID);
+			var analysisID = getRevengService().getApi().getAnalysisIDfromBinaryID(binID);
 			tool.firePluginEvent(
 					new RevEngAIAnalysisStatusChangedEvent(
 					"programActivated",
@@ -368,26 +295,6 @@ public class CorePlugin extends ProgramPlugin {
 		super.init();
 
 	}
-
-	private boolean hasSetupWizardRun() {
-		String value = tool.getOptions(REAI_OPTIONS_CATEGORY).getString(REAI_WIZARD_RUN_PREF, "false");
-		return Boolean.parseBoolean(value);
-	}
-
-	private void setWizardRun() {
-		tool.getOptions(REAI_OPTIONS_CATEGORY).setString(REAI_WIZARD_RUN_PREF, "true");
-	}
-
-	private void runSetupWizard() {
-		loggingService.info("First time running setup wizard");
-		SetupWizardManager setupManager = new SetupWizardManager(new WizardState<SetupWizardStateKey>(), getTool()
-        );
-		WizardManager wizardManager = new WizardManager("RevEng.ai Setup Wizard", true, setupManager);
-		wizardManager.showWizard(tool.getToolFrame());
-
-		return;
-	}
-
 
 	private void exportLogs(){
 		GhidraFileChooser fileChooser = new GhidraFileChooser(null);
