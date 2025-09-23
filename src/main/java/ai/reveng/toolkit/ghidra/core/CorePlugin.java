@@ -42,6 +42,7 @@ import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardManager;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardStateKey;
 import docking.ActionContext;
 import docking.action.DockingAction;
+import docking.action.MenuData;
 import docking.action.builder.ActionBuilder;
 import docking.widgets.OptionDialog;
 import docking.wizard.WizardManager;
@@ -239,9 +240,13 @@ public class CorePlugin extends ProgramPlugin {
                 .enabledWhen(context -> {
                     var currentProgram = tool.getService(ProgramManager.class).getCurrentProgram();
                     if (currentProgram == null) {
+                        loggingService.info("Create new action disabled: No current program");
                         return false;
                     }
-                    return !revengService.isKnownProgram(currentProgram);
+                    boolean isKnown = revengService.isKnownProgram(currentProgram);
+                    boolean shouldEnable = !isKnown;
+                    loggingService.info("Create new action enabled: " + shouldEnable + " (program: " + currentProgram.getName() + ", isKnown: " + isKnown + ")");
+                    return shouldEnable;
                 })
                 .onAction(context -> {
                     var program = tool.getService(ProgramManager.class).getCurrentProgram();
@@ -261,12 +266,20 @@ public class CorePlugin extends ProgramPlugin {
                 .buildAndInstall(tool);
 
 		attachToExistingAction = new ActionBuilder("Attach to existing", this.toString())
-				.withContext(ProgramActionContext.class)
 				.enabledWhen(c -> {
-                    return !revengService.isKnownProgram(c.getProgram());
+                    var currentProgram = tool.getService(ProgramManager.class).getCurrentProgram();
+                    if (currentProgram == null) {
+                        loggingService.info("Attach to existing action disabled: No current program");
+                        return false;
+                    }
+                    boolean isKnown = revengService.isKnownProgram(currentProgram);
+                    boolean shouldEnable = !isKnown;
+                    loggingService.info("Attach to existing action enabled: " + shouldEnable + " (program: " + currentProgram.getName() + ", isKnown: " + isKnown + ")");
+                    return shouldEnable;
                 })
 				.onAction(context -> {
-					RecentAnalysisDialog dialog = new RecentAnalysisDialog(tool, context.getProgram());
+					var currentProgram = tool.getService(ProgramManager.class).getCurrentProgram();
+					RecentAnalysisDialog dialog = new RecentAnalysisDialog(tool, currentProgram);
 					tool.showDialog(dialog);
 				})
 				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Analysis", "Attach to existing" })
@@ -278,20 +291,31 @@ public class CorePlugin extends ProgramPlugin {
 				.buildAndInstall(tool);
 
 		detachAction = new ActionBuilder("Detach", this.toString())
-				.withContext(ProgramActionContext.class)
-				.enabledWhen(c -> revengService.isKnownProgram(c.getProgram()))
+				.enabledWhen(c -> {
+                    var currentProgram = tool.getService(ProgramManager.class).getCurrentProgram();
+                    if (currentProgram == null) {
+                        loggingService.info("Detach action disabled: No current program");
+                        return false;
+                    }
+                    boolean isKnown = revengService.isKnownProgram(currentProgram);
+                    loggingService.info("Detach action enabled: " + isKnown + " (program: " + currentProgram.getName() + ", isKnown: " + isKnown + ")");
+                    return isKnown;
+                })
 				.onAction(context -> {
+					var program = tool.getService(ProgramManager.class).getCurrentProgram();
+					var analysisID = getAnalysisIDForProgram(program);
+					var displayText = analysisID != null ? "analysis " + analysisID.id() : "the analysis";
+
 					var result = OptionDialog.showOptionDialogWithCancelAsDefaultButton(
 							tool.getToolFrame(),
-							"Detach",
-							"Are you sure you want to remove the association with the analysis?",
+							"Detach from " + displayText,
+							"Are you sure you want to remove the association with " + displayText + "?",
 							"Detach",
 							OptionDialog.QUESTION_MESSAGE);
 					if (result == OptionDialog.YES_OPTION) {
 						// For now this is the only place to trigger the removal of the association
 						// If this changes, the RevEngAIAnalysisStatusChanged event should be changed to accommodate
 						// this kind of event
-						var program = context.getProgram();
 						program.withTransaction("Undo binary association", () -> revengService.removeProgramAssociation(program));
 
 						// Refresh action states after detaching
@@ -304,10 +328,19 @@ public class CorePlugin extends ProgramPlugin {
 				.buildAndInstall(tool);
 
 		checkStatusAction = new ActionBuilder("Check status", this.getName())
-				.withContext(ProgramActionContext.class)
-				.enabledWhen(context -> context.getProgram() != null && revengService.isKnownProgram(context.getProgram()))
+				.enabledWhen(context -> {
+                    var currentProgram = tool.getService(ProgramManager.class).getCurrentProgram();
+                    if (currentProgram == null) {
+                        loggingService.info("Check status action disabled: No current program");
+                        return false;
+                    }
+                    boolean isKnown = revengService.isKnownProgram(currentProgram);
+                    loggingService.info("Check status action enabled: " + isKnown + " (program: " + currentProgram.getName() + ", isKnown: " + isKnown + ")");
+                    return isKnown;
+                })
 				.onAction(context -> {
-					var binID = revengService.getBinaryIDFor(context.getProgram()).orElseThrow();
+					var currentProgram = tool.getService(ProgramManager.class).getCurrentProgram();
+					var binID = revengService.getBinaryIDFor(currentProgram).orElseThrow();
 					var analysisID = revengService.getApi().getAnalysisIDfromBinaryID(binID);
 					var logs = revengService.getAnalysisLog(analysisID);
 					analysisLogComponent.setLogs(logs);
@@ -321,45 +354,24 @@ public class CorePlugin extends ProgramPlugin {
 				.buildAndInstall(tool);
 
         viewInPortalAction = new ActionBuilder("View in portal", this.getName())
-                .withContext(ProgramActionContext.class)
-                .enabledWhen(context -> context.getProgram() != null && revengService.isKnownProgram(context.getProgram()))
+                .enabledWhen(context -> {
+                    var currentProgram = tool.getService(ProgramManager.class).getCurrentProgram();
+                    if (currentProgram == null) {
+                        loggingService.info("View in portal action disabled: No current program");
+                        return false;
+                    }
+                    boolean isKnown = revengService.isKnownProgram(currentProgram);
+                    loggingService.info("View in portal action enabled: " + isKnown + " (program: " + currentProgram.getName() + ", isKnown: " + isKnown + ")");
+                    return isKnown;
+                })
                 .onAction(context -> {
-                    var binID = revengService.getBinaryIDFor(context.getProgram()).orElseThrow();
-
+                    var currentProgram = tool.getService(ProgramManager.class).getCurrentProgram();
+                    var binID = revengService.getBinaryIDFor(currentProgram).orElseThrow();
                     revengService.openPortal("analyses", String.valueOf(binID.value()));
                 })
                 .menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Analysis", "View in portal" })
                 .menuGroup(REAI_ANALYSIS_MANAGEMENT_MENU_GROUP, "400")
                 .buildAndInstall(tool);
-
-		new ActionBuilder("Push Function names to portal", this.toString())
-				.withContext(ProgramActionContext.class)
-				.onAction(context -> {
-					var renameMap = revengService.pushUserFunctionNamesToBackend(context.getProgram());
-					if (renameMap.isEmpty()){
-						Msg.showInfo(this, null, "Push Function names to portal", "No functions were renamed");
-					} else {
-						Msg.showInfo(this, null, "Push Function names to portal", "Renamed functions: " + renameMap);
-					}
-				})
-				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Push Function names to portal" })
-				.menuGroup(REAI_PLUGIN_PORTAL_MENU_GROUP)
-				.buildAndInstall(tool);
-
-		new ActionBuilder("Open Function in RevEng.AI Portal", this.getName())
-				.withContext(ProgramLocationActionContext.class)
-				.enabledWhen(context -> getFunctionFromContext(context).flatMap(revengService::getFunctionIDFor).isPresent())
-				.onAction(context -> {
-					FunctionID fid = getFunctionFromContext(context).flatMap(revengService::getFunctionIDFor).orElseThrow();
-					revengService.openFunctionInPortal(fid);
-
-				})
-				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Open Function in RevEng.AI Portal" })
-				.menuGroup(REAI_PLUGIN_PORTAL_MENU_GROUP)
-				.popupMenuIcon(ReaiPluginPackage.REVENG_16)
-				.popupMenuGroup(REAI_PLUGIN_PORTAL_MENU_GROUP)
-				.popupMenuPath(new String[] { "Open Function in RevEng.AI Portal" })
-				.buildAndInstall(tool);
 
 	}
 
@@ -392,15 +404,39 @@ public class CorePlugin extends ProgramPlugin {
      */
     private void refreshActionStates() {
         SwingUtilities.invokeLater(() -> {
+            loggingService.info("Refreshing action states...");
+
+            // Log current program state
+            var currentProgram = tool.getService(ProgramManager.class).getCurrentProgram();
+            if (currentProgram == null) {
+                loggingService.info("No current program - all actions will be disabled");
+            } else {
+                boolean isKnown = revengService.isKnownProgram(currentProgram);
+                loggingService.info("Current program: " + currentProgram.getName() + ", isKnown: " + isKnown);
+            }
+
             if (createNewAction != null) {
                 createNewAction.firePropertyChanged(DockingAction.ENABLEMENT_PROPERTY, null, null);
+                loggingService.info("Refreshed createNewAction");
             }
             if (attachToExistingAction != null) {
                 attachToExistingAction.firePropertyChanged(DockingAction.ENABLEMENT_PROPERTY, null, null);
+                loggingService.info("Refreshed attachToExistingAction");
             }
             if (detachAction != null) {
                 detachAction.firePropertyChanged(DockingAction.ENABLEMENT_PROPERTY, null, null);
+                loggingService.info("Refreshed detachAction");
             }
+            if (checkStatusAction != null) {
+                checkStatusAction.firePropertyChanged(DockingAction.ENABLEMENT_PROPERTY, null, null);
+                loggingService.info("Refreshed checkStatusAction");
+            }
+            if (viewInPortalAction != null) {
+                viewInPortalAction.firePropertyChanged(DockingAction.ENABLEMENT_PROPERTY, null, null);
+                loggingService.info("Refreshed viewInPortalAction");
+            }
+
+            loggingService.info("Action state refresh completed");
         });
     }
 
@@ -451,6 +487,29 @@ public class CorePlugin extends ProgramPlugin {
 
 	private Optional<Function> getFunctionFromContext(ProgramLocationActionContext context) {
 		return Optional.ofNullable(context.getProgram().getFunctionManager().getFunctionContaining(context.getAddress()));
+	}
+
+	/**
+	 * Helper method to get the analysis ID for a given program
+	 */
+	private AnalysisID getAnalysisIDForProgram(Program program) {
+		try {
+			var binID = revengService.getBinaryIDFor(program);
+			if (binID.isPresent()) {
+				return revengService.getApi().getAnalysisIDfromBinaryID(binID.get());
+			}
+		} catch (Exception e) {
+			// Log error but don't throw - this is used for UI display
+			loggingService.warn("Could not get analysis ID for program: " + e.getMessage());
+		}
+		return null;
+	}
+
+	/**
+	 * Public method to refresh action states - can be called when program attachment status changes
+	 */
+	public void refreshMenuStates() {
+		refreshActionStates();
 	}
 
 	public void setLogs(String logs) {

@@ -162,6 +162,7 @@ public class TypedApiImplementation implements TypedApiInterface {
         switch (response.statusCode()){
             case 200:
             case 201:
+                Msg.info(this, "Request to %s succeeded with status code: %s".formatted(request.uri(), response.statusCode()));
                 return new JSONObject(response.body());
             case 404:
                 return new JSONObject(response.body());
