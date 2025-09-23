@@ -21,7 +21,7 @@ import ai.reveng.toolkit.ghidra.binarysimilarity.ui.autoanalysis.AutoAnalysisDoc
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.collectiondialog.DataSetControlPanelComponent;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.functionsimilarity.FunctionSimilarityAction;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.functionsimilarity.FunctionSimilarityComponent;
-import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisStatusChangedEvent;
+import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisResultsLoaded;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
 import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoundariesService;
@@ -58,7 +58,7 @@ import java.util.Arrays;
 	shortDescription = "Support for Binary Similarity Featrues of RevEng.AI Toolkit.",
 	description = "Enable features that support binary similarity operations, including binary upload, and auto-renaming",
 	servicesRequired = { GhidraRevengService.class, ProgramManager.class, ExportFunctionBoundariesService.class, ReaiLoggingService.class },
-	eventsConsumed = { RevEngAIAnalysisStatusChangedEvent.class, }
+	eventsConsumed = { RevEngAIAnalysisResultsLoaded.class, }
 )
 //@formatter:on
 public class BinarySimilarityPlugin extends ProgramPlugin {
@@ -229,11 +229,6 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 
 	@Override
 	public void processEvent(PluginEvent event) {
-		if (event instanceof RevEngAIAnalysisStatusChangedEvent analysisStatusChangedEvent) {
-			if (analysisStatusChangedEvent.getStatus() == AnalysisStatus.Complete){
-				autoAnalyse.triggerActivation();
-			}
-		}
 		if (event instanceof ProgramLocationPluginEvent programLocationPluginEvent) {
 			locationChanged(programLocationPluginEvent.getLocation());
 		}

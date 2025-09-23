@@ -4,6 +4,7 @@ import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.aidecompiler.AIDecompiledWindow;
 import ai.reveng.toolkit.ghidra.core.AnalysisLogConsumer;
 import ai.reveng.toolkit.ghidra.core.CorePlugin;
+import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisStatusChangedEvent;
 import ai.reveng.toolkit.ghidra.core.services.api.mocks.MockApi;
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
 import ai.reveng.toolkit.ghidra.core.services.api.types.Collection;
@@ -14,6 +15,7 @@ import ai.reveng.toolkit.ghidra.core.types.ProgramWithBinaryID;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
+import ghidra.framework.plugintool.PluginTool;
 import ghidra.program.model.address.Address;
 import ghidra.program.model.data.*;
 import ghidra.program.model.listing.Function;
@@ -542,9 +544,12 @@ public class GhidraRevengService {
 
         }
     }
+
+    /// Blocking method to analyse a program
     public ProgramWithBinaryID analyse(Program program, AnalysisOptionsBuilder analysisOptionsBuilder, TaskMonitor monitor, @Nullable AnalysisLogConsumer consumer) throws CancelledException {
         var programWithBinaryID = startAnalysis(program, analysisOptionsBuilder);
-        waitForFinishedAnalysis(monitor, programWithBinaryID, consumer);
+        waitForFinishedAnalysis(monitor, programWithBinaryID, consumer, null);
+        this.registerFinishedAnalysisForProgram(programWithBinaryID);
         return programWithBinaryID;
     }
 
@@ -835,10 +840,18 @@ public class GhidraRevengService {
     }
 
     /**
+     * Helper method to wait for an analysis to finish while integrating with a Ghidra TaskMonitor
+     * and a log consumer
+     * This method should not include code that handles what happens after the analysis is finished,
+     * this is the responsibility of the caller
      * @return The final AnalysisStatus, should be either Complete or Error
      */
-    public AnalysisStatus waitForFinishedAnalysis(TaskMonitor monitor, ProgramWithBinaryID programWithID,
-                                                  @Nullable AnalysisLogConsumer logConsumer) throws CancelledException {
+    public AnalysisStatus waitForFinishedAnalysis(
+            TaskMonitor monitor,
+            ProgramWithBinaryID programWithID,
+            @Nullable AnalysisLogConsumer logConsumer,
+            @Nullable PluginTool tool
+            ) throws CancelledException {
         monitor.setMessage("Checking analysis status");
         // Check the status of the analysis every 500ms
         // TODO: In the future this can be made smarter and e.g. wait longer if the analysis log hasn't changed
@@ -853,22 +866,24 @@ public class GhidraRevengService {
                     logConsumer.consumeLogs(logs);
                 }
                 var logsLines = logs.lines().toList();
-                lastLogLine = logsLines.get(logsLines.size() - 1);
-                monitor.setMessage(lastLogLine);
+                if (!logsLines.isEmpty()) {
+                    lastLogLine = logsLines.get(logsLines.size() - 1);
+                    monitor.setMessage(lastLogLine);
+                }
             }
             if (currentStatus != lastStatus) {
                 lastStatus = currentStatus;
+                if (tool != null) {
+                    tool.firePluginEvent(new RevEngAIAnalysisStatusChangedEvent(
+                            "waitForFinishedAnalysis",
+                            programWithID,
+                            lastStatus
+                    ));
+                }
+
             }
 
-            if (lastStatus == AnalysisStatus.Complete) {
-                // Show the UI message for the completion
-                Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Analysis Complete",
-                        "Analysis for " + programWithID + " finished with status: " + lastStatus);
-                this.registerFinishedAnalysisForProgram(programWithID);
-                return lastStatus;
-            } else if (lastStatus == AnalysisStatus.Error) {
-                Msg.showError(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Analysis Error",
-                        "Analysis for " + programWithID + " errored: " + lastLogLine );
+            if (lastStatus == AnalysisStatus.Complete || lastStatus == AnalysisStatus.Error) {
                 return lastStatus;
             }
             monitor.checkCancelled();

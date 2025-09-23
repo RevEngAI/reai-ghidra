@@ -16,6 +16,7 @@
 package ai.reveng.toolkit.ghidra.core;
 
 import java.io.File;
+import java.util.Objects;
 import java.util.Optional;
 
 import ai.reveng.toolkit.ghidra.binarysimilarity.BinarySimilarityPlugin;
@@ -30,7 +31,7 @@ import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoun
 import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoundariesServiceImpl;
 import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
 import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingToConsole;
-import ai.reveng.toolkit.ghidra.core.tasks.AnalysisTask;
+import ai.reveng.toolkit.ghidra.core.tasks.StartAnalysisTask;
 import ai.reveng.toolkit.ghidra.core.types.ProgramWithBinaryID;
 import docking.action.builder.ActionBuilder;
 import docking.widgets.OptionDialog;
@@ -236,17 +237,16 @@ public class CorePlugin extends ProgramPlugin {
                     }
                     var reService = tool.getService(GhidraRevengService.class);
 
-                    var task = new AnalysisTask(program, options, reService, analysisLogComponent);
+                    var task = new StartAnalysisTask(program, options, reService, analysisLogComponent);
                     task.addTaskListener(new TaskListener() {
                         @Override
                         public void taskCompleted(Task task) {
-                            AnalysisTask at = (AnalysisTask) task;
-                            analysisLogComponent.analysisFinished();
+                            StartAnalysisTask at = (StartAnalysisTask) task;
                             tool.firePluginEvent(
                                     new RevEngAIAnalysisStatusChangedEvent(
                                             "RevEng.AI Analysis",
                                             at.getProgramWithBinaryID(),
-                                            at.getFinalAnalysisStatus())
+                                            AnalysisStatus.Queued)
                             );
                         }
 
@@ -257,7 +257,6 @@ public class CorePlugin extends ProgramPlugin {
                     });
 
                     var builder = TaskBuilder.withTask(task);
-                    analysisLogComponent.setVisible(true);
                     builder.launchInBackground(analysisLogComponent.getTaskMonitor());
 				})
 				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Create new Analysis for Binary" })
@@ -319,4 +318,35 @@ public class CorePlugin extends ProgramPlugin {
 	private Optional<Function> getFunctionFromContext(ProgramLocationActionContext context) {
 		return Optional.ofNullable(context.getProgram().getFunctionManager().getFunctionContaining(context.getAddress()));
 	}
+
+    @Override
+    public void processEvent(PluginEvent event) {
+        super.processEvent(event);
+        if (Objects.requireNonNull(event) instanceof RevEngAIAnalysisStatusChangedEvent e) {
+            switch (e.getStatus()) {
+                case Complete -> {
+                    if (!getRevengService().isProgramAnalysed(e.getProgram())) {
+                        // An analysis became just finished and the associated information isn't stored in the program
+                        // yet
+                        getRevengService().registerFinishedAnalysisForProgram(e.getProgramWithBinaryID());
+                        Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Analysis Complete",
+                                "Analysis for " + e.getProgram() + "completed successfully");
+                    }
+                    tool.firePluginEvent(
+                            new RevEngAIAnalysisResultsLoaded(
+                                    "CorePlugin",
+                                    e.getProgramWithBinaryID()
+                            )
+                    );
+                }
+                case Error -> {
+                    Msg.showError(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Analysis Error",
+                            "Analysis for binary " + e.getBinaryID() + " finished with error");
+                }
+                // Inform the analysis log component about an analysis that hasn't finished yet
+                // to start monitoring it
+                default -> analysisLogComponent.processEvent(e);
+            }
+        }
+    }
 }

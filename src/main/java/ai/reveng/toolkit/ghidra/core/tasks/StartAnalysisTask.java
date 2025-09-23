@@ -11,28 +11,28 @@ import ghidra.util.task.Task;
 import ghidra.util.task.TaskMonitor;
 
 
-public class AnalysisTask extends Task {
+/// Task that handles starting an analysis in the Background without blocking the thread that started it
+/// (usually the Swing thread)
+/// Uploading the binary and registering the analysis can take non-trivial amounts of time, so this
+/// requires a dedicated task
+///
+public class StartAnalysisTask extends Task {
 
     private final AnalysisOptionsBuilder options;
     private final GhidraRevengService reService;
     private final Program program;
     private final AnalysisLogConsumer log;
-    private AnalysisStatus finalAnalysisStatus;
 
     public ProgramWithBinaryID getProgramWithBinaryID() {
         return programWithBinaryID;
     }
 
-    public AnalysisStatus getFinalAnalysisStatus() {
-        return finalAnalysisStatus;
-    }
-
     private ProgramWithBinaryID programWithBinaryID;
 
-    public AnalysisTask(Program program,
-                        AnalysisOptionsBuilder options,
-                        GhidraRevengService reService,
-                        AnalysisLogConsumer logConsumer
+    public StartAnalysisTask(Program program,
+                             AnalysisOptionsBuilder options,
+                             GhidraRevengService reService,
+                             AnalysisLogConsumer logConsumer
     ) {
         super("Running RevEng.AI Analysis", true, false, false);
         this.options = options;
@@ -50,8 +50,6 @@ public class AnalysisTask extends Task {
         monitor.setMessage("Sending Analysis Request");
 
         programWithBinaryID = reService.startAnalysis(program, options);
-        monitor.setMessage("Waiting for Analysis to finish");
-        finalAnalysisStatus = reService.waitForFinishedAnalysis(monitor, programWithBinaryID, log);
     }
 
     @Override

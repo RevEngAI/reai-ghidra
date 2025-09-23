@@ -23,8 +23,7 @@ public class RevEngAutoRenamePostScript extends GhidraScript {
         AnalysisOptionsBuilder options = AnalysisOptionsBuilder.forProgram(currentProgram);
         var binID = ghidraRevengService.analyse(currentProgram, options, monitor, null);
         // Wait for analysis to finish
-        ghidraRevengService.waitForFinishedAnalysis(monitor, binID, null);
-
+        ghidraRevengService.analyse(currentProgram, options, monitor, null);
         new AutoUnstripCommand(ghidraRevengService).applyTo(currentProgram);
 
         var revengMatchNamespace = currentProgram.getSymbolTable().getOrCreateNameSpace(
