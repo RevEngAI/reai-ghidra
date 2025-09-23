@@ -15,11 +15,14 @@
  */
 package ai.reveng.toolkit.ghidra.core;
 
+import java.awt.*;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.net.URI;
 import java.util.Optional;
 
 import ai.reveng.toolkit.ghidra.binarysimilarity.BinarySimilarityPlugin;
+import ai.reveng.toolkit.ghidra.binarysimilarity.ui.about.AboutDialog;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.analysiscreation.RevEngAIAnalysisOptionsDialog;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.misc.AnalysisLogComponent;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.recentanalyses.RecentAnalysisDialog;
@@ -38,6 +41,7 @@ import ai.reveng.toolkit.ghidra.core.types.ProgramWithBinaryID;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardManager;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardStateKey;
 import docking.ActionContext;
+import docking.action.DockingAction;
 import docking.action.builder.ActionBuilder;
 import docking.widgets.OptionDialog;
 import docking.wizard.WizardManager;
@@ -57,6 +61,12 @@ import ghidra.program.model.listing.Function;
 import ghidra.program.model.listing.Program;
 import ghidra.program.util.GhidraProgramUtilities;
 import ghidra.util.Msg;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import ghidra.util.Msg;
+
+import javax.swing.*;
 
 /**
  * CorePlugin for accessing the RevEng.AI Platform
@@ -90,8 +100,16 @@ public class CorePlugin extends ProgramPlugin {
 	private static final String REAI_ANALYSIS_MANAGEMENT_MENU_GROUP = "RevEng.AI Analysis Management";
 	private static final String REAI_PLUGIN_SETUP_MENU_GROUP = "RevEng.AI Setup";
 	private static final String REAI_PLUGIN_PORTAL_MENU_GROUP = "RevEng.AI Portal";
+    private static final Logger log = LoggerFactory.getLogger(CorePlugin.class);
 
-	private GhidraRevengService revengService;
+    // Store references to actions that need to be refreshed
+    private DockingAction createNewAction;
+    private DockingAction attachToExistingAction;
+    private DockingAction detachAction;
+    private DockingAction checkStatusAction;
+    private DockingAction viewInPortalAction;
+
+    private GhidraRevengService revengService;
 	private ExportFunctionBoundariesService exportFunctionBoundariesService;
 	private ReaiLoggingService loggingService;
 	private final AnalysisLogComponent analysisLogComponent;
@@ -194,7 +212,7 @@ public class CorePlugin extends ProgramPlugin {
 					runSetupWizard();
 				})
 				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Configure" })
-				.menuGroup(CorePlugin.REAI_PLUGIN_SETUP_MENU_GROUP)
+				.menuGroup(CorePlugin.REAI_PLUGIN_SETUP_MENU_GROUP, "100")
 				.buildAndInstall(tool);
 
         new ActionBuilder("Help", this.toString())
@@ -204,10 +222,20 @@ public class CorePlugin extends ProgramPlugin {
                     tool.showDialog(helpDialog);
                 })
                 .menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Help" })
-                .menuGroup(CorePlugin.REAI_PLUGIN_SETUP_MENU_GROUP)
+                .menuGroup(CorePlugin.REAI_PLUGIN_SETUP_MENU_GROUP, "200")
                 .buildAndInstall(tool);
 
-        new ActionBuilder("Create new", this.getName())
+        new ActionBuilder("About", this.toString())
+                .withContext(ActionContext.class)
+                .onAction(context ->  {
+                    var aboutDialog = new AboutDialog(tool);
+                    tool.showDialog(aboutDialog);
+                })
+                .menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "About" })
+                .menuGroup(CorePlugin.REAI_PLUGIN_SETUP_MENU_GROUP, "300")
+                .buildAndInstall(tool);
+
+        createNewAction = new ActionBuilder("Create new", this.getName())
                 .enabledWhen(context -> {
                     var currentProgram = tool.getService(ProgramManager.class).getCurrentProgram();
                     if (currentProgram == null) {
@@ -226,28 +254,30 @@ public class CorePlugin extends ProgramPlugin {
                     tool.showDialog(analysisOptionsDialog);
                 })
                 .menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Analysis", "Create new" })
-                .menuGroup(REAI_ANALYSIS_MANAGEMENT_MENU_GROUP)
+                .menuGroup(REAI_ANALYSIS_MANAGEMENT_MENU_GROUP, "100")
                 .popupMenuGroup(REAI_ANALYSIS_MANAGEMENT_MENU_GROUP)
                 .popupMenuPath(new String[] { "Create new" })
                 .popupMenuIcon(ReaiPluginPackage.REVENG_16)
                 .buildAndInstall(tool);
 
-		new ActionBuilder("Attach to existing", this.toString())
+		attachToExistingAction = new ActionBuilder("Attach to existing", this.toString())
 				.withContext(ProgramActionContext.class)
-				.enabledWhen(c -> !revengService.isKnownProgram(c.getProgram()))
+				.enabledWhen(c -> {
+                    return !revengService.isKnownProgram(c.getProgram());
+                })
 				.onAction(context -> {
 					RecentAnalysisDialog dialog = new RecentAnalysisDialog(tool, context.getProgram());
 					tool.showDialog(dialog);
 				})
 				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Analysis", "Attach to existing" })
-				.menuGroup(REAI_ANALYSIS_MANAGEMENT_MENU_GROUP)
+				.menuGroup(REAI_ANALYSIS_MANAGEMENT_MENU_GROUP, "200")
 				// Also add this to the context action submenu to make it clear that this still needs to be done
 				.popupMenuPath(new String[] { "Attach to existing" })
 				.popupMenuGroup(REAI_ANALYSIS_MANAGEMENT_MENU_GROUP)
 				.popupMenuIcon(ReaiPluginPackage.REVENG_16)
 				.buildAndInstall(tool);
 
-		new ActionBuilder("Detach", this.toString())
+		detachAction = new ActionBuilder("Detach", this.toString())
 				.withContext(ProgramActionContext.class)
 				.enabledWhen(c -> revengService.isKnownProgram(c.getProgram()))
 				.onAction(context -> {
@@ -263,14 +293,17 @@ public class CorePlugin extends ProgramPlugin {
 						// this kind of event
 						var program = context.getProgram();
 						program.withTransaction("Undo binary association", () -> revengService.removeProgramAssociation(program));
+
+						// Refresh action states after detaching
+						refreshActionStates();
 					}
 
 				})
 				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Analysis", "Detach" })
-				.menuGroup(REAI_ANALYSIS_MANAGEMENT_MENU_GROUP)
+				.menuGroup(REAI_ANALYSIS_MANAGEMENT_MENU_GROUP, "300")
 				.buildAndInstall(tool);
 
-		new ActionBuilder("Check status", this.getName())
+		checkStatusAction = new ActionBuilder("Check status", this.getName())
 				.withContext(ProgramActionContext.class)
 				.enabledWhen(context -> context.getProgram() != null && revengService.isKnownProgram(context.getProgram()))
 				.onAction(context -> {
@@ -284,8 +317,20 @@ public class CorePlugin extends ProgramPlugin {
 							"Status of " + binID + ": " + status);
 				})
 				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Analysis", "Check status" })
-				.menuGroup(REAI_ANALYSIS_MANAGEMENT_MENU_GROUP)
+				.menuGroup(REAI_ANALYSIS_MANAGEMENT_MENU_GROUP, "400")
 				.buildAndInstall(tool);
+
+        viewInPortalAction = new ActionBuilder("View in portal", this.getName())
+                .withContext(ProgramActionContext.class)
+                .enabledWhen(context -> context.getProgram() != null && revengService.isKnownProgram(context.getProgram()))
+                .onAction(context -> {
+                    var binID = revengService.getBinaryIDFor(context.getProgram()).orElseThrow();
+
+                    revengService.openPortal("analyses", String.valueOf(binID.value()));
+                })
+                .menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Analysis", "View in portal" })
+                .menuGroup(REAI_ANALYSIS_MANAGEMENT_MENU_GROUP, "400")
+                .buildAndInstall(tool);
 
 		new ActionBuilder("Push Function names to portal", this.toString())
 				.withContext(ProgramActionContext.class)
@@ -322,6 +367,9 @@ public class CorePlugin extends ProgramPlugin {
 	protected void programActivated(Program program) {
 		super.programActivated(program);
 
+		// Refresh action states when program is activated
+		refreshActionStates();
+
 		if (!revengService.isKnownProgram(program)){
 			var maybeBinID = revengService.getBinaryIDFor(program);
 			if (maybeBinID.isEmpty()){
@@ -339,10 +387,26 @@ public class CorePlugin extends ProgramPlugin {
 		}
 	}
 
+    /**
+     * Refreshes the enabled state of all analysis-related actions
+     */
+    private void refreshActionStates() {
+        SwingUtilities.invokeLater(() -> {
+            if (createNewAction != null) {
+                createNewAction.firePropertyChanged(DockingAction.ENABLEMENT_PROPERTY, null, null);
+            }
+            if (attachToExistingAction != null) {
+                attachToExistingAction.firePropertyChanged(DockingAction.ENABLEMENT_PROPERTY, null, null);
+            }
+            if (detachAction != null) {
+                detachAction.firePropertyChanged(DockingAction.ENABLEMENT_PROPERTY, null, null);
+            }
+        });
+    }
+
 	@Override
 	public void init() {
 		super.init();
-
 	}
 
 	private boolean hasSetupWizardRun() {

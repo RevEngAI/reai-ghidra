@@ -73,6 +73,7 @@ public class HelpDialog extends DialogComponentProvider {
         panel.add(createMenuItem("Attach to existing", "List matching portal analyses and allow selecting one to attach to", 20));
         panel.add(createMenuItem("Detach", "Detach from portal analysis", 20));
         panel.add(createMenuItem("Check status", "Checks the status of a running analysis", 20));
+        panel.add(createMenuItem("View in portal", "View this analysis in the portal", 20));
 
         panel.add(Box.createVerticalStrut(10));
 
@@ -121,6 +122,14 @@ public class HelpDialog extends DialogComponentProvider {
                 "Match function",
                 """
                 Run a match against the RevEng.AI API for this function. Only available for non-debug functions.
+                """,
+                null
+            )
+        );
+        panel.add(createMenuItem(
+                "View in portal",
+                """
+                View this function in the RevEng.AI portal.
                 """,
                 null
             )
