@@ -8,6 +8,7 @@ import org.json.JSONObject;
 
  */
 public record LegacyAnalysisResult(
+        AnalysisID analysis_id,
         BinaryID binary_id,
         String binary_name,
         String creation,
@@ -20,6 +21,7 @@ public record LegacyAnalysisResult(
 ) {
     public static LegacyAnalysisResult fromJSONObject(JSONObject json) {
         return new LegacyAnalysisResult(
+                new AnalysisID(json.getInt("analysis_id")),
                 new BinaryID(json.getInt("binary_id")),
                 json.getString("binary_name"),
                 json.getString("creation"),

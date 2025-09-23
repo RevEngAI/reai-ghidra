@@ -35,6 +35,7 @@ public class MockApi implements TypedApiInterface {
     public List<LegacyAnalysisResult> search(BinaryHash hash) {
         if (hash.equals(new BinaryHash("b04c1259718dd16c0ffbd0931aeecf07746775cc2f1cda76e46d51af165f3ba6"))) {
             return List.of(new LegacyAnalysisResult(
+                    new AnalysisID(1234),
                     new BinaryID(17920),
                     "true",
                     "no creation date",

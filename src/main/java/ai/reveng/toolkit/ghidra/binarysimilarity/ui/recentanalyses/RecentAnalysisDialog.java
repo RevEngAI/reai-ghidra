@@ -25,7 +25,7 @@ public class RecentAnalysisDialog extends DialogComponentProvider {
     private final Program program;
 
     public RecentAnalysisDialog(PluginTool tool, Program program) {
-        super("Recent Analysis", true);
+        super("Recent Analyses", true);
         this.tool = tool;
         this.program = program;
         var hash = new BinaryHash(program.getExecutableSHA256());
