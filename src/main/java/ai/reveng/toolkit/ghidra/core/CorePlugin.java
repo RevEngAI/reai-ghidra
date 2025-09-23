@@ -316,7 +316,11 @@ public class CorePlugin extends ProgramPlugin {
 	}
 
 	private Optional<Function> getFunctionFromContext(ProgramLocationActionContext context) {
-		return Optional.ofNullable(context.getProgram().getFunctionManager().getFunctionContaining(context.getAddress()));
+        var addr = context.getAddress();
+        if (addr == null) {
+            return Optional.empty();
+        }
+		return Optional.ofNullable(context.getProgram().getFunctionManager().getFunctionContaining(addr));
 	}
 
     @Override
