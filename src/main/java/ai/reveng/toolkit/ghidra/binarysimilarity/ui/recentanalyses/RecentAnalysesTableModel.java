@@ -76,6 +76,11 @@ public class RecentAnalysesTableModel extends ThreadedTableModelStub<LegacyAnaly
             public String getValue(LegacyAnalysisResult rowObject, Settings settings, Object data, ServiceProvider serviceProvider) throws IllegalArgumentException {
                 return String.valueOf(rowObject.analysis_id().id());
             }
+
+            @Override
+            public String getColumnDescription() {
+                return "Click to open analysis in RevEng.AI portal";
+            }
         });
         descriptor.addVisibleColumn(new AbstractDynamicTableColumn<LegacyAnalysisResult, String, Object>() {
             @Override

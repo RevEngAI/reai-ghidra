@@ -11,6 +11,8 @@ import ghidra.program.model.listing.Program;
 import ghidra.util.table.GhidraFilterTable;
 
 import javax.swing.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.Comparator;
 
 
@@ -32,6 +34,28 @@ public class RecentAnalysisDialog extends DialogComponentProvider {
         recentAnalysesTableModel = new RecentAnalysesTableModel(tool, hash, this.program.getImageBase());
         recentAnalysesTable = new GhidraFilterTable<>(recentAnalysesTableModel);
 
+        // Add mouse listener to handle clicks on the Analysis ID column
+        recentAnalysesTable.getTable().addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() == 1) {
+                    int row = recentAnalysesTable.getTable().rowAtPoint(e.getPoint());
+                    int col = recentAnalysesTable.getTable().columnAtPoint(e.getPoint());
+
+                    if (row >= 0 && col >= 0) {
+                        // Check if clicked column is "Analysis ID" (column 0)
+                        String columnName = recentAnalysesTable.getTable().getColumnName(col);
+                        if ("Analysis ID".equals(columnName)) {
+                            LegacyAnalysisResult result = recentAnalysesTable.getModel().getRowObject(row);
+                            if (result != null) {
+                                openAnalysisInPortal(result);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
         JButton pickMostRecentButton = new JButton("Pick most recent");
         pickMostRecentButton.setName("Pick most recent");
         pickMostRecentButton.addActionListener(e -> {
@@ -52,6 +76,11 @@ public class RecentAnalysisDialog extends DialogComponentProvider {
 
         rootPanel.add(recentAnalysesTable);
 
+    }
+
+    private void openAnalysisInPortal(LegacyAnalysisResult result) {
+        var service = tool.getService(GhidraRevengService.class);
+        service.openPortal("analyses", String.valueOf(result.binary_id().value()));
     }
 
     private void pickAnalysis(LegacyAnalysisResult result) {
