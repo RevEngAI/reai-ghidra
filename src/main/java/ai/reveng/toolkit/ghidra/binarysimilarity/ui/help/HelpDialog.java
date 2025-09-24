@@ -127,7 +127,7 @@ public class HelpDialog extends DialogComponentProvider {
             )
         );
         panel.add(createMenuItem(
-                "View in portal",
+                "View function in portal",
                 """
                 View this function in the RevEng.AI portal.
                 """,

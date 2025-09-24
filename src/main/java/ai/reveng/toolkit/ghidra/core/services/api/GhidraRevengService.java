@@ -773,6 +773,10 @@ public class GhidraRevengService {
         openPortal(PORTAL_FUNCTIONS, String.valueOf(functionID.value()));
     }
 
+    public void openFunctionInPortal(long functionID) {
+        openPortal(PORTAL_FUNCTIONS, String.valueOf(functionID));
+    }
+
     public void openCollectionInPortal(LegacyCollection collection) {
         openPortal("collections/", String.valueOf(collection.collectionID().id()));
     }

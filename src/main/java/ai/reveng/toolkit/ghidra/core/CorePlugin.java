@@ -372,7 +372,6 @@ public class CorePlugin extends ProgramPlugin {
                 .menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Analysis", "View in portal" })
                 .menuGroup(REAI_ANALYSIS_MANAGEMENT_MENU_GROUP, "400")
                 .buildAndInstall(tool);
-
 	}
 
 	@Override
