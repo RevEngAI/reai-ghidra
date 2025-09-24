@@ -25,11 +25,13 @@ public class RecentAnalysisDialog extends DialogComponentProvider {
     private final GhidraFilterTable<LegacyAnalysisResult> recentAnalysesTable;
     private final PluginTool tool;
     private final Program program;
+    private final GhidraRevengService ghidraRevengService;
 
     public RecentAnalysisDialog(PluginTool tool, Program program) {
         super("Recent Analyses", true);
         this.tool = tool;
         this.program = program;
+        this.ghidraRevengService = tool.getService(GhidraRevengService.class);
         var hash = new BinaryHash(program.getExecutableSHA256());
         recentAnalysesTableModel = new RecentAnalysesTableModel(tool, hash, this.program.getImageBase());
         recentAnalysesTable = new GhidraFilterTable<>(recentAnalysesTableModel);
@@ -48,7 +50,7 @@ public class RecentAnalysisDialog extends DialogComponentProvider {
                         if ("Analysis ID".equals(columnName)) {
                             LegacyAnalysisResult result = recentAnalysesTable.getModel().getRowObject(row);
                             if (result != null) {
-                                openAnalysisInPortal(result);
+                                ghidraRevengService.openPortalFor(result);
                             }
                         }
                     }
@@ -76,11 +78,6 @@ public class RecentAnalysisDialog extends DialogComponentProvider {
 
         rootPanel.add(recentAnalysesTable);
 
-    }
-
-    private void openAnalysisInPortal(LegacyAnalysisResult result) {
-        var service = tool.getService(GhidraRevengService.class);
-        service.openPortal("analyses", String.valueOf(result.binary_id().value()));
     }
 
     private void pickAnalysis(LegacyAnalysisResult result) {

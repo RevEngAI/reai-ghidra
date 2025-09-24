@@ -303,8 +303,8 @@ public class CorePlugin extends ProgramPlugin {
                 })
 				.onAction(context -> {
 					var program = tool.getService(ProgramManager.class).getCurrentProgram();
-					var analysisID = getAnalysisIDForProgram(program);
-					var displayText = analysisID != null ? "analysis " + analysisID.id() : "the analysis";
+					var analysisID = this.revengService.getAnalysisIDFor(program);
+					var displayText = analysisID.map(id -> "analysis " + id.id());
 
 					var result = OptionDialog.showOptionDialogWithCancelAsDefaultButton(
 							tool.getToolFrame(),
@@ -319,7 +319,7 @@ public class CorePlugin extends ProgramPlugin {
 						program.withTransaction("Undo binary association", () -> revengService.removeProgramAssociation(program));
 
 						// Refresh action states after detaching
-						refreshActionStates();
+                        tool.contextChanged(null);
 					}
 
 				})
@@ -379,9 +379,6 @@ public class CorePlugin extends ProgramPlugin {
 	protected void programActivated(Program program) {
 		super.programActivated(program);
 
-		// Refresh action states when program is activated
-		refreshActionStates();
-
 		if (!revengService.isKnownProgram(program)){
 			var maybeBinID = revengService.getBinaryIDFor(program);
 			if (maybeBinID.isEmpty()){
@@ -398,47 +395,6 @@ public class CorePlugin extends ProgramPlugin {
 							status));
 		}
 	}
-
-    /**
-     * Refreshes the enabled state of all analysis-related actions
-     */
-    private void refreshActionStates() {
-        SwingUtilities.invokeLater(() -> {
-            loggingService.info("Refreshing action states...");
-
-            // Log current program state
-            var currentProgram = tool.getService(ProgramManager.class).getCurrentProgram();
-            if (currentProgram == null) {
-                loggingService.info("No current program - all actions will be disabled");
-            } else {
-                boolean isKnown = revengService.isKnownProgram(currentProgram);
-                loggingService.info("Current program: " + currentProgram.getName() + ", isKnown: " + isKnown);
-            }
-
-            if (createNewAction != null) {
-                createNewAction.firePropertyChanged(DockingAction.ENABLEMENT_PROPERTY, null, null);
-                loggingService.info("Refreshed createNewAction");
-            }
-            if (attachToExistingAction != null) {
-                attachToExistingAction.firePropertyChanged(DockingAction.ENABLEMENT_PROPERTY, null, null);
-                loggingService.info("Refreshed attachToExistingAction");
-            }
-            if (detachAction != null) {
-                detachAction.firePropertyChanged(DockingAction.ENABLEMENT_PROPERTY, null, null);
-                loggingService.info("Refreshed detachAction");
-            }
-            if (checkStatusAction != null) {
-                checkStatusAction.firePropertyChanged(DockingAction.ENABLEMENT_PROPERTY, null, null);
-                loggingService.info("Refreshed checkStatusAction");
-            }
-            if (viewInPortalAction != null) {
-                viewInPortalAction.firePropertyChanged(DockingAction.ENABLEMENT_PROPERTY, null, null);
-                loggingService.info("Refreshed viewInPortalAction");
-            }
-
-            loggingService.info("Action state refresh completed");
-        });
-    }
 
 	@Override
 	public void init() {
@@ -462,54 +418,6 @@ public class CorePlugin extends ProgramPlugin {
 		wizardManager.showWizard(tool.getToolFrame());
 
 		return;
-	}
-
-
-	private void exportLogs(){
-		GhidraFileChooser fileChooser = new GhidraFileChooser(null);
-		fileChooser.setFileSelectionMode(GhidraFileChooserMode.DIRECTORIES_ONLY);
-
-		File outDir = fileChooser.getSelectedFile(true);
-		fileChooser.dispose();
-
-		if (outDir == null) {
-			loggingService.error("No dir selected for logfile export");
-			Msg.showError(outDir, null, ReaiPluginPackage.WINDOW_PREFIX + "Export logfile",
-					"No output directory provided to export logs to", null);
-			return;
-		}
-
-		loggingService.export(outDir.toString(), "reai_logs");
-
-		Msg.showInfo(outDir, null, ReaiPluginPackage.WINDOW_PREFIX + "Export Logs",
-				"Successfully exported logs to: " + outDir.toString());
-	}
-
-	private Optional<Function> getFunctionFromContext(ProgramLocationActionContext context) {
-		return Optional.ofNullable(context.getProgram().getFunctionManager().getFunctionContaining(context.getAddress()));
-	}
-
-	/**
-	 * Helper method to get the analysis ID for a given program
-	 */
-	private AnalysisID getAnalysisIDForProgram(Program program) {
-		try {
-			var binID = revengService.getBinaryIDFor(program);
-			if (binID.isPresent()) {
-				return revengService.getApi().getAnalysisIDfromBinaryID(binID.get());
-			}
-		} catch (Exception e) {
-			// Log error but don't throw - this is used for UI display
-			loggingService.warn("Could not get analysis ID for program: " + e.getMessage());
-		}
-		return null;
-	}
-
-	/**
-	 * Public method to refresh action states - can be called when program attachment status changes
-	 */
-	public void refreshMenuStates() {
-		refreshActionStates();
 	}
 
 	public void setLogs(String logs) {
