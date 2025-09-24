@@ -791,6 +791,9 @@ public class GhidraRevengService {
         openPortal("analyses", String.valueOf(analysisResult.analysisID().id()));
     }
 
+    public void openPortalFor(LegacyAnalysisResult analysisResult) {
+        openPortal("analyses", String.valueOf(analysisResult.binary_id().value()));
+    }
 
     public void openPortal(String... subPath) {
         // For now this is hardcoded, but it should be configurable later

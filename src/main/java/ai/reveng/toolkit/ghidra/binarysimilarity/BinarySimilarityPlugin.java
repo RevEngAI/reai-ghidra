@@ -130,11 +130,9 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 		tool.addAction(new FunctionSimilarityAction(this));
 
 
-		new ActionBuilder("Auto Analysis Similar Functions", this.getName())
+		new ActionBuilder("Function Matching", this.getName())
 				.menuGroup(ReaiPluginPackage.NAME)
-				.menuPath(ReaiPluginPackage.MENU_GROUP_NAME, "Auto Analyse Binary Symbols")
-//				.withContext(ProgramActionContext.class)
-//				.enabledWhen(context -> apiService.isKnownProgram(context.getProgram()))
+				.menuPath(ReaiPluginPackage.MENU_GROUP_NAME, "Function Matching")
 				.enabledWhen(context -> {
 							var program = tool.getService(ProgramManager.class).getCurrentProgram();
 							if (program != null) {
@@ -197,26 +195,12 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 				.map(cID -> apiService.getApi().getCollectionInfo(cID))
 				.toList();
 		apiService.setActiveCollections(restoredCollections);
-
-//		int[] rawAnalysisIDs = saveState.getInts("analysisIDs", new int[0]);
-//		var restoredAnalysisIDs = Arrays.stream(rawAnalysisIDs)
-//				.mapToObj(AnalysisID::new)
-//				.map(aID -> apiService.getApi().getInfoForAnalysis(aID))
-//				.toList();
-//		apiService.setAnalysisIDMatchFilter(restoredAnalysisIDs);
-//
-//		collectionsComponent.reloadFromService();
-
-
 	}
 
 	@Override
 	public void writeDataState(SaveState saveState) {
 		int[] collectionIDs = apiService.getActiveCollections().stream().map(Collection::collectionID).mapToInt(CollectionID::id).toArray();
 		saveState.putInts("collectionIDs", collectionIDs);
-
-//		int[] analysisIDs = apiService.getActiveAnalysisIDsFilter().stream().map(AnalysisResult::analysisID).mapToInt(AnalysisID::id).toArray();
-//		saveState.putInts("analysisIDs", analysisIDs);
 	}
 
 
@@ -229,11 +213,6 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 
 	@Override
 	public void processEvent(PluginEvent event) {
-		if (event instanceof RevEngAIAnalysisStatusChangedEvent analysisStatusChangedEvent) {
-			if (analysisStatusChangedEvent.getStatus() == AnalysisStatus.Complete){
-				autoAnalyse.triggerActivation();
-			}
-		}
 		if (event instanceof ProgramLocationPluginEvent programLocationPluginEvent) {
 			locationChanged(programLocationPluginEvent.getLocation());
 		}

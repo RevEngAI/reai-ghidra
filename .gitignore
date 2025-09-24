@@ -50,3 +50,6 @@ Thumbs.db
 lib/src/test/resources/reai-dev-config.toml
 bin
 .antProperties.xml
+
+dist/
+src/main/resources/reai_ghidra_plugin_version.txt

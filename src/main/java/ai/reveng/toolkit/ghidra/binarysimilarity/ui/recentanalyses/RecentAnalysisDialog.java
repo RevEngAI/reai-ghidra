@@ -11,6 +11,8 @@ import ghidra.program.model.listing.Program;
 import ghidra.util.table.GhidraFilterTable;
 
 import javax.swing.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.Comparator;
 
 
@@ -23,14 +25,38 @@ public class RecentAnalysisDialog extends DialogComponentProvider {
     private final GhidraFilterTable<LegacyAnalysisResult> recentAnalysesTable;
     private final PluginTool tool;
     private final Program program;
+    private final GhidraRevengService ghidraRevengService;
 
     public RecentAnalysisDialog(PluginTool tool, Program program) {
-        super("Recent Analysis", true);
+        super("Recent Analyses", true);
         this.tool = tool;
         this.program = program;
+        this.ghidraRevengService = tool.getService(GhidraRevengService.class);
         var hash = new BinaryHash(program.getExecutableSHA256());
         recentAnalysesTableModel = new RecentAnalysesTableModel(tool, hash, this.program.getImageBase());
         recentAnalysesTable = new GhidraFilterTable<>(recentAnalysesTableModel);
+
+        // Add mouse listener to handle clicks on the Analysis ID column
+        recentAnalysesTable.getTable().addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() == 1) {
+                    int row = recentAnalysesTable.getTable().rowAtPoint(e.getPoint());
+                    int col = recentAnalysesTable.getTable().columnAtPoint(e.getPoint());
+
+                    if (row >= 0 && col >= 0) {
+                        // Check if clicked column is "Analysis ID" (column 0)
+                        String columnName = recentAnalysesTable.getTable().getColumnName(col);
+                        if ("Analysis ID".equals(columnName)) {
+                            LegacyAnalysisResult result = recentAnalysesTable.getModel().getRowObject(row);
+                            if (result != null) {
+                                ghidraRevengService.openPortalFor(result);
+                            }
+                        }
+                    }
+                }
+            }
+        });
 
         JButton pickMostRecentButton = new JButton("Pick most recent");
         pickMostRecentButton.setName("Pick most recent");

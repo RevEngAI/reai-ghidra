@@ -15,14 +15,18 @@
  */
 package ai.reveng.toolkit.ghidra.core;
 
+import java.awt.*;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.net.URI;
 import java.util.Optional;
 
 import ai.reveng.toolkit.ghidra.binarysimilarity.BinarySimilarityPlugin;
+import ai.reveng.toolkit.ghidra.binarysimilarity.ui.about.AboutDialog;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.analysiscreation.RevEngAIAnalysisOptionsDialog;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.misc.AnalysisLogComponent;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.recentanalyses.RecentAnalysisDialog;
+import ai.reveng.toolkit.ghidra.binarysimilarity.ui.help.HelpDialog;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.api.mocks.ProcessingLimboApi;
 import ai.reveng.toolkit.ghidra.core.services.api.mocks.SimpleMatchesApi;
@@ -37,6 +41,8 @@ import ai.reveng.toolkit.ghidra.core.types.ProgramWithBinaryID;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardManager;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardStateKey;
 import docking.ActionContext;
+import docking.action.DockingAction;
+import docking.action.MenuData;
 import docking.action.builder.ActionBuilder;
 import docking.widgets.OptionDialog;
 import docking.wizard.WizardManager;
@@ -56,6 +62,12 @@ import ghidra.program.model.listing.Function;
 import ghidra.program.model.listing.Program;
 import ghidra.program.util.GhidraProgramUtilities;
 import ghidra.util.Msg;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import ghidra.util.Msg;
+
+import javax.swing.*;
 
 /**
  * CorePlugin for accessing the RevEng.AI Platform
@@ -89,8 +101,16 @@ public class CorePlugin extends ProgramPlugin {
 	private static final String REAI_ANALYSIS_MANAGEMENT_MENU_GROUP = "RevEng.AI Analysis Management";
 	private static final String REAI_PLUGIN_SETUP_MENU_GROUP = "RevEng.AI Setup";
 	private static final String REAI_PLUGIN_PORTAL_MENU_GROUP = "RevEng.AI Portal";
+    private static final Logger log = LoggerFactory.getLogger(CorePlugin.class);
 
-	private GhidraRevengService revengService;
+    // Store references to actions that need to be refreshed
+    private DockingAction createNewAction;
+    private DockingAction attachToExistingAction;
+    private DockingAction detachAction;
+    private DockingAction checkStatusAction;
+    private DockingAction viewInPortalAction;
+
+    private GhidraRevengService revengService;
 	private ExportFunctionBoundariesService exportFunctionBoundariesService;
 	private ReaiLoggingService loggingService;
 	private final AnalysisLogComponent analysisLogComponent;
@@ -187,124 +207,171 @@ public class CorePlugin extends ProgramPlugin {
 
 	private void setupActions() {
 
-		new ActionBuilder("Re-Run Setup Wizard", this.toString())
+		new ActionBuilder("Configure", this.toString())
 				.withContext(ActionContext.class)
 				.onAction(context ->  {
 					runSetupWizard();
 				})
-				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Run Setup Wizard" })
-				.menuGroup(CorePlugin.REAI_PLUGIN_SETUP_MENU_GROUP)
+				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Configure" })
+				.menuGroup(CorePlugin.REAI_PLUGIN_SETUP_MENU_GROUP, "100")
 				.buildAndInstall(tool);
 
-		new ActionBuilder("Connect to existing analysis", this.toString())
-				.withContext(ProgramActionContext.class)
-				.enabledWhen(c -> !revengService.isKnownProgram(c.getProgram()))
+        new ActionBuilder("Help", this.toString())
+                .withContext(ActionContext.class)
+                .onAction(context ->  {
+                    var helpDialog = new HelpDialog(tool);
+                    tool.showDialog(helpDialog);
+                })
+                .menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Help" })
+                .menuGroup(CorePlugin.REAI_PLUGIN_SETUP_MENU_GROUP, "200")
+                .buildAndInstall(tool);
+
+        new ActionBuilder("About", this.toString())
+                .withContext(ActionContext.class)
+                .onAction(context ->  {
+                    var aboutDialog = new AboutDialog(tool);
+                    tool.showDialog(aboutDialog);
+                })
+                .menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "About" })
+                .menuGroup(CorePlugin.REAI_PLUGIN_SETUP_MENU_GROUP, "300")
+                .buildAndInstall(tool);
+
+        createNewAction = new ActionBuilder("Create new", this.getName())
+                .enabledWhen(context -> {
+                    var currentProgram = tool.getService(ProgramManager.class).getCurrentProgram();
+                    if (currentProgram == null) {
+                        loggingService.info("Create new action disabled: No current program");
+                        return false;
+                    }
+                    boolean isKnown = revengService.isKnownProgram(currentProgram);
+                    boolean shouldEnable = !isKnown;
+                    loggingService.info("Create new action enabled: " + shouldEnable + " (program: " + currentProgram.getName() + ", isKnown: " + isKnown + ")");
+                    return shouldEnable;
+                })
+                .onAction(context -> {
+                    var program = tool.getService(ProgramManager.class).getCurrentProgram();
+                    if (!GhidraProgramUtilities.isAnalyzed(program)) {
+                        Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Create new",
+                                "Program has not been auto-analyzed by Ghidra yet. Please run auto-analysis first.");
+                        return;
+                    }
+                    var analysisOptionsDialog = new RevEngAIAnalysisOptionsDialog(this, program);
+                    tool.showDialog(analysisOptionsDialog);
+                })
+                .menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Analysis", "Create new" })
+                .menuGroup(REAI_ANALYSIS_MANAGEMENT_MENU_GROUP, "100")
+                .popupMenuGroup(REAI_ANALYSIS_MANAGEMENT_MENU_GROUP)
+                .popupMenuPath(new String[] { "Create new" })
+                .popupMenuIcon(ReaiPluginPackage.REVENG_16)
+                .buildAndInstall(tool);
+
+		attachToExistingAction = new ActionBuilder("Attach to existing", this.toString())
+				.enabledWhen(c -> {
+                    var currentProgram = tool.getService(ProgramManager.class).getCurrentProgram();
+                    if (currentProgram == null) {
+                        loggingService.info("Attach to existing action disabled: No current program");
+                        return false;
+                    }
+                    boolean isKnown = revengService.isKnownProgram(currentProgram);
+                    boolean shouldEnable = !isKnown;
+                    loggingService.info("Attach to existing action enabled: " + shouldEnable + " (program: " + currentProgram.getName() + ", isKnown: " + isKnown + ")");
+                    return shouldEnable;
+                })
 				.onAction(context -> {
-					RecentAnalysisDialog dialog = new RecentAnalysisDialog(tool, context.getProgram());
+					var currentProgram = tool.getService(ProgramManager.class).getCurrentProgram();
+					RecentAnalysisDialog dialog = new RecentAnalysisDialog(tool, currentProgram);
 					tool.showDialog(dialog);
 				})
-				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Connect to existing analysis" })
-				.menuGroup(REAI_ANALYSIS_MANAGEMENT_MENU_GROUP)
+				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Analysis", "Attach to existing" })
+				.menuGroup(REAI_ANALYSIS_MANAGEMENT_MENU_GROUP, "200")
 				// Also add this to the context action submenu to make it clear that this still needs to be done
-				.popupMenuPath(new String[] { "Connect to existing analysis" })
+				.popupMenuPath(new String[] { "Attach to existing" })
 				.popupMenuGroup(REAI_ANALYSIS_MANAGEMENT_MENU_GROUP)
 				.popupMenuIcon(ReaiPluginPackage.REVENG_16)
 				.buildAndInstall(tool);
 
-		new ActionBuilder("Remove analysis association", this.toString())
-				.withContext(ProgramActionContext.class)
-				.enabledWhen(c -> revengService.isKnownProgram(c.getProgram()))
+		detachAction = new ActionBuilder("Detach", this.toString())
+				.enabledWhen(c -> {
+                    var currentProgram = tool.getService(ProgramManager.class).getCurrentProgram();
+                    if (currentProgram == null) {
+                        loggingService.info("Detach action disabled: No current program");
+                        return false;
+                    }
+                    boolean isKnown = revengService.isKnownProgram(currentProgram);
+                    loggingService.info("Detach action enabled: " + isKnown + " (program: " + currentProgram.getName() + ", isKnown: " + isKnown + ")");
+                    return isKnown;
+                })
 				.onAction(context -> {
+					var program = tool.getService(ProgramManager.class).getCurrentProgram();
+					var analysisID = this.revengService.getAnalysisIDFor(program);
+					var displayText = analysisID.map(id -> "analysis " + id.id());
+
 					var result = OptionDialog.showOptionDialogWithCancelAsDefaultButton(
 							tool.getToolFrame(),
-							"Remove analysis association",
-							"Are you sure you want to remove the association with the analysis?",
-							"Remove",
+							"Detach from " + displayText,
+							"Are you sure you want to remove the association with " + displayText + "?",
+							"Detach",
 							OptionDialog.QUESTION_MESSAGE);
 					if (result == OptionDialog.YES_OPTION) {
 						// For now this is the only place to trigger the removal of the association
 						// If this changes, the RevEngAIAnalysisStatusChanged event should be changed to accommodate
 						// this kind of event
-						var program = context.getProgram();
 						program.withTransaction("Undo binary association", () -> revengService.removeProgramAssociation(program));
+
+						// Refresh action states after detaching
+                        tool.contextChanged(null);
 					}
 
 				})
-				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Remove analysis association" })
-				.menuGroup(REAI_ANALYSIS_MANAGEMENT_MENU_GROUP)
+				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Analysis", "Detach" })
+				.menuGroup(REAI_ANALYSIS_MANAGEMENT_MENU_GROUP, "300")
 				.buildAndInstall(tool);
 
-		new ActionBuilder("Check Analysis Status", this.getName())
-				.withContext(ProgramActionContext.class)
-				.enabledWhen(context -> context.getProgram() != null && revengService.isKnownProgram(context.getProgram()))
+		checkStatusAction = new ActionBuilder("Check status", this.getName())
+				.enabledWhen(context -> {
+                    var currentProgram = tool.getService(ProgramManager.class).getCurrentProgram();
+                    if (currentProgram == null) {
+                        loggingService.info("Check status action disabled: No current program");
+                        return false;
+                    }
+                    boolean isKnown = revengService.isKnownProgram(currentProgram);
+                    loggingService.info("Check status action enabled: " + isKnown + " (program: " + currentProgram.getName() + ", isKnown: " + isKnown + ")");
+                    return isKnown;
+                })
 				.onAction(context -> {
-					var binID = revengService.getBinaryIDFor(context.getProgram()).orElseThrow();
+					var currentProgram = tool.getService(ProgramManager.class).getCurrentProgram();
+					var binID = revengService.getBinaryIDFor(currentProgram).orElseThrow();
 					var analysisID = revengService.getApi().getAnalysisIDfromBinaryID(binID);
 					var logs = revengService.getAnalysisLog(analysisID);
 					analysisLogComponent.setLogs(logs);
 					AnalysisStatus status = revengService.pollStatus(binID);
 					loggingService.info("Check Status: " + status);
-					Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Check Analysis Status",
+					Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Check status",
 							"Status of " + binID + ": " + status);
 				})
-				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Check Analysis Status" })
-				.menuGroup(REAI_ANALYSIS_MANAGEMENT_MENU_GROUP)
-//				.popupMenuPath(new String[] { "Check Analysis Status" })
+				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Analysis", "Check status" })
+				.menuGroup(REAI_ANALYSIS_MANAGEMENT_MENU_GROUP, "400")
 				.buildAndInstall(tool);
 
-		new ActionBuilder("Push Function names to portal", this.toString())
-				.withContext(ProgramActionContext.class)
-				.onAction(context -> {
-					var renameMap = revengService.pushUserFunctionNamesToBackend(context.getProgram());
-					if (renameMap.isEmpty()){
-						Msg.showInfo(this, null, "Push Function names to portal", "No functions were renamed");
-					} else {
-						Msg.showInfo(this, null, "Push Function names to portal", "Renamed functions: " + renameMap);
-					}
-				})
-				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Push Function names to portal" })
-				.menuGroup(REAI_PLUGIN_PORTAL_MENU_GROUP)
-				.buildAndInstall(tool);
-
-		new ActionBuilder("Open Function in RevEng.AI Portal", this.getName())
-				.withContext(ProgramLocationActionContext.class)
-				.enabledWhen(context -> getFunctionFromContext(context).flatMap(revengService::getFunctionIDFor).isPresent())
-				.onAction(context -> {
-					FunctionID fid = getFunctionFromContext(context).flatMap(revengService::getFunctionIDFor).orElseThrow();
-					revengService.openFunctionInPortal(fid);
-
-				})
-				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Open Function in RevEng.AI Portal" })
-				.menuGroup(REAI_PLUGIN_PORTAL_MENU_GROUP)
-				.popupMenuIcon(ReaiPluginPackage.REVENG_16)
-				.popupMenuGroup(REAI_PLUGIN_PORTAL_MENU_GROUP)
-				.popupMenuPath(new String[] { "Open Function in RevEng.AI Portal" })
-				.buildAndInstall(tool);
-
-		new ActionBuilder("Create new RevEng.AI Analysis for Binary", this.getName())
-				.enabledWhen(context -> {
-					var currentProgram = tool.getService(ProgramManager.class).getCurrentProgram();
-					if (currentProgram == null) {
-						return false;
-					}
-					return !revengService.isKnownProgram(currentProgram);
-				})
-				.onAction(context -> {
-					var program = tool.getService(ProgramManager.class).getCurrentProgram();
-					if (!GhidraProgramUtilities.isAnalyzed(program)) {
-						Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Create new Analysis for Binary",
-								"Program has not been auto-analyzed by Ghidra yet. Please run auto-analysis first.");
-						return;
-					}
-					var analysisOptionsDialog = new RevEngAIAnalysisOptionsDialog(this, program);
-					tool.showDialog(analysisOptionsDialog);
-				})
-				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Create new Analysis for Binary" })
-				.menuGroup(REAI_ANALYSIS_MANAGEMENT_MENU_GROUP)
-				.popupMenuGroup(REAI_ANALYSIS_MANAGEMENT_MENU_GROUP)
-				.popupMenuPath(new String[] { "Create new Analysis for Binary" })
-				.popupMenuIcon(ReaiPluginPackage.REVENG_16)
-				.buildAndInstall(tool);
+        viewInPortalAction = new ActionBuilder("View in portal", this.getName())
+                .enabledWhen(context -> {
+                    var currentProgram = tool.getService(ProgramManager.class).getCurrentProgram();
+                    if (currentProgram == null) {
+                        loggingService.info("View in portal action disabled: No current program");
+                        return false;
+                    }
+                    boolean isKnown = revengService.isKnownProgram(currentProgram);
+                    loggingService.info("View in portal action enabled: " + isKnown + " (program: " + currentProgram.getName() + ", isKnown: " + isKnown + ")");
+                    return isKnown;
+                })
+                .onAction(context -> {
+                    var currentProgram = tool.getService(ProgramManager.class).getCurrentProgram();
+                    var binID = revengService.getBinaryIDFor(currentProgram).orElseThrow();
+                    revengService.openPortal("analyses", String.valueOf(binID.value()));
+                })
+                .menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Analysis", "View in portal" })
+                .menuGroup(REAI_ANALYSIS_MANAGEMENT_MENU_GROUP, "400")
+                .buildAndInstall(tool);
 
 	}
 
@@ -332,7 +399,6 @@ public class CorePlugin extends ProgramPlugin {
 	@Override
 	public void init() {
 		super.init();
-
 	}
 
 	private boolean hasSetupWizardRun() {
@@ -352,31 +418,6 @@ public class CorePlugin extends ProgramPlugin {
 		wizardManager.showWizard(tool.getToolFrame());
 
 		return;
-	}
-
-
-	private void exportLogs(){
-		GhidraFileChooser fileChooser = new GhidraFileChooser(null);
-		fileChooser.setFileSelectionMode(GhidraFileChooserMode.DIRECTORIES_ONLY);
-
-		File outDir = fileChooser.getSelectedFile(true);
-		fileChooser.dispose();
-
-		if (outDir == null) {
-			loggingService.error("No dir selected for logfile export");
-			Msg.showError(outDir, null, ReaiPluginPackage.WINDOW_PREFIX + "Export logfile",
-					"No output directory provided to export logs to", null);
-			return;
-		}
-
-		loggingService.export(outDir.toString(), "reai_logs");
-
-		Msg.showInfo(outDir, null, ReaiPluginPackage.WINDOW_PREFIX + "Export Logs",
-				"Successfully exported logs to: " + outDir.toString());
-	}
-
-	private Optional<Function> getFunctionFromContext(ProgramLocationActionContext context) {
-		return Optional.ofNullable(context.getProgram().getFunctionManager().getFunctionContaining(context.getAddress()));
 	}
 
 	public void setLogs(String logs) {

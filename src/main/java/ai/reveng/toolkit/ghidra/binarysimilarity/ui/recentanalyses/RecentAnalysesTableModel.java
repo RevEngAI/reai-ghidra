@@ -2,7 +2,6 @@ package ai.reveng.toolkit.ghidra.binarysimilarity.ui.recentanalyses;
 
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
-import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.APIAuthenticationException;
 import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoundariesService;
 import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
 import docking.widgets.table.AbstractDynamicTableColumn;
@@ -67,15 +66,20 @@ public class RecentAnalysesTableModel extends ThreadedTableModelStub<LegacyAnaly
     @Override
     protected TableColumnDescriptor<LegacyAnalysisResult> createTableColumnDescriptor() {
         TableColumnDescriptor<LegacyAnalysisResult> descriptor = new TableColumnDescriptor<>();
-        descriptor.addVisibleColumn(new AbstractDynamicTableColumn<LegacyAnalysisResult, BinaryID, Object>() {
+        descriptor.addVisibleColumn(new AbstractDynamicTableColumn<LegacyAnalysisResult, String, Object>() {
             @Override
             public String getColumnName() {
                 return "Analysis ID";
             }
 
             @Override
-            public BinaryID getValue(LegacyAnalysisResult rowObject, Settings settings, Object data, ServiceProvider serviceProvider) throws IllegalArgumentException {
-                return rowObject.binary_id();
+            public String getValue(LegacyAnalysisResult rowObject, Settings settings, Object data, ServiceProvider serviceProvider) throws IllegalArgumentException {
+                return String.valueOf(rowObject.analysis_id().id());
+            }
+
+            @Override
+            public String getColumnDescription() {
+                return "Click to open analysis in RevEng.AI portal";
             }
         });
         descriptor.addVisibleColumn(new AbstractDynamicTableColumn<LegacyAnalysisResult, String, Object>() {
