@@ -14,7 +14,7 @@ public class FunctionSimilarityAction extends DockingAction {
     public FunctionSimilarityAction(BinarySimilarityPlugin owner) {
         super("Find Similar Functions", owner.toString());
         plugin = owner;
-        setPopupMenuData(new MenuData(new String[]{"Find Similar Functions"}, ReaiPluginPackage.REVENG_16, ReaiPluginPackage.MENU_GROUP_NAME));
+        setPopupMenuData(new MenuData(new String[]{"Match function"}, ReaiPluginPackage.REVENG_16, ReaiPluginPackage.MENU_GROUP_NAME));
     }
 
     @Override

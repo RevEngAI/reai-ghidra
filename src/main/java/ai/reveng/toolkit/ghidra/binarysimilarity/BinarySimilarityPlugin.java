@@ -154,7 +154,7 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 //				.keyBinding()autoAnalysisAction.setKeyBindingData( new KeyBindingData(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
 				.buildAndInstall(tool);
 
-		new ActionBuilder("Decompile via RevEng.AI", this.getName())
+		new ActionBuilder("AI Decompilation", this.getName())
 				.withContext(ProgramLocationActionContext.class)
 				.enabledWhen(context -> {
 					var func = context.getProgram().getFunctionManager().getFunctionContaining(context.getAddress());
@@ -165,26 +165,49 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 				.onAction(context -> {
 					var func = context.getProgram().getFunctionManager().getFunctionContaining(context.getAddress());
 					if (!apiService.isKnownFunction(func)) {
-						Msg.showError(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Decompile via RevEng.AI",
+						Msg.showError(this, null, ReaiPluginPackage.WINDOW_PREFIX + "AI Decompilation",
 								"Function is not known to the RevEng.AI API." +
 										"This can happen if the function boundaries do not match.\n" +
 										"You can create a new analysis based on the current analysis state to fix this.");
 						return;
 					}
 					// Spawn Task to decompile the function
-					TaskLauncher.launchNonModal("Decompile via RevEng.AI", monitor -> {
+					TaskLauncher.launchNonModal("AI Decompilation", monitor -> {
 						monitor.setMessage("Decompiling function...");
 						loggingService.info("Requested AI Decompilation for function " + func.getName());
 						var result = apiService.decompileFunctionViaAI(func, monitor, decompiledWindow);
 					});
 				})
-				.popupMenuPath(new String[] { "Decompile via RevEng.AI" })
+				.popupMenuPath(new String[] { "AI Decompilation" })
 				.popupMenuIcon(ReaiPluginPackage.REVENG_16)
 				.popupMenuGroup(ReaiPluginPackage.MENU_GROUP_NAME)
 				.buildAndInstall(tool);
 
+        new ActionBuilder("View function in portal", this.getName())
+                .withContext(ProgramLocationActionContext.class)
+                .enabledWhen(context -> {
+                    var func = context.getProgram().getFunctionManager().getFunctionContaining(context.getAddress());
+                    return func != null
+                            && apiService.isKnownProgram(context.getProgram())
+                            && apiService.isProgramAnalysed(context.getProgram());
+                })
+                .onAction(context -> {
+                    var func = context.getProgram().getFunctionManager().getFunctionContaining(context.getAddress());
+                    var functionID = apiService.getFunctionIDFor(func);
+                    if (!apiService.isKnownFunction(func) || functionID.isEmpty()) {
+                        Msg.showError(this, null, ReaiPluginPackage.WINDOW_PREFIX + "View function in portal",
+                                "Function is not known to the RevEng.AI API." +
+                                        "This can happen if the function boundaries do not match.\n" +
+                                        "You can create a new analysis based on the current analysis state to fix this.");
+                        return;
+                    }
 
-
+                    apiService.openFunctionInPortal(functionID.get());
+                })
+                .popupMenuPath(new String[] { "View function in portal" })
+                .popupMenuIcon(ReaiPluginPackage.REVENG_16)
+                .popupMenuGroup(ReaiPluginPackage.MENU_GROUP_NAME)
+                .buildAndInstall(tool);
 	}
 
 	@Override
