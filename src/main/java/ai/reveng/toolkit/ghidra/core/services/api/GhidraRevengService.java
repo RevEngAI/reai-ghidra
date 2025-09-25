@@ -78,7 +78,7 @@ public class GhidraRevengService {
 
     public GhidraRevengService(TypedApiInterface mockApi){
         this.api = mockApi;
-        this.apiInfo = new ApiInfo("http://localhost:8080", "mock");
+        this.apiInfo = new ApiInfo("http://localhost:8080", "http://localhost:8081", "mock");
     }
 
     public GhidraRevengService(){
@@ -800,9 +800,7 @@ public class GhidraRevengService {
     }
 
     public void openPortal(String... subPath) {
-        // For now this is hardcoded, but it should be configurable later
-        // Potentially this will be provided by an endpoint in the API
-        StringBuilder sb = new StringBuilder("https://portal.reveng.ai");
+        StringBuilder sb = new StringBuilder(apiInfo.portalURI().toString());
         for (String s : subPath) {
             if (!s.startsWith("?")){
                 sb.append("/");

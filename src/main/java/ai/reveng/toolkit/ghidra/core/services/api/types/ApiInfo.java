@@ -14,10 +14,11 @@ import java.nio.file.Paths;
 
 public record ApiInfo(
         URI hostURI,
+        URI portalURI,
         String apiKey
 ) {
-    public ApiInfo(String hostURI, String apiKey) {
-        this(URI.create(hostURI), apiKey);
+    public ApiInfo(String hostURI, String portalURI, String apiKey) {
+        this(URI.create(hostURI), URI.create(portalURI), apiKey);
     }
 
     public boolean checkServer(){
@@ -53,8 +54,8 @@ public record ApiInfo(
         ReaiConfig config = gson.fromJson(reader, ReaiConfig.class);
         var apikey = config.getPluginSettings().getApiKey();
         var hostname = config.getPluginSettings().getHostname();
-        var modelname = config.getPluginSettings().getModelName();
-        return new ApiInfo(hostname, apikey);
+        var portalHostname = config.getPluginSettings().getPortalHostname();
+        return new ApiInfo(hostname, portalHostname, apikey);
     }
 
     public static ApiInfo fromConfig() throws FileNotFoundException {

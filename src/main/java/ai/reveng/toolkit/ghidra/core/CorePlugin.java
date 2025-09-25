@@ -18,8 +18,14 @@ package ai.reveng.toolkit.ghidra.core;
 import java.awt.*;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Optional;
+
+import com.google.gson.Gson;
 
 import ai.reveng.toolkit.ghidra.binarysimilarity.BinarySimilarityPlugin;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.about.AboutDialog;
@@ -33,6 +39,7 @@ import ai.reveng.toolkit.ghidra.core.services.api.mocks.SimpleMatchesApi;
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
 
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
+import ai.reveng.toolkit.ghidra.core.models.ReaiConfig;
 import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoundariesService;
 import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoundariesServiceImpl;
 import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
@@ -159,7 +166,7 @@ public class CorePlugin extends ProgramPlugin {
 		String mock;
 		if ((mock = System.getProperty("reai.mock")) != null) {
 			loggingService.warn("Using Mock API: " + mock);
-			apiInfo = new ApiInfo("mock", "mock");
+			apiInfo = new ApiInfo("mock", "mock", "mock");
 			switch (mock) {
 				case "limbo":
 					revengService = new GhidraRevengService(new ProcessingLimboApi());
@@ -193,11 +200,12 @@ public class CorePlugin extends ProgramPlugin {
 	private Optional<ApiInfo> getApiInfoFromToolOptions(){
 		var apikey = tool.getOptions(REAI_OPTIONS_CATEGORY).getString(ReaiPluginPackage.OPTION_KEY_APIKEY, "invalid");
 		var hostname = tool.getOptions(REAI_OPTIONS_CATEGORY).getString(ReaiPluginPackage.OPTION_KEY_HOSTNAME, "unknown");
-		if (apikey.equals("invalid") || hostname.equals("unknown")) {
+        var portalHostname = tool.getOptions(REAI_OPTIONS_CATEGORY).getString(ReaiPluginPackage.OPTION_KEY_PORTAL_HOSTNAME, "unknown");
+		if (apikey.equals("invalid") || hostname.equals("unknown") || portalHostname.equals("unknown")){
 			return Optional.empty();
 		}
-		var apiInfo = new ApiInfo(hostname, apikey);
-//		apiInfo.checkValidity();
+		var apiInfo = new ApiInfo(hostname, portalHostname, apikey);
+
 		return Optional.of(apiInfo);
 	}
 
@@ -429,6 +437,21 @@ public class CorePlugin extends ProgramPlugin {
 		// Pre-populate wizard state with existing credentials if available
 		String existingApiKey = tool.getOptions(REAI_OPTIONS_CATEGORY).getString(ReaiPluginPackage.OPTION_KEY_APIKEY, null);
 		String existingHostname = tool.getOptions(REAI_OPTIONS_CATEGORY).getString(ReaiPluginPackage.OPTION_KEY_HOSTNAME, null);
+        String existingPortalHostname = tool.getOptions(REAI_OPTIONS_CATEGORY).getString(ReaiPluginPackage.OPTION_KEY_PORTAL_HOSTNAME, null);
+
+		// If credentials aren't available from tool options, try loading from config file
+		if ((existingApiKey == null || existingApiKey.equals("invalid")) &&
+		    (existingHostname == null || existingHostname.equals("unknown"))) {
+			try {
+				ApiInfo configApiInfo = ApiInfo.fromConfig();
+                existingApiKey = configApiInfo.apiKey();
+                existingHostname = configApiInfo.hostURI().toString();
+                existingPortalHostname = configApiInfo.portalURI().toString();
+                loggingService.info("Loaded credentials from configuration file");
+            } catch (Exception e) {
+				loggingService.info("No existing configuration file found or could not read it: " + e.getMessage());
+			}
+		}
 
 		if (existingApiKey != null && !existingApiKey.equals("invalid")) {
 			wizardState.put(SetupWizardStateKey.API_KEY, existingApiKey);
@@ -436,9 +459,12 @@ public class CorePlugin extends ProgramPlugin {
 		if (existingHostname != null && !existingHostname.equals("unknown")) {
 			wizardState.put(SetupWizardStateKey.HOSTNAME, existingHostname);
 		}
+        if (existingPortalHostname != null && !existingPortalHostname.equals("unknown")) {
+            wizardState.put(SetupWizardStateKey.PORTAL_HOSTNAME, existingPortalHostname);
+        }
 
 		SetupWizardManager setupManager = new SetupWizardManager(wizardState, getTool(), loggingService);
-		WizardManager wizardManager = new WizardManager("RevEng.ai Setup Wizard", true, setupManager);
+		WizardManager wizardManager = new WizardManager("RevEng.AI: Configuration", true, setupManager);
 		wizardManager.showWizard(tool.getToolFrame());
 
 		return;

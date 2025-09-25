@@ -20,6 +20,7 @@ public class ReaiPluginPackage extends PluginPackage {
 	 */
 	public static final String OPTION_KEY_APIKEY = PREFIX + "API Key";
 	public static final String OPTION_KEY_HOSTNAME = PREFIX + "Hostname";
+	public static final String OPTION_KEY_PORTAL_HOSTNAME = PREFIX + "Portal Hostname";
 	public static final String OPTION_KEY_MODEL = PREFIX + "Model";
 	public static final String OPTION_KEY_BINID = PREFIX + "Binary ID";
 

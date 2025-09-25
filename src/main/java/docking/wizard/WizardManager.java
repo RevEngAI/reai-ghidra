@@ -33,6 +33,7 @@ import ghidra.util.*;
 import help.Help;
 import help.HelpService;
 import resources.Icons;
+import resources.ResourceManager;
 
 /**
  * A dialog that controls the panels for going to "Next" and "Previous" in some
@@ -220,21 +221,37 @@ public class WizardManager extends ReusableDialogComponentProvider implements Wi
 			}
 		});
 
-		titleLabel = (wizardIcon == null ? new GDLabel(INIT_TITLE)
-				: new GDLabel(INIT_TITLE, wizardIcon, SwingConstants.TRAILING));
+		// Load custom icon from resources if wizardIcon is null
+		if (wizardIcon == null) {
+			try {
+				wizardIcon = ResourceManager.loadImage("images/icon_50.png");
+			} catch (Exception e) {
+				// If loading fails, fall back to no icon
+				wizardIcon = null;
+			}
+		}
 
-		EmptyBorderButton helpButton = new EmptyBorderButton(Icons.INFO_ICON);
-		helpButton.setToolTipText("Help (F1)");
-		helpButton.addActionListener(
-			e -> DockingWindowManager.getHelpService().showHelp(rootPanel, false, rootPanel));
+		// Create title label without icon - icon will be handled separately
+		titleLabel = new GDLabel(INIT_TITLE);
 
-		JPanel titlePanel = new JPanel();
-		titlePanel.setLayout(new BoxLayout(titlePanel, BoxLayout.X_AXIS));
+		JPanel titlePanel = new JPanel(new BorderLayout());
 		titlePanel.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createEtchedBorder(),
 			BorderFactory.createEmptyBorder(5, 5, 5, 5)));
-		titlePanel.add(titleLabel);
-		titlePanel.add(Box.createHorizontalGlue());
-		titlePanel.add(helpButton);
+
+		// Add icon to the left if available
+		if (wizardIcon != null) {
+			JLabel iconLabel = new JLabel(wizardIcon);
+			titlePanel.add(iconLabel, BorderLayout.WEST);
+		}
+
+		// Create a centered panel for the title text
+		JPanel centerPanel = new JPanel();
+		centerPanel.setLayout(new BoxLayout(centerPanel, BoxLayout.X_AXIS));
+		centerPanel.add(Box.createHorizontalGlue());
+		centerPanel.add(titleLabel);
+		centerPanel.add(Box.createHorizontalGlue());
+
+		titlePanel.add(centerPanel, BorderLayout.CENTER);
 
 		mainJPanel = new JPanel(new BorderLayout());
 		mainJPanel.add(titlePanel, BorderLayout.NORTH);

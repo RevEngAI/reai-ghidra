@@ -46,10 +46,12 @@ public class SetupWizardManager extends AbstractMagePanelManager<SetupWizardStat
 		getWizardManager().completed(true);
 		String apiKey = (String) getState().get(SetupWizardStateKey.API_KEY);
 		String hostname = (String) getState().get(SetupWizardStateKey.HOSTNAME);
+        String portalHostname = (String) getState().get(SetupWizardStateKey.PORTAL_HOSTNAME);
 		String model = (String) getState().get(SetupWizardStateKey.MODEL);
 		
 		tool.getOptions(REAI_OPTIONS_CATEGORY).setString(ReaiPluginPackage.OPTION_KEY_APIKEY, apiKey);
 		tool.getOptions(REAI_OPTIONS_CATEGORY).setString(ReaiPluginPackage.OPTION_KEY_HOSTNAME, hostname);
+		tool.getOptions(REAI_OPTIONS_CATEGORY).setString(ReaiPluginPackage.OPTION_KEY_PORTAL_HOSTNAME, portalHostname);
 		tool.getOptions(REAI_OPTIONS_CATEGORY).setString(ReaiPluginPackage.OPTION_KEY_MODEL, model);
 		tool.getOptions(REAI_OPTIONS_CATEGORY).setString(REAI_WIZARD_RUN_PREF, "true");
 		
@@ -76,6 +78,7 @@ public class SetupWizardManager extends AbstractMagePanelManager<SetupWizardStat
         	
         	pluginSettings.setApiKey(apiKey);
         	pluginSettings.setHostname(hostname);
+            pluginSettings.setPortalHostname(portalHostname);
         	pluginSettings.setModelName(model);
         	config.setPluginSettings(pluginSettings);
 
