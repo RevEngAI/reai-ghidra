@@ -139,11 +139,22 @@ public class CorePlugin extends ProgramPlugin {
 
 
 
-		// Try to get the API info from the local config, if it's not there, run the setup wizard
-		getApiInfoFromConfig().ifPresentOrElse(
-				info -> apiInfo = info,
-				() -> { runSetupWizard(); apiInfo = getApiInfoFromConfig().orElseThrow();}
-		);
+		// Try to get API info from multiple sources before running setup wizard
+		// 1. First try from config file
+		// 2. Then try from tool options (previously entered in wizard)
+		// 3. Only run setup wizard if neither source has valid credentials
+		Optional<ApiInfo> apiInfoOpt = getApiInfoFromConfig()
+				.or(() -> getApiInfoFromToolOptions());
+
+		if (apiInfoOpt.isPresent()) {
+			apiInfo = apiInfoOpt.get();
+		} else {
+			runSetupWizard();
+			// After wizard, try to get API info again from tool options or config
+			apiInfo = getApiInfoFromToolOptions()
+					.or(() -> getApiInfoFromConfig())
+					.orElseThrow(() -> new RuntimeException("Setup wizard completed but no valid API info found"));
+		}
 		// Check if the System Property to use a Mock is set
 		String mock;
 		if ((mock = System.getProperty("reai.mock")) != null) {
@@ -410,9 +421,23 @@ public class CorePlugin extends ProgramPlugin {
 	}
 
 	private void runSetupWizard() {
-		loggingService.info("First time running setup wizard");
-		SetupWizardManager setupManager = new SetupWizardManager(new WizardState<SetupWizardStateKey>(), getTool(),
-				loggingService);
+		loggingService.info("Running setup wizard");
+
+		// Create wizard state and populate with any existing credentials from tool options
+		WizardState<SetupWizardStateKey> wizardState = new WizardState<SetupWizardStateKey>();
+
+		// Pre-populate wizard state with existing credentials if available
+		String existingApiKey = tool.getOptions(REAI_OPTIONS_CATEGORY).getString(ReaiPluginPackage.OPTION_KEY_APIKEY, null);
+		String existingHostname = tool.getOptions(REAI_OPTIONS_CATEGORY).getString(ReaiPluginPackage.OPTION_KEY_HOSTNAME, null);
+
+		if (existingApiKey != null && !existingApiKey.equals("invalid")) {
+			wizardState.put(SetupWizardStateKey.API_KEY, existingApiKey);
+		}
+		if (existingHostname != null && !existingHostname.equals("unknown")) {
+			wizardState.put(SetupWizardStateKey.HOSTNAME, existingHostname);
+		}
+
+		SetupWizardManager setupManager = new SetupWizardManager(wizardState, getTool(), loggingService);
 		WizardManager wizardManager = new WizardManager("RevEng.ai Setup Wizard", true, setupManager);
 		wizardManager.showWizard(tool.getToolFrame());
 

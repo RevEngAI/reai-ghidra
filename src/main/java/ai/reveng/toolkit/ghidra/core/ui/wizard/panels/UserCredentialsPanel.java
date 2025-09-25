@@ -65,7 +65,7 @@ public class UserCredentialsPanel extends AbstractMageJPanel<SetupWizardStateKey
 		tfApiKey.getDocument().addDocumentListener(documentListener);
 		tfApiKey.setToolTipText("API key from your account settings");
 		apiKeyPanel.add(tfApiKey);
-		tfApiKey.setColumns(20);
+		tfApiKey.setColumns(30);
 
 		JPanel hostnamePanel = new JPanel();
 		userDetailsPanel.add(hostnamePanel);
@@ -114,8 +114,45 @@ public class UserCredentialsPanel extends AbstractMageJPanel<SetupWizardStateKey
 
 	@Override
 	public void enterPanel(WizardState<SetupWizardStateKey> state) throws IllegalPanelStateException {
-		// nothing todo atm
+		// Populate fields with existing state information if present
+		String existingApiKey = (String) state.get(SetupWizardStateKey.API_KEY);
+		String existingHostname = (String) state.get(SetupWizardStateKey.HOSTNAME);
 
+		// Temporarily disable validation while setting values from state
+		boolean wasValidated = credentialsValidated;
+
+		if (existingApiKey != null && !existingApiKey.isEmpty()) {
+			tfApiKey.setText(existingApiKey);
+		}
+
+		if (existingHostname != null && !existingHostname.isEmpty()) {
+			tfHostname.setText(existingHostname);
+		}
+
+		// If both fields are populated, validate the credentials automatically
+		// to maintain the previous validation state
+		if (existingApiKey != null && !existingApiKey.isEmpty() &&
+		    existingHostname != null && !existingHostname.isEmpty()) {
+			validateCredentialsFromState();
+		} else {
+			// Restore the previous validation state if we're not auto-validating
+			credentialsValidated = wasValidated;
+		}
+	}
+
+	private void validateCredentialsFromState() {
+		// Automatically validate credentials when loading from state
+		// This maintains the validation state when navigating back to this panel
+		var apiInfo = new ApiInfo(tfHostname.getText(), tfApiKey.getText());
+		try {
+			apiInfo.checkCredentials();
+			credentialsValidated = true;
+			notifyListenersOfValidityChanged();
+		} catch (InvalidAPIInfoException ex) {
+			// If validation fails with existing credentials, reset validation state
+			credentialsValidated = false;
+			notifyListenersOfStatusMessage("Previous credentials are no longer valid: " + ex.getMessage());
+		}
 	}
 
 	@Override
