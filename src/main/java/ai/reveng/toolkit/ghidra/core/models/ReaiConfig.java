@@ -25,6 +25,7 @@ public class ReaiConfig {
 	public static class PluginSettings {
 		private String apiKey;
 		private String hostname;
+        private String portalHostname;
 		private String modelName;
 		
 		public String getApiKey() {
@@ -42,7 +43,15 @@ public class ReaiConfig {
 		public void setHostname(String hostname) {
 			this.hostname = hostname;
 		}
-		
+
+        public String getPortalHostname() {
+            return portalHostname;
+        }
+
+        public void setPortalHostname(String portalHostname) {
+            this.portalHostname = portalHostname;
+        }
+
 		public String getModelName() {
 			return modelName;
 		}

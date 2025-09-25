@@ -4,6 +4,7 @@ import javax.swing.*;
 
 import ai.reveng.toolkit.ghidra.core.services.api.types.ApiInfo;
 import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.InvalidAPIInfoException;
+import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardStateKey;
 import docking.wizard.AbstractMageJPanel;
 import docking.wizard.IllegalPanelStateException;
@@ -11,35 +12,32 @@ import docking.wizard.WizardPanelDisplayability;
 import docking.wizard.WizardState;
 import ghidra.framework.plugintool.PluginTool;
 import java.awt.BorderLayout;
+import java.awt.GridBagLayout;
+import java.awt.GridBagConstraints;
+import java.awt.Insets;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
 public class UserCredentialsPanel extends AbstractMageJPanel<SetupWizardStateKey> {
 	private static final long serialVersionUID = -9045013459967405703L;
 	private JTextField tfApiKey;
-	private JTextField tfHostname;
+	private JTextField tfApiHostname;
+	private JTextField tfPortalHostname;
 	private Boolean credentialsValidated = false;
+
+    private ReaiLoggingService loggingService;
 
 	public UserCredentialsPanel(PluginTool tool) {
 		setLayout(new BorderLayout(0, 0));
 
-		JPanel infoPanel = new JPanel();
-		add(infoPanel, BorderLayout.NORTH);
+        loggingService = tool.getService(ReaiLoggingService.class);
 
-		JLabel lblTitle = new JLabel("Setup Account Information");
-		infoPanel.add(lblTitle);
-
-		JPanel userDetailsPanel = new JPanel();
+		JPanel userDetailsPanel = new JPanel(new GridBagLayout());
+		userDetailsPanel.setBorder(BorderFactory.createEmptyBorder(20, 0, 10, 0));
 		add(userDetailsPanel, BorderLayout.CENTER);
-		userDetailsPanel.setLayout(new BoxLayout(userDetailsPanel, BoxLayout.Y_AXIS));
 
-		JPanel apiKeyPanel = new JPanel();
-		userDetailsPanel.add(apiKeyPanel);
-
-		JLabel lblApiKey = new JLabel("API Key:");
-		apiKeyPanel.add(lblApiKey);
-
-
+		GridBagConstraints gbc = new GridBagConstraints();
+		gbc.insets = new Insets(2, 5, 2, 5);
 
 		DocumentListener documentListener = new DocumentListener() {
 			@Override
@@ -61,28 +59,67 @@ public class UserCredentialsPanel extends AbstractMageJPanel<SetupWizardStateKey
 			}
 		};
 
-		tfApiKey = new JTextField();
+		// API Key row
+		gbc.gridx = 0;
+		gbc.gridy = 0;
+		gbc.anchor = GridBagConstraints.WEST;
+		gbc.fill = GridBagConstraints.NONE;
+		JLabel lblApiKey = new JLabel("API Key:");
+		userDetailsPanel.add(lblApiKey, gbc);
+
+		gbc.gridx = 1;
+		gbc.fill = GridBagConstraints.HORIZONTAL;
+		gbc.weightx = 1.0;
+		tfApiKey = new JTextField(30);
 		tfApiKey.getDocument().addDocumentListener(documentListener);
 		tfApiKey.setToolTipText("API key from your account settings");
-		apiKeyPanel.add(tfApiKey);
-		tfApiKey.setColumns(30);
+		userDetailsPanel.add(tfApiKey, gbc);
 
-		JPanel hostnamePanel = new JPanel();
-		userDetailsPanel.add(hostnamePanel);
+		// Hostname row
+		gbc.gridx = 0;
+		gbc.gridy = 1;
+		gbc.fill = GridBagConstraints.NONE;
+		gbc.weightx = 0.0;
+		JLabel lblHostname = new JLabel("API Hostname:");
+		userDetailsPanel.add(lblHostname, gbc);
 
-		JLabel lblHostname = new JLabel("Hostname:");
-		hostnamePanel.add(lblHostname);
+		gbc.gridx = 1;
+		gbc.fill = GridBagConstraints.HORIZONTAL;
+		gbc.weightx = 1.0;
+		tfApiHostname = new JTextField(30);
+		tfApiHostname.getDocument().addDocumentListener(documentListener);
+		tfApiHostname.setToolTipText("URL hosting the RevEng.AI Server");
+		tfApiHostname.setText("https://api.reveng.ai");
+		userDetailsPanel.add(tfApiHostname, gbc);
 
-		tfHostname = new JTextField();
-		tfHostname.getDocument().addDocumentListener(documentListener);
-		tfHostname.setToolTipText("URL hosting the RevEng.AI Server");
-		tfHostname.setText("https://api.reveng.ai");
-		hostnamePanel.add(tfHostname);
-		tfHostname.setColumns(20);
+		// Portal Hostname row
+		gbc.gridx = 0;
+		gbc.gridy = 2;
+		gbc.fill = GridBagConstraints.NONE;
+		gbc.weightx = 0.0;
+		JLabel lblPortalHostname = new JLabel("Portal Hostname:");
+		userDetailsPanel.add(lblPortalHostname, gbc);
 
+		gbc.gridx = 1;
+		gbc.fill = GridBagConstraints.HORIZONTAL;
+		gbc.weightx = 1.0;
+		tfPortalHostname = new JTextField(30);
+		tfPortalHostname.getDocument().addDocumentListener(documentListener);
+		tfPortalHostname.setToolTipText("URL hosting the RevEng.AI Portal");
+		tfPortalHostname.setText("https://portal.reveng.ai");
+		userDetailsPanel.add(tfPortalHostname, gbc);
+
+		// Validate button row
+		gbc.gridx = 0;
+		gbc.gridy = 3;
+		gbc.gridwidth = 2;
+		gbc.fill = GridBagConstraints.NONE;
+		gbc.weightx = 0.0;
+		gbc.anchor = GridBagConstraints.CENTER;
+		gbc.insets = new Insets(15, 5, 5, 5);
 		JButton runTestsButton = new JButton("Validate Credentials");
 		runTestsButton.addActionListener(e -> {
-			var apiInfo = new ApiInfo(tfHostname.getText(), tfApiKey.getText());
+			var apiInfo = new ApiInfo(tfApiHostname.getText(), tfPortalHostname.getText(), tfApiKey.getText());
 			try {
 				apiInfo.checkCredentials();
 				credentialsValidated = true;
@@ -95,9 +132,7 @@ public class UserCredentialsPanel extends AbstractMageJPanel<SetupWizardStateKey
 			}
 
 		});
-		userDetailsPanel.add(runTestsButton);
-
-
+		userDetailsPanel.add(runTestsButton, gbc);
 	}
 
 	@Override
@@ -117,55 +152,54 @@ public class UserCredentialsPanel extends AbstractMageJPanel<SetupWizardStateKey
 		// Populate fields with existing state information if present
 		String existingApiKey = (String) state.get(SetupWizardStateKey.API_KEY);
 		String existingHostname = (String) state.get(SetupWizardStateKey.HOSTNAME);
-
-		// Temporarily disable validation while setting values from state
-		boolean wasValidated = credentialsValidated;
+		String existingPortalHostname = (String) state.get(SetupWizardStateKey.PORTAL_HOSTNAME);
+		Boolean existingValidationState = (Boolean) state.get(SetupWizardStateKey.CREDENTIALS_VALIDATED);
 
 		if (existingApiKey != null && !existingApiKey.isEmpty()) {
+            loggingService.info("Pre-filling API key from existing state");
 			tfApiKey.setText(existingApiKey);
 		}
 
 		if (existingHostname != null && !existingHostname.isEmpty()) {
-			tfHostname.setText(existingHostname);
+            loggingService.info("Pre-filling API hostname from existing state");
+			tfApiHostname.setText(existingHostname);
 		}
 
-		// If both fields are populated, validate the credentials automatically
-		// to maintain the previous validation state
-		if (existingApiKey != null && !existingApiKey.isEmpty() &&
+		if (existingPortalHostname != null && !existingPortalHostname.isEmpty()) {
+            loggingService.info("Pre-filling Portal hostname from existing state");
+			tfPortalHostname.setText(existingPortalHostname);
+		}
+
+		// Restore validation state from previous session if credentials match
+		if (existingValidationState != null && existingValidationState &&
+		    existingApiKey != null && !existingApiKey.isEmpty() &&
 		    existingHostname != null && !existingHostname.isEmpty()) {
-			validateCredentialsFromState();
-		} else {
-			// Restore the previous validation state if we're not auto-validating
-			credentialsValidated = wasValidated;
+			credentialsValidated = true;
+			loggingService.info("Restored credentials validation state from previous session");
+			notifyListenersOfValidityChanged();
 		}
 	}
 
 	private void validateCredentialsFromState() {
-		// Automatically validate credentials when loading from state
-		// This maintains the validation state when navigating back to this panel
-		var apiInfo = new ApiInfo(tfHostname.getText(), tfApiKey.getText());
-		try {
-			apiInfo.checkCredentials();
-			credentialsValidated = true;
-			notifyListenersOfValidityChanged();
-		} catch (InvalidAPIInfoException ex) {
-			// If validation fails with existing credentials, reset validation state
-			credentialsValidated = false;
-			notifyListenersOfStatusMessage("Previous credentials are no longer valid: " + ex.getMessage());
-		}
+		// This method is no longer used - validation state is preserved from wizard state
+		// Keeping for backwards compatibility but it should not be called
+		loggingService.warn("validateCredentialsFromState() called - this should not happen with new validation logic");
 	}
 
 	@Override
 	public void leavePanel(WizardState<SetupWizardStateKey> state) {
 		updateStateObjectWithPanelInfo(state);
-
 	}
 
 	@Override
 	public void updateStateObjectWithPanelInfo(WizardState<SetupWizardStateKey> state) {
+        // Save the entered information into the state object
 		state.put(SetupWizardStateKey.API_KEY, tfApiKey.getText());
-		state.put(SetupWizardStateKey.HOSTNAME, tfHostname.getText());
+		state.put(SetupWizardStateKey.HOSTNAME, tfApiHostname.getText());
+		state.put(SetupWizardStateKey.PORTAL_HOSTNAME, tfPortalHostname.getText());
+		state.put(SetupWizardStateKey.CREDENTIALS_VALIDATED, credentialsValidated);
 
+        loggingService.info("Saved form data and validation state to state");
 	}
 
 	@Override
@@ -176,7 +210,7 @@ public class UserCredentialsPanel extends AbstractMageJPanel<SetupWizardStateKey
 
 	@Override
 	public String getTitle() {
-		return "RevEng.AI Credentials";
+        return "Configure your RevEng.AI API and Portal credentials";
 	}
 
 	@Override
@@ -186,8 +220,12 @@ public class UserCredentialsPanel extends AbstractMageJPanel<SetupWizardStateKey
 			notifyListenersOfStatusMessage("Please provide your API key");
 			return false;
 		}
-		if (tfHostname.getText().isEmpty()) {
+		if (tfApiHostname.getText().isEmpty()) {
 			notifyListenersOfStatusMessage("Please enter a hostname for you API server");
+			return false;
+		}
+		if (tfPortalHostname.getText().isEmpty()) {
+			notifyListenersOfStatusMessage("Please enter a portal hostname");
 			return false;
 		}
 		if (!credentialsValidated){
