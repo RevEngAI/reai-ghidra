@@ -98,8 +98,8 @@ import javax.swing.*;
 	category = PluginCategoryNames.COMMON,
 	shortDescription = "Toolkit for using the RevEng.AI API",
 	description = "Toolkit for using RevEng.AI API",
-	servicesRequired = { OptionsService.class, ConsoleService.class},
-	servicesProvided = { GhidraRevengService.class, ExportFunctionBoundariesService.class, ReaiLoggingService.class },
+	servicesRequired = { OptionsService.class, ReaiLoggingService.class},
+	servicesProvided = { GhidraRevengService.class, ExportFunctionBoundariesService.class },
 	eventsConsumed = { RevEngAIAnalysisStatusChangedEvent.class}
 )
 //@formatter:on
@@ -120,20 +120,13 @@ public class CorePlugin extends ProgramPlugin {
 
     private GhidraRevengService revengService;
 	private ExportFunctionBoundariesService exportFunctionBoundariesService;
-	private ReaiLoggingService loggingService;
-	private final AnalysisLogComponent analysisLogComponent;
+	private AnalysisLogComponent analysisLogComponent;
 
 
 	private PluginTool tool;
 	private ApiInfo apiInfo;
 
-	@Override
-	public void serviceAdded(Class<?> interfaceClass, Object service) {
-		if (interfaceClass == ConsoleService.class && loggingService instanceof ReaiLoggingToConsole) {
-			ReaiLoggingToConsole reaiLoggingToConsole = (ReaiLoggingToConsole) loggingService;
-			reaiLoggingToConsole.setConsoleService((ConsoleService) service);
-		}
-	}
+
 
 	public CorePlugin(PluginTool tool) {
 		super(tool);
@@ -142,60 +135,44 @@ public class CorePlugin extends ProgramPlugin {
 
 		var toolOptions =  tool;
 		tool.getOptions(REAI_OPTIONS_CATEGORY).registerOption(REAI_WIZARD_RUN_PREF, "false", null, "If the setup wizard has been run");
-		loggingService = new ReaiLoggingToConsole(tool.getService(ConsoleService.class));
-		registerServiceProvided(ReaiLoggingService.class, loggingService);
 
+        exportFunctionBoundariesService = new ExportFunctionBoundariesServiceImpl(tool);
+        registerServiceProvided(ExportFunctionBoundariesService.class, exportFunctionBoundariesService);
 
+        // Try to get API info from multiple sources before running setup wizard
+        // 1. First try from config file
+        // 2. Then try from tool options (previously entered in wizard)
+        // 3. Only run setup wizard if neither source has valid credentials
+        Optional<ApiInfo> apiInfoOpt = getApiInfoFromConfig()
+                .or(() -> getApiInfoFromToolOptions());
 
-		// Try to get API info from multiple sources before running setup wizard
-		// 1. First try from config file
-		// 2. Then try from tool options (previously entered in wizard)
-		// 3. Only run setup wizard if neither source has valid credentials
-		Optional<ApiInfo> apiInfoOpt = getApiInfoFromConfig()
-				.or(() -> getApiInfoFromToolOptions());
+        if (apiInfoOpt.isPresent()) {
+            apiInfo = apiInfoOpt.get();
+        } else {
+            runSetupWizard();
+            // After wizard, try to get API info again from tool options or config
+            apiInfo = getApiInfoFromToolOptions()
+                    .or(() -> getApiInfoFromConfig())
+                    .orElseThrow(() -> new RuntimeException("Setup wizard completed but no valid API info found"));
+        }
+        revengService = new GhidraRevengService(apiInfo);
+        registerServiceProvided(GhidraRevengService.class, revengService);
 
-		if (apiInfoOpt.isPresent()) {
-			apiInfo = apiInfoOpt.get();
-		} else {
-			runSetupWizard();
-			// After wizard, try to get API info again from tool options or config
-			apiInfo = getApiInfoFromToolOptions()
-					.or(() -> getApiInfoFromConfig())
-					.orElseThrow(() -> new RuntimeException("Setup wizard completed but no valid API info found"));
-		}
-		// Check if the System Property to use a Mock is set
-		String mock;
-		if ((mock = System.getProperty("reai.mock")) != null) {
-			loggingService.warn("Using Mock API: " + mock);
-			apiInfo = new ApiInfo("mock", "mock", "mock");
-			switch (mock) {
-				case "limbo":
-					revengService = new GhidraRevengService(new ProcessingLimboApi());
-					break;
-				case "simpleMatches":
-					revengService = new GhidraRevengService(new SimpleMatchesApi());
-					break;
-				default:
-					throw new UnsupportedOperationException("Unknown mock type: " + mock);
-			}
-			revengService = new GhidraRevengService(new ProcessingLimboApi());
-		} else {
-			revengService = new GhidraRevengService(apiInfo);
-		}
-		registerServiceProvided(GhidraRevengService.class, revengService);
+    }
 
-		exportFunctionBoundariesService = new ExportFunctionBoundariesServiceImpl(tool);
-		registerServiceProvided(ExportFunctionBoundariesService.class, exportFunctionBoundariesService);
+    @Override
+    public void init() {
+        ReaiLoggingService loggingService = tool.getService(ReaiLoggingService.class);
 
-		// Install analysis log viewer
-		analysisLogComponent = new AnalysisLogComponent(tool);
-		tool.addComponentProvider(analysisLogComponent, false);
+        // Install analysis log viewer
+        analysisLogComponent = new AnalysisLogComponent(tool);
+        tool.addComponentProvider(analysisLogComponent, false);
 
-		setupActions();
+        setupActions();
 
-		loggingService.info("CorePlugin initialized");
+        loggingService.info("CorePlugin initialized");
+    }
 
-	}
 
 
 	private Optional<ApiInfo> getApiInfoFromToolOptions(){
@@ -215,6 +192,7 @@ public class CorePlugin extends ProgramPlugin {
 	 * @return
 	 */
 	private Optional<ApiInfo> getApiInfoFromConfig(){
+        var loggingService = tool.getService(ReaiLoggingService.class);
         try {
             return Optional.of(ApiInfo.fromConfig());
         } catch (FileNotFoundException e) {
@@ -263,12 +241,12 @@ public class CorePlugin extends ProgramPlugin {
                 .enabledWhen(context -> {
                     var currentProgram = tool.getService(ProgramManager.class).getCurrentProgram();
                     if (currentProgram == null) {
-                        loggingService.info("Create new action disabled: No current program");
+                        tool.getService(ReaiLoggingService.class).info("Create new action disabled: No current program");
                         return false;
                     }
                     boolean isKnown = revengService.isKnownProgram(currentProgram);
                     boolean shouldEnable = !isKnown;
-                    loggingService.info("Create new action enabled: " + shouldEnable + " (program: " + currentProgram.getName() + ", isKnown: " + isKnown + ")");
+                    tool.getService(ReaiLoggingService.class).info("Create new action enabled: " + shouldEnable + " (program: " + currentProgram.getName() + ", isKnown: " + isKnown + ")");
                     return shouldEnable;
                 })
                 .onAction(context -> {
@@ -292,12 +270,12 @@ public class CorePlugin extends ProgramPlugin {
 				.enabledWhen(c -> {
                     var currentProgram = tool.getService(ProgramManager.class).getCurrentProgram();
                     if (currentProgram == null) {
-                        loggingService.info("Attach to existing action disabled: No current program");
+                        tool.getService(ReaiLoggingService.class).info("Attach to existing action disabled: No current program");
                         return false;
                     }
                     boolean isKnown = revengService.isKnownProgram(currentProgram);
                     boolean shouldEnable = !isKnown;
-                    loggingService.info("Attach to existing action enabled: " + shouldEnable + " (program: " + currentProgram.getName() + ", isKnown: " + isKnown + ")");
+                    tool.getService(ReaiLoggingService.class).info("Attach to existing action enabled: " + shouldEnable + " (program: " + currentProgram.getName() + ", isKnown: " + isKnown + ")");
                     return shouldEnable;
                 })
 				.onAction(context -> {
@@ -317,11 +295,11 @@ public class CorePlugin extends ProgramPlugin {
 				.enabledWhen(c -> {
                     var currentProgram = tool.getService(ProgramManager.class).getCurrentProgram();
                     if (currentProgram == null) {
-                        loggingService.info("Detach action disabled: No current program");
+                        tool.getService(ReaiLoggingService.class).info("Detach action disabled: No current program");
                         return false;
                     }
                     boolean isKnown = revengService.isKnownProgram(currentProgram);
-                    loggingService.info("Detach action enabled: " + isKnown + " (program: " + currentProgram.getName() + ", isKnown: " + isKnown + ")");
+                    tool.getService(ReaiLoggingService.class).info("Detach action enabled: " + isKnown + " (program: " + currentProgram.getName() + ", isKnown: " + isKnown + ")");
                     return isKnown;
                 })
 				.onAction(context -> {
@@ -354,11 +332,11 @@ public class CorePlugin extends ProgramPlugin {
 				.enabledWhen(context -> {
                     var currentProgram = tool.getService(ProgramManager.class).getCurrentProgram();
                     if (currentProgram == null) {
-                        loggingService.info("Check status action disabled: No current program");
+                        tool.getService(ReaiLoggingService.class).info("Check status action disabled: No current program");
                         return false;
                     }
                     boolean isKnown = revengService.isKnownProgram(currentProgram);
-                    loggingService.info("Check status action enabled: " + isKnown + " (program: " + currentProgram.getName() + ", isKnown: " + isKnown + ")");
+                    tool.getService(ReaiLoggingService.class).info("Check status action enabled: " + isKnown + " (program: " + currentProgram.getName() + ", isKnown: " + isKnown + ")");
                     return isKnown;
                 })
 				.onAction(context -> {
@@ -368,7 +346,7 @@ public class CorePlugin extends ProgramPlugin {
 					var logs = revengService.getAnalysisLog(analysisID);
 					analysisLogComponent.setLogs(logs);
 					AnalysisStatus status = revengService.pollStatus(binID);
-					loggingService.info("Check Status: " + status);
+                    tool.getService(ReaiLoggingService.class).info("Check Status: " + status);
 					Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Check status",
 							"Status of " + binID + ": " + status);
 				})
@@ -380,11 +358,11 @@ public class CorePlugin extends ProgramPlugin {
                 .enabledWhen(context -> {
                     var currentProgram = tool.getService(ProgramManager.class).getCurrentProgram();
                     if (currentProgram == null) {
-                        loggingService.info("View in portal action disabled: No current program");
+                        tool.getService(ReaiLoggingService.class).info("View in portal action disabled: No current program");
                         return false;
                     }
                     boolean isKnown = revengService.isKnownProgram(currentProgram);
-                    loggingService.info("View in portal action enabled: " + isKnown + " (program: " + currentProgram.getName() + ", isKnown: " + isKnown + ")");
+                    tool.getService(ReaiLoggingService.class).info("View in portal action enabled: " + isKnown + " (program: " + currentProgram.getName() + ", isKnown: " + isKnown + ")");
                     return isKnown;
                 })
                 .onAction(context -> {
@@ -418,11 +396,6 @@ public class CorePlugin extends ProgramPlugin {
 		}
 	}
 
-	@Override
-	public void init() {
-		super.init();
-	}
-
 	private boolean hasSetupWizardRun() {
 		String value = tool.getOptions(REAI_OPTIONS_CATEGORY).getString(REAI_WIZARD_RUN_PREF, "false");
 		return Boolean.parseBoolean(value);
@@ -433,7 +406,7 @@ public class CorePlugin extends ProgramPlugin {
 	}
 
 	private void runSetupWizard() {
-		loggingService.info("Running setup wizard");
+        tool.getService(ReaiLoggingService.class).info("Running setup wizard");
 
 		// Create wizard state and populate with any existing credentials from tool options
 		WizardState<SetupWizardStateKey> wizardState = new WizardState<SetupWizardStateKey>();
@@ -451,9 +424,9 @@ public class CorePlugin extends ProgramPlugin {
                 existingApiKey = configApiInfo.apiKey();
                 existingHostname = configApiInfo.hostURI().toString();
                 existingPortalHostname = configApiInfo.portalURI().toString();
-                loggingService.info("Loaded credentials from configuration file");
+                tool.getService(ReaiLoggingService.class).info("Loaded credentials from configuration file");
             } catch (Exception e) {
-				loggingService.info("No existing configuration file found or could not read it: " + e.getMessage());
+                tool.getService(ReaiLoggingService.class).info("No existing configuration file found or could not read it: " + e.getMessage());
 			}
 		}
 
@@ -467,7 +440,7 @@ public class CorePlugin extends ProgramPlugin {
             wizardState.put(SetupWizardStateKey.PORTAL_HOSTNAME, existingPortalHostname);
         }
 
-		SetupWizardManager setupManager = new SetupWizardManager(wizardState, getTool(), loggingService);
+		SetupWizardManager setupManager = new SetupWizardManager(wizardState, getTool());
 		WizardManager wizardManager = new WizardManager("RevEng.AI: Configuration", true, setupManager);
 		wizardManager.showWizard(tool.getToolFrame());
 

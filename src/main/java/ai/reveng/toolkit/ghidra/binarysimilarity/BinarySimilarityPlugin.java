@@ -73,7 +73,6 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 
 	protected final FunctionSimilarityComponent functionSimilarityComponent;
 	private GhidraRevengService apiService;
-	public ReaiLoggingService loggingService;
 
 	public final static String REVENG_AI_NAMESPACE = "RevEng.AI";
 
@@ -93,11 +92,6 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 	public BinarySimilarityPlugin(PluginTool tool) {
 		super(tool);
 
-		loggingService = tool.getService(ReaiLoggingService.class);
-		if (loggingService == null) {
-			Msg.error(this, "Unable to access logging service");
-		}
-
         // Setup dialogs
 		autoAnalyse = new AutoAnalysisDockableDialog(tool);
 
@@ -115,16 +109,15 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 		// Install Collections Control Panel
 		collectionsComponent = new DataSetControlPanelComponent(tool, REVENG_AI_NAMESPACE);
 		collectionsComponent.addToTool();
-//		tool.addComponentProvider(collectionsComponent, false);
-
 	}
 
-	@Override
-	public void serviceAdded(Class<?> interfaceClass, Object service) {
-		if (interfaceClass == ReaiLoggingService.class) {
-			loggingService = (ReaiLoggingService) service;
-		}
-	}
+    /// In `init()` the services are guaranteed to be available
+    @Override
+    public void init() {
+        super.init();
+
+        apiService = tool.getService(GhidraRevengService.class);
+    }
 
 	private void setupActions() {
 		tool.addAction(new FunctionSimilarityAction(this));
@@ -208,7 +201,7 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 					// Spawn Task to decompile the function
 					TaskLauncher.launchNonModal("AI Decompilation", monitor -> {
 						monitor.setMessage("Decompiling function...");
-						loggingService.info("Requested AI Decompilation for function " + func.getName());
+						tool.getService(ReaiLoggingService.class).info("Requested AI Decompilation for function " + func.getName());
 						var result = apiService.decompileFunctionViaAI(func, monitor, decompiledWindow);
 					});
 				})
@@ -261,18 +254,13 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 	}
 
 
-	@Override
-	public void init() {
-		super.init();
 
-		apiService = tool.getService(GhidraRevengService.class);
-	}
 
 	@Override
 	public void processEvent(PluginEvent event) {
         if (event instanceof RevEngAIAnalysisStatusChangedEvent analysisStatusChangedEvent) {
             if (analysisStatusChangedEvent.getStatus() == AnalysisStatus.Complete){
-               loggingService.info("ANALYSIS COMPLETE EVENT");
+                tool.getService(ReaiLoggingService.class).info("ANALYSIS COMPLETE EVENT");
                // TODO: sync functions from portal?
             }
         }

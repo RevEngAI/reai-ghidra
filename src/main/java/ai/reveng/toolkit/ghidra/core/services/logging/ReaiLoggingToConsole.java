@@ -2,6 +2,7 @@ package ai.reveng.toolkit.ghidra.core.services.logging;
 
 import ghidra.app.services.ConsoleService;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -9,7 +10,7 @@ public class ReaiLoggingToConsole implements ReaiLoggingService {
 
     private ConsoleService consoleService;
 
-    public ReaiLoggingToConsole(ConsoleService consoleService) {
+    public ReaiLoggingToConsole(@Nullable ConsoleService consoleService) {
         this.consoleService = consoleService;
     }
 
