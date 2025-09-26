@@ -86,34 +86,35 @@ public class AutoUnstripDialog extends DialogComponentProvider {
     }
 
     private void importFunctionNames(AutoUnstripResponse autoUnstripResponse) {
-        try {
-            var revengMatchNamespace = program.getSymbolTable().getOrCreateNameSpace(
-                    program.getGlobalNamespace(),
-                    REVENG_AI_NAMESPACE,
-                    SourceType.ANALYSIS);
+
 
             var functionMgr = program.getFunctionManager();
             program.withTransaction("Apply Auto-Unstrip Function Names", () -> {
-                autoUnstripResponse.matches().forEach(match -> {
-                    Address addr = program.getAddressFactory().getDefaultAddressSpace().getAddress(match.function_vaddr());
-                    Function func = functionMgr.getFunctionAt(addr);
-                    if (func == null) {
-                        return;
-                    } else {
                         try {
-                            func.setName(match.suggested_name(), SourceType.ANALYSIS);
-                            func.setParentNamespace(revengMatchNamespace);
-                        } catch (Exception e) {
-                            handleError("Failed to rename function at " + addr + ": " + e.getMessage());
+                            var revengMatchNamespace = program.getSymbolTable().getOrCreateNameSpace(
+                                    program.getGlobalNamespace(),
+                                    REVENG_AI_NAMESPACE,
+                                    SourceType.ANALYSIS);
+
+                            autoUnstripResponse.matches().forEach(match -> {
+                                Address addr = program.getAddressFactory().getDefaultAddressSpace().getAddress(match.function_vaddr());
+                                Function func = functionMgr.getFunctionAt(addr);
+                                if (func == null) {
+                                    return;
+                                } else {
+                                    try {
+                                        func.setName(match.suggested_name(), SourceType.ANALYSIS);
+                                        func.setParentNamespace(revengMatchNamespace);
+                                    } catch (Exception e) {
+                                        handleError("Failed to rename function at " + addr + ": " + e.getMessage());
+                                    }
+                                }
+                            });
+                        } catch (DuplicateNameException | InvalidInputException e) {
+                            throw new RuntimeException(e);
                         }
                     }
-                });
-            });
-
-        } catch (DuplicateNameException | InvalidInputException e) {
-            throw new RuntimeException(e);
-        }
-
+                );
     }
 
     private void updateUI() {
