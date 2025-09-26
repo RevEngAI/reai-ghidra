@@ -148,16 +148,13 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
                                 "Analysis must have completed before running auto unstrip");
                         return;
                     }
-
-                    var maybeBinID = apiService.getBinaryIDFor(program);
-                    if (maybeBinID.isEmpty()){
+                    var knownProgram = apiService.getKnownProgram(program);
+                    if (knownProgram.isEmpty()){
                         Msg.info(this, "Program has no saved binary ID");
                         return;
                     }
-                    var binID = maybeBinID.get();
-                    var analysisID = apiService.getApi().getAnalysisIDfromBinaryID(binID);
 
-                    var autoUnstrip = new AutoUnstripDialog(tool, analysisID);
+                    var autoUnstrip = new AutoUnstripDialog(tool, knownProgram.get());
 
                     tool.showDialog(autoUnstrip);
                 })

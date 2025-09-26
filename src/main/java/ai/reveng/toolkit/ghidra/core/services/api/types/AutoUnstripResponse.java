@@ -37,13 +37,13 @@ public record AutoUnstripResponse(
      * Represents a single match in the auto unstrip response
      */
     public record Match(
-            int function_id,
+            FunctionID function_id,
             long function_vaddr,
             String suggested_name
     ) {
         public static Match fromJSONObject(JSONObject json) {
             return new Match(
-                    json.getInt("function_id"),
+                    new FunctionID(json.getInt("function_id")),
                     json.getLong("function_vaddr"),
                     json.getString("suggested_name")
             );
