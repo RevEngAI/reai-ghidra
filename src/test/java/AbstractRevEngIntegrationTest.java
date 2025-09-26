@@ -1,10 +1,11 @@
 import ai.reveng.toolkit.ghidra.core.services.api.V2Response;
+import ghidra.test.AbstractGhidraHeadedIntegrationTest;
 import ghidra.test.AbstractGhidraHeadlessIntegrationTest;
 import org.json.JSONObject;
 
 import java.io.IOException;
 
-abstract class AbstractRevEngIntegrationTest extends AbstractGhidraHeadlessIntegrationTest {
+abstract class AbstractRevEngIntegrationTest extends AbstractGhidraHeadedIntegrationTest {
     protected V2Response getMockResponseFromFile(String filename) {
         String json = null;
         try {
