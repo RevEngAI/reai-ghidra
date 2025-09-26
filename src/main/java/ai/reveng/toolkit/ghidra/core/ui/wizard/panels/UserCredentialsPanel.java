@@ -199,7 +199,9 @@ public class UserCredentialsPanel extends AbstractMageJPanel<SetupWizardStateKey
 		state.put(SetupWizardStateKey.PORTAL_HOSTNAME, tfPortalHostname.getText());
 		state.put(SetupWizardStateKey.CREDENTIALS_VALIDATED, credentialsValidated);
 
-        loggingService.info("Saved form data and validation state to state");
+        if (loggingService != null) {
+            loggingService.info("Saved form data and validation state to state");
+        }
 	}
 
 	@Override

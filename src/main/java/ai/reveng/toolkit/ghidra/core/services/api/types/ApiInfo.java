@@ -55,6 +55,11 @@ public record ApiInfo(
         var apikey = config.getPluginSettings().getApiKey();
         var hostname = config.getPluginSettings().getHostname();
         var portalHostname = config.getPluginSettings().getPortalHostname();
+        if (    hostname == null || hostname.isEmpty() ||
+                apikey == null || apikey.isEmpty() ||
+                portalHostname == null || portalHostname.isEmpty()) {
+            throw new JSONException("Invalid config file: hostname, apiKey and portal must be set");
+        }
         return new ApiInfo(hostname, portalHostname, apikey);
     }
 
