@@ -18,6 +18,7 @@ package ai.reveng.toolkit.ghidra.binarysimilarity;
 import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.aidecompiler.AIDecompiledWindow;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.autoanalysis.AutoAnalysisDockableDialog;
+import ai.reveng.toolkit.ghidra.binarysimilarity.ui.autounstrip.AutoUnstripDialog;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.collectiondialog.DataSetControlPanelComponent;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.functionsimilarity.FunctionSimilarityAction;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.functionsimilarity.FunctionSimilarityComponent;
@@ -55,7 +56,7 @@ import java.util.Arrays;
 	status = PluginStatus.RELEASED,
 	packageName = ReaiPluginPackage.NAME,
 	category = PluginCategoryNames.COMMON,
-	shortDescription = "Support for Binary Similarity Featrues of RevEng.AI Toolkit.",
+	shortDescription = "Support for Binary Similarity Features of RevEng.AI Toolkit.",
 	description = "Enable features that support binary similarity operations, including binary upload, and auto-renaming",
 	servicesRequired = { GhidraRevengService.class, ProgramManager.class, ExportFunctionBoundariesService.class, ReaiLoggingService.class },
 	eventsConsumed = { RevEngAIAnalysisStatusChangedEvent.class, }
@@ -97,6 +98,7 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 			Msg.error(this, "Unable to access logging service");
 		}
 
+        // Setup dialogs
 		autoAnalyse = new AutoAnalysisDockableDialog(tool);
 
 		setupActions();
@@ -125,9 +127,41 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 	}
 
 	private void setupActions() {
-
-
 		tool.addAction(new FunctionSimilarityAction(this));
+
+        new ActionBuilder("Auto Unstrip", this.getName())
+                .menuGroup(ReaiPluginPackage.NAME)
+                .menuPath(ReaiPluginPackage.MENU_GROUP_NAME, "Auto Unstrip")
+                .enabledWhen(context -> {
+                            var program = tool.getService(ProgramManager.class).getCurrentProgram();
+                            if (program != null) {
+                                return apiService.isKnownProgram(program);
+                            } else {
+                                return false;
+                            }
+                        }
+                )
+                .onAction(context -> {
+                    var program = tool.getService(ProgramManager.class).getCurrentProgram();
+                    if (!apiService.isProgramAnalysed(program)) {
+                        Msg.showError(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Auto Unstrip",
+                                "Analysis must have completed before running auto unstrip");
+                        return;
+                    }
+
+                    var maybeBinID = apiService.getBinaryIDFor(program);
+                    if (maybeBinID.isEmpty()){
+                        Msg.info(this, "Program has no saved binary ID");
+                        return;
+                    }
+                    var binID = maybeBinID.get();
+                    var analysisID = apiService.getApi().getAnalysisIDfromBinaryID(binID);
+
+                    var autoUnstrip = new AutoUnstripDialog(tool, analysisID);
+
+                    tool.showDialog(autoUnstrip);
+                })
+                .buildAndInstall(tool);
 
 
 		new ActionBuilder("Function Matching", this.getName())
@@ -159,6 +193,9 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 				.enabledWhen(context -> {
 					var func = context.getProgram().getFunctionManager().getFunctionContaining(context.getAddress());
 					return func != null
+                            // Exclude thunks and external functions because we do not support them in the portal
+                            && !func.isExternal()
+                            && !func.isThunk()
 							&& apiService.isKnownProgram(context.getProgram())
 							&& apiService.isProgramAnalysed(context.getProgram());
 				})
@@ -236,6 +273,13 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 
 	@Override
 	public void processEvent(PluginEvent event) {
+        if (event instanceof RevEngAIAnalysisStatusChangedEvent analysisStatusChangedEvent) {
+            if (analysisStatusChangedEvent.getStatus() == AnalysisStatus.Complete){
+               loggingService.info("ANALYSIS COMPLETE EVENT");
+               // TODO: sync functions from portal?
+            }
+        }
+
 		if (event instanceof ProgramLocationPluginEvent programLocationPluginEvent) {
 			locationChanged(programLocationPluginEvent.getLocation());
 		}

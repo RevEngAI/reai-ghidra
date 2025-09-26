@@ -626,5 +626,17 @@ public class TypedApiImplementation implements TypedApiInterface {
         return FunctionDetails.fromJSON(response.getJsonData());
     }
 
+    @Override
+    public AutoUnstripResponse autoUnstrip(AnalysisID analysisID) {
+        JSONObject params = new JSONObject();
+        params.put("apply", true);
+
+        var request = requestBuilderForEndpoint(APIVersion.V2, "analyses", String.valueOf(analysisID.id()), "functions", "auto-unstrip")
+                .POST(HttpRequest.BodyPublishers.ofString(params.toString()))
+                .header("Content-Type", "application/json" )
+                .build();
+
+        return AutoUnstripResponse.fromJSONObject(sendRequest(request));
+    }
 }
 

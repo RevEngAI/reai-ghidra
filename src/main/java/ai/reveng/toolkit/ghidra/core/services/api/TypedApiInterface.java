@@ -173,5 +173,9 @@ public interface TypedApiInterface {
     default FunctionDetails getFunctionDetails(FunctionID id) {
         throw new UnsupportedOperationException("getFunctionInfo not implemented yet");
     }
+
+    default AutoUnstripResponse autoUnstrip(AnalysisID analysisID) {
+        throw new UnsupportedOperationException("autoUnstrip not implemented yet");
+    }
 }
 
