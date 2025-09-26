@@ -3,11 +3,11 @@ package ai.reveng.toolkit.ghidra.core.services.function.export;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import ai.reveng.toolkit.ghidra.plugins.CorePlugin;
+import ai.reveng.toolkit.ghidra.plugins.AnalysisManagementPlugin;
 import ghidra.framework.plugintool.ServiceInfo;
 import ghidra.program.model.address.Address;
 
-@ServiceInfo(defaultProvider = CorePlugin.class, description = "Export Function Boundaries for passing to the binary analysis server")
+@ServiceInfo(defaultProvider = AnalysisManagementPlugin.class, description = "Export Function Boundaries for passing to the binary analysis server")
 public interface ExportFunctionBoundariesService {
 	/**
 	 * Return the boundaries for a single function

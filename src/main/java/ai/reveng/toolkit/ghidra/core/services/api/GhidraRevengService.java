@@ -2,7 +2,7 @@ package ai.reveng.toolkit.ghidra.core.services.api;
 
 import ai.reveng.toolkit.ghidra.plugins.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.aidecompiler.AIDecompiledWindow;
-import ai.reveng.toolkit.ghidra.plugins.CorePlugin;
+import ai.reveng.toolkit.ghidra.plugins.AnalysisManagementPlugin;
 import ai.reveng.toolkit.ghidra.core.services.api.mocks.MockApi;
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
 import ai.reveng.toolkit.ghidra.core.services.api.types.Collection;
@@ -42,7 +42,6 @@ import java.util.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static ai.reveng.toolkit.ghidra.plugins.CorePlugin.REAI_OPTIONS_CATEGORY;
 
 
 /**
@@ -98,7 +97,7 @@ public class GhidraRevengService {
 
     public void addBinaryIDtoProgramOptions(Program program, BinaryID binID){
         var transactionId = program.startTransaction("Associate Binary ID with Program");
-        program.getOptions(REAI_OPTIONS_CATEGORY)
+        program.getOptions(ReaiPluginPackage.REAI_OPTIONS_CATEGORY)
                 .setLong(ReaiPluginPackage.OPTION_KEY_BINID, binID.value());
         program.endTransaction(transactionId, true);
     }
@@ -131,7 +130,7 @@ public class GhidraRevengService {
             Program program
     ) throws InvalidBinaryID {
         long bid = program.getOptions(
-                REAI_OPTIONS_CATEGORY).getLong(ReaiPluginPackage.OPTION_KEY_BINID,
+                ReaiPluginPackage.REAI_OPTIONS_CATEGORY).getLong(ReaiPluginPackage.OPTION_KEY_BINID,
                 ReaiPluginPackage.INVALID_BINARY_ID);
         if (bid == ReaiPluginPackage.INVALID_BINARY_ID) {
             return Optional.empty();
@@ -284,7 +283,7 @@ public class GhidraRevengService {
     }
 
     public boolean isKnownProgram(Program program){
-        var storedBinID = program.getOptions(REAI_OPTIONS_CATEGORY).getLong(ReaiPluginPackage.OPTION_KEY_BINID, ReaiPluginPackage.INVALID_BINARY_ID);
+        var storedBinID = program.getOptions(ReaiPluginPackage.REAI_OPTIONS_CATEGORY).getLong(ReaiPluginPackage.OPTION_KEY_BINID, ReaiPluginPackage.INVALID_BINARY_ID);
         return storedBinID != ReaiPluginPackage.INVALID_BINARY_ID;
     }
 
@@ -306,7 +305,7 @@ public class GhidraRevengService {
 
         program.getUsrPropertyManager().removePropertyMap(REAI_FUNCTION_PROP_MAP);
         statusCache.remove(binID);
-        program.getOptions(REAI_OPTIONS_CATEGORY).setLong(ReaiPluginPackage.OPTION_KEY_BINID, ReaiPluginPackage.INVALID_BINARY_ID);
+        program.getOptions(ReaiPluginPackage.REAI_OPTIONS_CATEGORY).setLong(ReaiPluginPackage.OPTION_KEY_BINID, ReaiPluginPackage.INVALID_BINARY_ID);
     }
 
     public boolean isProgramAnalysed(Program program){
@@ -859,7 +858,7 @@ public class GhidraRevengService {
      * @return The final AnalysisStatus, should be either Complete or Error
      */
     public AnalysisStatus waitForFinishedAnalysis(TaskMonitor monitor, ProgramWithBinaryID programWithID,
-                                                  @Nullable CorePlugin plugin) throws CancelledException {
+                                                  @Nullable AnalysisManagementPlugin plugin) throws CancelledException {
         monitor.setMessage("Checking analysis status");
         // Check the status of the analysis every 500ms
         // TODO: In the future this can be made smarter and e.g. wait longer if the analysis log hasn't changed

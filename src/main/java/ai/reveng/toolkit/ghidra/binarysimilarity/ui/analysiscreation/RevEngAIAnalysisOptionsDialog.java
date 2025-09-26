@@ -1,6 +1,6 @@
 package ai.reveng.toolkit.ghidra.binarysimilarity.ui.analysiscreation;
 
-import ai.reveng.toolkit.ghidra.plugins.CorePlugin;
+import ai.reveng.toolkit.ghidra.plugins.AnalysisManagementPlugin;
 import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisStatusChangedEvent;
 import ai.reveng.toolkit.ghidra.core.services.api.AnalysisOptionsBuilder;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
@@ -23,7 +23,7 @@ public class RevEngAIAnalysisOptionsDialog extends DialogComponentProvider {
     private final JCheckBox dynamicExecutionCheckBox;
     private final Program program;
     private final PluginTool tool;
-    private final CorePlugin plugin;
+    private final AnalysisManagementPlugin plugin;
     private final JRadioButton privateScope;
     private final JRadioButton publicScope;
     private final JTextField tagsTextBox;
@@ -33,7 +33,7 @@ public class RevEngAIAnalysisOptionsDialog extends DialogComponentProvider {
     private final JCheckBox generateSBOMCheckBox;
     private final JComboBox<String> architectureComboBox;
 
-    public RevEngAIAnalysisOptionsDialog(CorePlugin plugin, Program program) {
+    public RevEngAIAnalysisOptionsDialog(AnalysisManagementPlugin plugin, Program program) {
         super("Configure Analysis for %s".formatted(program.getName()), true, false, true, true);
         this.program = program;
         this.tool = plugin.getTool();
