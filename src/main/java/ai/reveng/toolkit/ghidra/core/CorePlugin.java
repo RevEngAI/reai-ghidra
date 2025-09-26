@@ -69,6 +69,7 @@ import ghidra.program.model.listing.Function;
 import ghidra.program.model.listing.Program;
 import ghidra.program.util.GhidraProgramUtilities;
 import ghidra.util.Msg;
+import org.json.JSONException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -220,8 +221,11 @@ public class CorePlugin extends ProgramPlugin {
 			loggingService.error(e.getMessage());
 			Msg.showError(this, null, "Load Config", "Unable to find RevEng config file");
             return Optional.empty();
+        } catch (JSONException e) {
+            loggingService.error(e.getMessage());
+            Msg.showError(this, null, "Load Config", "Unable to parse RevEng config file: " + e.getMessage());
+            return Optional.empty();
         }
-
     }
 
 	private void setupActions() {
