@@ -15,9 +15,6 @@
  */
 package ai.reveng.toolkit.ghidra.plugins;
 
-import java.io.FileNotFoundException;
-import java.util.Optional;
-
 import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisStatusChangedEvent;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.about.AboutDialog;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.analysiscreation.RevEngAIAnalysisOptionsDialog;
@@ -31,14 +28,10 @@ import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoun
 import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoundariesServiceImpl;
 import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
 import ai.reveng.toolkit.ghidra.core.types.ProgramWithBinaryID;
-import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardManager;
-import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardStateKey;
 import docking.ActionContext;
 import docking.action.DockingAction;
 import docking.action.builder.ActionBuilder;
 import docking.widgets.OptionDialog;
-import docking.wizard.WizardManager;
-import docking.wizard.WizardState;
 import ghidra.app.plugin.PluginCategoryNames;
 import ghidra.app.plugin.ProgramPlugin;
 import ghidra.app.services.ProgramManager;
@@ -48,9 +41,10 @@ import ghidra.framework.plugintool.util.PluginStatus;
 import ghidra.program.model.listing.Program;
 import ghidra.program.util.GhidraProgramUtilities;
 import ghidra.util.Msg;
-import org.json.JSONException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Objects;
 
 /**
  * CorePlugin for accessing the RevEng.AI Platform
@@ -73,18 +67,15 @@ import org.slf4j.LoggerFactory;
 	category = PluginCategoryNames.COMMON,
 	shortDescription = "Toolkit for using the RevEng.AI API",
 	description = "Toolkit for using RevEng.AI API",
-	servicesRequired = { OptionsService.class, ReaiLoggingService.class},
-	servicesProvided = { GhidraRevengService.class, ExportFunctionBoundariesService.class },
+	servicesRequired = { OptionsService.class, ReaiLoggingService.class, GhidraRevengService.class},
+	servicesProvided = { ExportFunctionBoundariesService.class },
 	eventsConsumed = { RevEngAIAnalysisStatusChangedEvent.class}
 )
 //@formatter:on
-public class CorePlugin extends ProgramPlugin {
-	public static final String REAI_WIZARD_RUN_PREF = "REAISetupWizardRun";
-	public static final String REAI_OPTIONS_CATEGORY = "RevEngAI Options";
+public class AnalysisManagementPlugin extends ProgramPlugin {
 	private static final String REAI_ANALYSIS_MANAGEMENT_MENU_GROUP = "RevEng.AI Analysis Management";
-	private static final String REAI_PLUGIN_SETUP_MENU_GROUP = "RevEng.AI Setup";
 	private static final String REAI_PLUGIN_PORTAL_MENU_GROUP = "RevEng.AI Portal";
-    private static final Logger log = LoggerFactory.getLogger(CorePlugin.class);
+    private static final Logger log = LoggerFactory.getLogger(AnalysisManagementPlugin.class);
 
     // Store references to actions that need to be refreshed
     private DockingAction createNewAction;
@@ -97,41 +88,17 @@ public class CorePlugin extends ProgramPlugin {
 	private ExportFunctionBoundariesService exportFunctionBoundariesService;
 	private AnalysisLogComponent analysisLogComponent;
 
-
 	private PluginTool tool;
-	private ApiInfo apiInfo;
 
 
-
-	public CorePlugin(PluginTool tool) {
+	public AnalysisManagementPlugin(PluginTool tool) {
 		super(tool);
 
 		this.tool = tool;
 
-		var toolOptions =  tool;
-		tool.getOptions(REAI_OPTIONS_CATEGORY).registerOption(REAI_WIZARD_RUN_PREF, "false", null, "If the setup wizard has been run");
 
         exportFunctionBoundariesService = new ExportFunctionBoundariesServiceImpl(tool);
         registerServiceProvided(ExportFunctionBoundariesService.class, exportFunctionBoundariesService);
-
-        // Try to get API info from multiple sources before running setup wizard
-        // 1. First try from config file
-        // 2. Then try from tool options (previously entered in wizard)
-        // 3. Only run setup wizard if neither source has valid credentials
-        Optional<ApiInfo> apiInfoOpt = getApiInfoFromConfig()
-                .or(() -> getApiInfoFromToolOptions());
-
-        if (apiInfoOpt.isPresent()) {
-            apiInfo = apiInfoOpt.get();
-        } else {
-            runSetupWizard();
-            // After wizard, try to get API info again from tool options or config
-            apiInfo = getApiInfoFromToolOptions()
-                    .or(() -> getApiInfoFromConfig())
-                    .orElseThrow(() -> new RuntimeException("Setup wizard completed but no valid API info found"));
-        }
-        revengService = new GhidraRevengService(apiInfo);
-        registerServiceProvided(GhidraRevengService.class, revengService);
 
     }
 
@@ -143,74 +110,18 @@ public class CorePlugin extends ProgramPlugin {
         analysisLogComponent = new AnalysisLogComponent(tool);
         tool.addComponentProvider(analysisLogComponent, false);
 
+        revengService = Objects.requireNonNull(tool.getService(GhidraRevengService.class));
+
         setupActions();
 
         loggingService.info("CorePlugin initialized");
     }
 
-
-
-	private Optional<ApiInfo> getApiInfoFromToolOptions(){
-		var apikey = tool.getOptions(REAI_OPTIONS_CATEGORY).getString(ReaiPluginPackage.OPTION_KEY_APIKEY, "invalid");
-		var hostname = tool.getOptions(REAI_OPTIONS_CATEGORY).getString(ReaiPluginPackage.OPTION_KEY_HOSTNAME, "unknown");
-        var portalHostname = tool.getOptions(REAI_OPTIONS_CATEGORY).getString(ReaiPluginPackage.OPTION_KEY_PORTAL_HOSTNAME, "unknown");
-		if (apikey.equals("invalid") || hostname.equals("unknown") || portalHostname.equals("unknown")){
-			return Optional.empty();
-		}
-		var apiInfo = new ApiInfo(hostname, portalHostname, apikey);
-
-		return Optional.of(apiInfo);
-	}
-
-	/**
-	 * Attempts to generate an {@link ApiInfo} object from the config file
-	 * @return
-	 */
-	private Optional<ApiInfo> getApiInfoFromConfig(){
-        var loggingService = tool.getService(ReaiLoggingService.class);
-        try {
-            return Optional.of(ApiInfo.fromConfig());
-        } catch (FileNotFoundException e) {
-			loggingService.error(e.getMessage());
-			Msg.showError(this, null, "Load Config", "Unable to find RevEng config file");
-            return Optional.empty();
-        } catch (JSONException e) {
-            loggingService.error(e.getMessage());
-            Msg.showError(this, null, "Load Config", "Unable to parse RevEng config file: " + e.getMessage());
-            return Optional.empty();
-        }
-    }
-
 	private void setupActions() {
 
-		new ActionBuilder("Configure", this.toString())
-				.withContext(ActionContext.class)
-				.onAction(context ->  {
-					runSetupWizard();
-				})
-				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Configure" })
-				.menuGroup(CorePlugin.REAI_PLUGIN_SETUP_MENU_GROUP, "100")
-				.buildAndInstall(tool);
 
-        new ActionBuilder("Help", this.toString())
-                .withContext(ActionContext.class)
-                .onAction(context ->  {
-                    var helpDialog = new HelpDialog(tool);
-                    tool.showDialog(helpDialog);
-                })
-                .menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Help" })
-                .menuGroup(CorePlugin.REAI_PLUGIN_SETUP_MENU_GROUP, "200")
-                .buildAndInstall(tool);
 
-        new ActionBuilder("About", this.toString())
-                .withContext(ActionContext.class)
-                .onAction(context ->  {
-                    var aboutDialog = new AboutDialog(tool);
-                    tool.showDialog(aboutDialog);
-                })
-                .menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "About" })
-                .menuGroup(CorePlugin.REAI_PLUGIN_SETUP_MENU_GROUP, "300")
-                .buildAndInstall(tool);
+
 
         createNewAction = new ActionBuilder("Create new", this.getName())
                 .enabledWhen(context -> {
@@ -371,56 +282,6 @@ public class CorePlugin extends ProgramPlugin {
 		}
 	}
 
-	private boolean hasSetupWizardRun() {
-		String value = tool.getOptions(REAI_OPTIONS_CATEGORY).getString(REAI_WIZARD_RUN_PREF, "false");
-		return Boolean.parseBoolean(value);
-	}
-
-	private void setWizardRun() {
-		tool.getOptions(REAI_OPTIONS_CATEGORY).setString(REAI_WIZARD_RUN_PREF, "true");
-	}
-
-	private void runSetupWizard() {
-        tool.getService(ReaiLoggingService.class).info("Running setup wizard");
-
-		// Create wizard state and populate with any existing credentials from tool options
-		WizardState<SetupWizardStateKey> wizardState = new WizardState<SetupWizardStateKey>();
-
-		// Pre-populate wizard state with existing credentials if available
-		String existingApiKey = tool.getOptions(REAI_OPTIONS_CATEGORY).getString(ReaiPluginPackage.OPTION_KEY_APIKEY, null);
-		String existingHostname = tool.getOptions(REAI_OPTIONS_CATEGORY).getString(ReaiPluginPackage.OPTION_KEY_HOSTNAME, null);
-        String existingPortalHostname = tool.getOptions(REAI_OPTIONS_CATEGORY).getString(ReaiPluginPackage.OPTION_KEY_PORTAL_HOSTNAME, null);
-
-		// If credentials aren't available from tool options, try loading from config file
-		if ((existingApiKey == null || existingApiKey.equals("invalid")) &&
-		    (existingHostname == null || existingHostname.equals("unknown"))) {
-			try {
-				ApiInfo configApiInfo = ApiInfo.fromConfig();
-                existingApiKey = configApiInfo.apiKey();
-                existingHostname = configApiInfo.hostURI().toString();
-                existingPortalHostname = configApiInfo.portalURI().toString();
-                tool.getService(ReaiLoggingService.class).info("Loaded credentials from configuration file");
-            } catch (Exception e) {
-                tool.getService(ReaiLoggingService.class).info("No existing configuration file found or could not read it: " + e.getMessage());
-			}
-		}
-
-		if (existingApiKey != null && !existingApiKey.equals("invalid")) {
-			wizardState.put(SetupWizardStateKey.API_KEY, existingApiKey);
-		}
-		if (existingHostname != null && !existingHostname.equals("unknown")) {
-			wizardState.put(SetupWizardStateKey.HOSTNAME, existingHostname);
-		}
-        if (existingPortalHostname != null && !existingPortalHostname.equals("unknown")) {
-            wizardState.put(SetupWizardStateKey.PORTAL_HOSTNAME, existingPortalHostname);
-        }
-
-		SetupWizardManager setupManager = new SetupWizardManager(wizardState, getTool());
-		WizardManager wizardManager = new WizardManager("RevEng.AI: Configuration", true, setupManager);
-		wizardManager.showWizard(tool.getToolFrame());
-
-		return;
-	}
 
 	public void setLogs(String logs) {
 		analysisLogComponent.setLogs(logs);

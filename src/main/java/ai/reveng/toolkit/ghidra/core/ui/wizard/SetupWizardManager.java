@@ -21,8 +21,8 @@ import docking.wizard.MagePanel;
 import docking.wizard.WizardState;
 import ghidra.framework.plugintool.PluginTool;
 
-import static ai.reveng.toolkit.ghidra.plugins.CorePlugin.REAI_OPTIONS_CATEGORY;
-import static ai.reveng.toolkit.ghidra.plugins.CorePlugin.REAI_WIZARD_RUN_PREF;
+import static ai.reveng.toolkit.ghidra.plugins.ReaiPluginPackage.REAI_OPTIONS_CATEGORY;
+import static ai.reveng.toolkit.ghidra.plugins.ReaiAPIServicePlugin.REAI_WIZARD_RUN_PREF;
 
 public class SetupWizardManager extends AbstractMagePanelManager<SetupWizardStateKey> {
 	private PluginTool tool;

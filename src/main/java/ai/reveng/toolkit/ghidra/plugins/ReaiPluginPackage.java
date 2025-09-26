@@ -24,6 +24,9 @@ public class ReaiPluginPackage extends PluginPackage {
 	public static final String OPTION_KEY_MODEL = PREFIX + "Model";
 	public static final String OPTION_KEY_BINID = PREFIX + "Binary ID";
 
+    public static final String REAI_OPTIONS_CATEGORY = "RevEngAI Options";
+
+
 	public static final Integer INVALID_BINARY_ID = -1;
 
 	public static final Icon REVENG_16 = ResourceManager.loadImage("images/reveng_16.png");
