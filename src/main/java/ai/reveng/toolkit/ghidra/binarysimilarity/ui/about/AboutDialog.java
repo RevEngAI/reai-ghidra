@@ -1,15 +1,13 @@
 package ai.reveng.toolkit.ghidra.binarysimilarity.ui.about;
 
-import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
+import ai.reveng.toolkit.ghidra.plugins.ReaiPluginPackage;
 import docking.DialogComponentProvider;
-import docking.widgets.label.GLabel;
 import ghidra.framework.plugintool.PluginTool;
 import resources.ResourceManager;
 
 import javax.swing.*;
 import java.awt.*;
 import java.io.IOException;
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 
 /**

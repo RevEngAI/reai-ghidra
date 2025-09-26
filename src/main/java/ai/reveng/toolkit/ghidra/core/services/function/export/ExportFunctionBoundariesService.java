@@ -3,7 +3,7 @@ package ai.reveng.toolkit.ghidra.core.services.function.export;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import ai.reveng.toolkit.ghidra.core.CorePlugin;
+import ai.reveng.toolkit.ghidra.plugins.CorePlugin;
 import ghidra.framework.plugintool.ServiceInfo;
 import ghidra.program.model.address.Address;
 

@@ -5,7 +5,7 @@ import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
 
-import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
+import ai.reveng.toolkit.ghidra.plugins.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.binarysimilarity.cmds.ApplyMatchesCmd;
 import ai.reveng.toolkit.ghidra.binarysimilarity.cmds.ComputeTypeInfoTask;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;

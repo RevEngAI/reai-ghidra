@@ -1,4 +1,4 @@
-package ai.reveng.toolkit.ghidra;
+package ai.reveng.toolkit.ghidra.plugins;
 
 import ghidra.framework.plugintool.util.PluginPackage;
 import resources.ResourceManager;

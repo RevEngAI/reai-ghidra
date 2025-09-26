@@ -19,7 +19,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 
-import static ai.reveng.toolkit.ghidra.binarysimilarity.BinarySimilarityPlugin.REVENG_AI_NAMESPACE;
+import static ai.reveng.toolkit.ghidra.plugins.BinarySimilarityPlugin.REVENG_AI_NAMESPACE;
 
 // We can't use Command<Program> because that breaks compatibility with Ghidra 11.0
 public class ApplyMatchCmd implements Command {

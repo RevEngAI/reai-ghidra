@@ -13,9 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.reveng.toolkit.ghidra.binarysimilarity;
+package ai.reveng.toolkit.ghidra.plugins;
 
-import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.aidecompiler.AIDecompiledWindow;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.autoanalysis.AutoAnalysisDockableDialog;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.autounstrip.AutoUnstripDialog;

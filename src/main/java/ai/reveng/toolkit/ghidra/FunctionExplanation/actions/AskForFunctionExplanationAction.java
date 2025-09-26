@@ -1,6 +1,6 @@
 package ai.reveng.toolkit.ghidra.FunctionExplanation.actions;
 
-import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
+import ai.reveng.toolkit.ghidra.plugins.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
 import docking.ActionContext;

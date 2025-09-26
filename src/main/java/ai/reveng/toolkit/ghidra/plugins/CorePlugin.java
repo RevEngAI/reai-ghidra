@@ -13,69 +13,44 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.reveng.toolkit.ghidra.core;
+package ai.reveng.toolkit.ghidra.plugins;
 
-import java.awt.*;
-import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Optional;
 
-import com.google.gson.Gson;
-
-import ai.reveng.toolkit.ghidra.binarysimilarity.BinarySimilarityPlugin;
+import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisStatusChangedEvent;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.about.AboutDialog;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.analysiscreation.RevEngAIAnalysisOptionsDialog;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.misc.AnalysisLogComponent;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.recentanalyses.RecentAnalysisDialog;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.help.HelpDialog;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
-import ai.reveng.toolkit.ghidra.core.services.api.mocks.ProcessingLimboApi;
-import ai.reveng.toolkit.ghidra.core.services.api.mocks.SimpleMatchesApi;
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
 
-import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
-import ai.reveng.toolkit.ghidra.core.models.ReaiConfig;
 import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoundariesService;
 import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoundariesServiceImpl;
 import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
-import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingToConsole;
 import ai.reveng.toolkit.ghidra.core.types.ProgramWithBinaryID;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardManager;
 import ai.reveng.toolkit.ghidra.core.ui.wizard.SetupWizardStateKey;
 import docking.ActionContext;
 import docking.action.DockingAction;
-import docking.action.MenuData;
 import docking.action.builder.ActionBuilder;
 import docking.widgets.OptionDialog;
 import docking.wizard.WizardManager;
 import docking.wizard.WizardState;
-import ghidra.app.context.ProgramActionContext;
-import ghidra.app.context.ProgramLocationActionContext;
 import ghidra.app.plugin.PluginCategoryNames;
 import ghidra.app.plugin.ProgramPlugin;
-import ghidra.app.services.ConsoleService;
 import ghidra.app.services.ProgramManager;
 import ghidra.framework.plugintool.*;
 import docking.options.OptionsService;
-import docking.widgets.filechooser.GhidraFileChooser;
-import docking.widgets.filechooser.GhidraFileChooserMode;
 import ghidra.framework.plugintool.util.PluginStatus;
-import ghidra.program.model.listing.Function;
 import ghidra.program.model.listing.Program;
 import ghidra.program.util.GhidraProgramUtilities;
 import ghidra.util.Msg;
 import org.json.JSONException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import ghidra.util.Msg;
-
-import javax.swing.*;
 
 /**
  * CorePlugin for accessing the RevEng.AI Platform

@@ -1,8 +1,8 @@
 package ai.reveng.toolkit.ghidra.core.services.api;
 
-import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
+import ai.reveng.toolkit.ghidra.plugins.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.aidecompiler.AIDecompiledWindow;
-import ai.reveng.toolkit.ghidra.core.CorePlugin;
+import ai.reveng.toolkit.ghidra.plugins.CorePlugin;
 import ai.reveng.toolkit.ghidra.core.services.api.mocks.MockApi;
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
 import ai.reveng.toolkit.ghidra.core.services.api.types.Collection;
@@ -42,7 +42,7 @@ import java.util.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static ai.reveng.toolkit.ghidra.core.CorePlugin.REAI_OPTIONS_CATEGORY;
+import static ai.reveng.toolkit.ghidra.plugins.CorePlugin.REAI_OPTIONS_CATEGORY;
 
 
 /**

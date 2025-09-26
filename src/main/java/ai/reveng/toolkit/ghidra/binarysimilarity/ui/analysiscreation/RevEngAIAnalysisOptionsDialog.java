@@ -1,25 +1,14 @@
 package ai.reveng.toolkit.ghidra.binarysimilarity.ui.analysiscreation;
 
-import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
-import ai.reveng.toolkit.ghidra.binarysimilarity.BinarySimilarityPlugin;
-import ai.reveng.toolkit.ghidra.core.CorePlugin;
+import ai.reveng.toolkit.ghidra.plugins.CorePlugin;
 import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisStatusChangedEvent;
 import ai.reveng.toolkit.ghidra.core.services.api.AnalysisOptionsBuilder;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.api.ModelName;
-import ai.reveng.toolkit.ghidra.core.services.api.types.AnalysisID;
 import ai.reveng.toolkit.ghidra.core.services.api.types.AnalysisScope;
-import ai.reveng.toolkit.ghidra.core.services.api.types.AnalysisStatus;
-import ai.reveng.toolkit.ghidra.core.services.api.types.BinaryID;
-import ai.reveng.toolkit.ghidra.core.types.ProgramWithBinaryID;
 import docking.DialogComponentProvider;
-import ghidra.app.plugin.ProgramPlugin;
-import ghidra.framework.cmd.BackgroundCommand;
-import ghidra.framework.model.DomainObject;
-import ghidra.framework.plugintool.AutoService;
 import ghidra.framework.plugintool.PluginTool;
 import ghidra.program.model.listing.Program;
-import ghidra.util.Msg;
 import ghidra.util.exception.CancelledException;
 import ghidra.util.task.Task;
 import ghidra.util.task.TaskMonitor;

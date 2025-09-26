@@ -1,9 +1,9 @@
-package ai.reveng.toolkit.ghidra.devplugin;
+package ai.reveng.toolkit.ghidra.plugins;
 
-import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.api.types.AnalysisID;
 import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.APIConflictException;
+import ai.reveng.toolkit.ghidra.devplugin.RevEngMetadataProvider;
 import docking.action.builder.ActionBuilder;
 import docking.options.OptionsService;
 import ghidra.app.plugin.PluginCategoryNames;
@@ -19,7 +19,7 @@ import ghidra.util.task.TaskMonitor;
 
 import java.util.List;
 
-import static ai.reveng.toolkit.ghidra.ReaiPluginPackage.DEV_TOOLING_MENU_GROUP_NAME;
+import static ai.reveng.toolkit.ghidra.plugins.ReaiPluginPackage.DEV_TOOLING_MENU_GROUP_NAME;
 
 /**
  * Plugin for development and debug helpers for the RevEng.AI Toolkit

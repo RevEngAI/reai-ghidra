@@ -1,6 +1,6 @@
 package ai.reveng.toolkit.ghidra.binarysimilarity.ui.aidecompiler;
 
-import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
+import ai.reveng.toolkit.ghidra.plugins.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.core.services.api.types.AIDecompilationStatus;
 import ghidra.framework.plugintool.ComponentProviderAdapter;
 import ghidra.framework.plugintool.PluginTool;
