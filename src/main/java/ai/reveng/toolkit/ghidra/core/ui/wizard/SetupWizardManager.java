@@ -28,7 +28,7 @@ public class SetupWizardManager extends AbstractMagePanelManager<SetupWizardStat
 	private PluginTool tool;
 	private ReaiLoggingService loggingService;
 
-	public SetupWizardManager(WizardState<SetupWizardStateKey> initialState, PluginTool tool, ReaiLoggingService loggingService) {
+	public SetupWizardManager(WizardState<SetupWizardStateKey> initialState, PluginTool tool) {
 		super(initialState);
 		this.tool = tool;
 	}
