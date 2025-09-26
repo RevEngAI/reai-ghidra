@@ -1,7 +1,6 @@
-package ai.reveng.toolkit.ghidra.core;
+package ai.reveng.toolkit.ghidra.plugins;
 
 
-import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
 import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingToConsole;
 import ghidra.app.plugin.PluginCategoryNames;

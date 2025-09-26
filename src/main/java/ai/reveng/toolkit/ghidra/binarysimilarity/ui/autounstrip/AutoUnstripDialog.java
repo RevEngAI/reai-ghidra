@@ -18,7 +18,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.Objects;
 
-import static ai.reveng.toolkit.ghidra.binarysimilarity.BinarySimilarityPlugin.REVENG_AI_NAMESPACE;
+import static ai.reveng.toolkit.ghidra.plugins.BinarySimilarityPlugin.REVENG_AI_NAMESPACE;
 
 public class AutoUnstripDialog extends DialogComponentProvider {
     private final AnalysisID analysisID;

@@ -2,7 +2,7 @@ package ai.reveng.toolkit.ghidra.binarysimilarity.ui.functionsimilarity;
 
 import javax.swing.*;
 
-import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
+import ai.reveng.toolkit.ghidra.plugins.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.binarysimilarity.cmds.ApplyMatchCmd;
 import ai.reveng.toolkit.ghidra.binarysimilarity.cmds.ComputeTypeInfoTask;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.settingsdialog.ANNSettingsDialog;

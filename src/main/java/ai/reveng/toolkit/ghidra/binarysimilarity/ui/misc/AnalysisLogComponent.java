@@ -1,9 +1,6 @@
 package ai.reveng.toolkit.ghidra.binarysimilarity.ui.misc;
 
-import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
-import docking.action.DockingAction;
-import docking.action.builder.ActionBuilder;
-import generic.theme.GIcon;
+import ai.reveng.toolkit.ghidra.plugins.ReaiPluginPackage;
 import ghidra.framework.plugintool.ComponentProviderAdapter;
 import ghidra.framework.plugintool.PluginTool;
 

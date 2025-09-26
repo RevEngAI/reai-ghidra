@@ -5,7 +5,7 @@ package ai.reveng.toolkit.ghidra.FunctionExplanation;
  */
 //@formatter:off
 
-import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
+import ai.reveng.toolkit.ghidra.plugins.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.FunctionExplanation.actions.AskForFunctionExplanationAction;
 import ai.reveng.toolkit.ghidra.core.services.api.TypedApiInterface;import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
 import ghidra.app.plugin.PluginCategoryNames;

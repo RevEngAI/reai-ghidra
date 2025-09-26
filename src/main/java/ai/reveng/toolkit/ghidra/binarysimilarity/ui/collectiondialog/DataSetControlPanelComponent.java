@@ -1,6 +1,6 @@
 package ai.reveng.toolkit.ghidra.binarysimilarity.ui.collectiondialog;
 
-import ai.reveng.toolkit.ghidra.ReaiPluginPackage;
+import ai.reveng.toolkit.ghidra.plugins.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.api.types.AnalysisID;
 import docking.action.builder.ActionBuilder;
