@@ -2,36 +2,47 @@ package ai.reveng.toolkit.ghidra.binarysimilarity.ui.autounstrip;
 
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.api.types.AnalysisID;
-import ai.reveng.toolkit.ghidra.core.services.api.types.AnalysisStatus;
 import ai.reveng.toolkit.ghidra.core.services.api.types.AutoUnstripResponse;
+import ai.reveng.toolkit.ghidra.core.types.ProgramWithBinaryID;
 import docking.DialogComponentProvider;
 import ghidra.framework.plugintool.PluginTool;
+import ghidra.program.model.address.Address;
+import ghidra.program.model.listing.Function;
+import ghidra.program.model.listing.Program;
+import ghidra.program.model.symbol.SourceType;
+import ghidra.util.exception.DuplicateNameException;
+import ghidra.util.exception.InvalidInputException;
+import ghidra.util.task.TaskMonitorComponent;
 
 import javax.swing.*;
 import java.awt.*;
 import java.util.Objects;
 
+import static ai.reveng.toolkit.ghidra.binarysimilarity.BinarySimilarityPlugin.REVENG_AI_NAMESPACE;
+
 public class AutoUnstripDialog extends DialogComponentProvider {
     private final AnalysisID analysisID;
     private final GhidraRevengService revengService;
+    private final Program program;
     private AutoUnstripResponse autoUnstripResponse;
 
     // UI components
-    private JProgressBar progressBar;
     private JLabel statusLabel;
     private JLabel matchesLabel;
     private JTextArea errorArea;
     private Timer pollTimer;
+    private TaskMonitorComponent taskMonitorComponent;
 
     // Polling configuration
     private static final int POLL_INTERVAL_MS = 2000; // Poll every 2 seconds
 
-    public AutoUnstripDialog(PluginTool tool, AnalysisID analysisID) {
+    public AutoUnstripDialog(PluginTool tool, ProgramWithBinaryID analysisID) {
         super("Auto Unstrip", true);
 
-        this.analysisID = analysisID;
+        this.analysisID = analysisID.analysisID();
+        this.program = analysisID.program();
         this.revengService = tool.getService(GhidraRevengService.class);
-
+        this.taskMonitorComponent = new TaskMonitorComponent();
         // Initialize UI
         addDismissButton();
 
@@ -44,7 +55,7 @@ public class AutoUnstripDialog extends DialogComponentProvider {
     private void startAutoUnstrip() {
         // Show initial status
         statusLabel.setText("Starting auto unstrip...");
-        progressBar.setValue(0);
+        taskMonitorComponent.initialize(100);
 
         // Start polling timer
         pollTimer = new Timer(POLL_INTERVAL_MS, e -> pollAutoUnstripStatus());
@@ -63,6 +74,9 @@ public class AutoUnstripDialog extends DialogComponentProvider {
                 // Check if we're done
                 if (autoUnstripResponse.progress() >= 100 || Objects.equals(autoUnstripResponse.status(), "COMPLETED")) {
                     stopPolling();
+//                    taskMonitorComponent.setFinished();
+                    taskMonitorComponent.setVisible(false);
+                    importFunctionNames(autoUnstripResponse);
                 }
             } catch (Exception e) {
                 handleError("Failed to poll auto unstrip status: " + e.getMessage());
@@ -71,12 +85,43 @@ public class AutoUnstripDialog extends DialogComponentProvider {
         });
     }
 
+    private void importFunctionNames(AutoUnstripResponse autoUnstripResponse) {
+        try {
+            var revengMatchNamespace = program.getSymbolTable().getOrCreateNameSpace(
+                    program.getGlobalNamespace(),
+                    REVENG_AI_NAMESPACE,
+                    SourceType.ANALYSIS);
+
+            var functionMgr = program.getFunctionManager();
+            program.withTransaction("Apply Auto-Unstrip Function Names", () -> {
+                autoUnstripResponse.matches().forEach(match -> {
+                    Address addr = program.getAddressFactory().getDefaultAddressSpace().getAddress(match.function_vaddr());
+                    Function func = functionMgr.getFunctionAt(addr);
+                    if (func == null) {
+                        return;
+                    } else {
+                        try {
+                            func.setName(match.suggested_name(), SourceType.ANALYSIS);
+                            func.setParentNamespace(revengMatchNamespace);
+                        } catch (Exception e) {
+                            handleError("Failed to rename function at " + addr + ": " + e.getMessage());
+                        }
+                    }
+                });
+            });
+
+        } catch (DuplicateNameException | InvalidInputException e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+
     private void updateUI() {
         if (autoUnstripResponse == null) return;
 
         // Update progress bar
-        progressBar.setValue(autoUnstripResponse.progress());
-        progressBar.setString(autoUnstripResponse.progress() + "%");
+        taskMonitorComponent.setProgress(autoUnstripResponse.progress());
+        taskMonitorComponent.setMessage(autoUnstripResponse.progress() + "%");
 
         // Update status
         statusLabel.setText("Status: " + autoUnstripResponse.status());
@@ -103,7 +148,7 @@ public class AutoUnstripDialog extends DialogComponentProvider {
         statusLabel.setText("Error occurred");
         errorArea.setText(message);
         errorArea.setVisible(true);
-        progressBar.setString("Error");
+        taskMonitorComponent.setMessage("Error");
     }
 
     private void stopPolling() {
@@ -157,10 +202,7 @@ public class AutoUnstripDialog extends DialogComponentProvider {
         gbc.gridx = 0; gbc.gridy = 0;
         gbc.gridwidth = 2;
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        progressBar = new JProgressBar(0, 100);
-        progressBar.setStringPainted(true);
-        progressBar.setString("0%");
-        panel.add(progressBar, gbc);
+        panel.add(taskMonitorComponent, gbc);
 
         // Status label
         gbc.gridy = 1;
