@@ -638,5 +638,18 @@ public class TypedApiImplementation implements TypedApiInterface {
 
         return AutoUnstripResponse.fromJSONObject(sendRequest(request));
     }
+
+    @Override
+    public AutoUnstripResponse aiUnstrip(AnalysisID analysisID) {
+        JSONObject params = new JSONObject();
+        params.put("apply", true);
+
+        var request = requestBuilderForEndpoint(APIVersion.V2, "analyses", String.valueOf(analysisID.id()), "functions", "ai-unstrip")
+                .POST(HttpRequest.BodyPublishers.ofString(params.toString()))
+                .header("Content-Type", "application/json" )
+                .build();
+
+        return AutoUnstripResponse.fromJSONObject(sendRequest(request));
+    }
 }
 

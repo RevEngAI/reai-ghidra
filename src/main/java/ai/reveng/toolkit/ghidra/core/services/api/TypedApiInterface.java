@@ -177,5 +177,9 @@ public interface TypedApiInterface {
     default AutoUnstripResponse autoUnstrip(AnalysisID analysisID) {
         throw new UnsupportedOperationException("autoUnstrip not implemented yet");
     }
+
+    default AutoUnstripResponse aiUnstrip(AnalysisID analysisID) {
+        throw new UnsupportedOperationException("aiUnstrip not implemented yet");
+    }
 }
 
