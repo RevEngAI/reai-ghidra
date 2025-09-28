@@ -651,5 +651,21 @@ public class TypedApiImplementation implements TypedApiInterface {
 
         return AutoUnstripResponse.fromJSONObject(sendRequest(request));
     }
+
+    @Override
+    public void aiDecompRating(FunctionID functionID, String rating, @Nullable String reason) {
+        JSONObject params = new JSONObject();
+        params.put("rating", rating);
+        if (reason != null){
+            params.put("reason", reason);
+        }
+
+        var request = requestBuilderForEndpoint(APIVersion.V2, "functions", String.valueOf(functionID.value()), "ai-decompilation",  "rating")
+                .POST(HttpRequest.BodyPublishers.ofString(params.toString()))
+                .header("Content-Type", "application/json" )
+                .build();
+
+        sendRequest(request);
+    }
 }
 

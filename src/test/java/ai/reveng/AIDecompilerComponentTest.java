@@ -4,6 +4,7 @@ import ai.reveng.toolkit.ghidra.binarysimilarity.ui.aidecompiler.AIDecompiledWin
 import ai.reveng.toolkit.ghidra.core.services.api.mocks.UnimplementedAPI;
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
 import ai.reveng.toolkit.ghidra.plugins.BinarySimilarityPlugin;
+import docking.widgets.dialogs.InputDialog;
 import ghidra.app.context.ProgramLocationActionContext;
 import ghidra.program.database.ProgramBuilder;
 import ghidra.program.model.data.Undefined;
@@ -13,6 +14,7 @@ import ghidra.util.task.TaskMonitor;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.junit.Test;
 
+import javax.swing.*;
 import java.util.List;
 import java.util.Map;
 
@@ -139,7 +141,97 @@ public class AIDecompilerComponentTest extends RevEngMockableHeadedIntegrationTe
     }
 
     @Test
-    public void testAIDecompilerRacingDecompilations() throws Exception {
+    public void testAIDecompFeedbackMechanism() throws Exception {
+// Set up the initial program and service
+        var tool = env.getTool();
 
+        var ratingsAPI = new RatingsAPI();
+        var service = addMockedService(tool, ratingsAPI);
+
+        var binarySimilarityPlugin = env.addPlugin(BinarySimilarityPlugin.class);
+        var builder = new ProgramBuilder("mock", ProgramBuilder._X86, this);
+        var func1 = builder.createEmptyFunction(null, "0x1000", 10, Undefined.getUndefinedDataType(4));
+        var func2 = builder.createEmptyFunction(null, "0x2000", 10, Undefined.getUndefinedDataType(4));
+
+        var programWithID = service.analyse(builder.getProgram(), null, TaskMonitor.DUMMY);
+
+        env.showTool(programWithID.program());
+        waitForSwing();
+
+        // get AIDecompiledWindow, and some internal fields for testing
+        var aiDecompComponent = getComponentProvider(AIDecompiledWindow.class);
+        // Get the reason field
+
+        aiDecompComponent.setVisible(true);
+        setInstanceField("function", aiDecompComponent, func1);
+        var positiveFeedbackAction = getLocalAction(aiDecompComponent, "Positive Feedback Action");
+        performAction(positiveFeedbackAction);
+        waitForTasks();
+        assertEquals("POSITIVE", ratingsAPI.lastFeedback);
+
+        // Send negative feedback with reason
+        var negativeFeedbackAction = getLocalAction(aiDecompComponent, "Negative Feedback Action");
+        performAction(negativeFeedbackAction, false);
+        var dialog = waitForDialogComponent(InputDialog.class);
+        var reason = "The decompilation was incorrect";
+        dialog.setValue(reason);
+        dialog.close();
+        waitForSwing();
+        assertEquals("NEGATIVE", ratingsAPI.lastFeedback);
+        assertEquals(reason, ratingsAPI.lastReason);
+
+    }
+
+    static class RatingsAPI extends UnimplementedAPI {
+        String lastFeedback;
+        String lastReason;
+
+        public RatingsAPI() {
+        }
+
+        @Override
+        public AnalysisStatus status(AnalysisID analysisID) {
+            return AnalysisStatus.Complete;
+        }
+
+        @Override
+        public List<FunctionInfo> getFunctionInfo(BinaryID binaryID) {
+            return List.of(
+                    new FunctionInfo(
+                            new FunctionID(1),
+                            "portal_func_1",
+                            0x1000L,
+                            10),
+                    new FunctionInfo(
+                            new FunctionID(2),
+                            "portal_func_2",
+                            0x2000L,
+                            10)
+            );
+        }
+
+        @Override
+        public AIDecompilationStatus pollAIDecompileStatus(FunctionID functionID) {
+                return new AIDecompilationStatus(
+                        "success",
+                        "void func1() { return; }",
+                        "void func1() { return; }",
+                        "Mocked Description Summary",
+                        "Summary",
+                        null,
+                        null
+                );
+        }
+
+        @Override
+        public boolean triggerAIDecompilationForFunctionID(FunctionID functionID) {
+            return true;
+        }
+
+        @Override
+        public void aiDecompRating(FunctionID functionID, String rating, String reason) {
+            lastFeedback = rating;
+            lastReason = reason;
+        }
     }
 }
