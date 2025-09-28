@@ -15,8 +15,20 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class UnimplementedAPI implements TypedApiInterface {
+    protected AnalysisStatus getNextStatus(AnalysisStatus previousStatus) {
+        Objects.requireNonNull(previousStatus);
+        return switch (previousStatus) {
+            case Queued -> AnalysisStatus.Processing;
+            case Processing -> AnalysisStatus.Complete;
+            case Complete ->  AnalysisStatus.Complete;
+            case Error -> AnalysisStatus.Error;
+            case All -> throw new IllegalArgumentException("All is not a valid status for this operation");
+        };
+    }
+
     @Override
     public BinaryID analyse(AnalysisOptionsBuilder binHash) {
         return new BinaryID(1337);
