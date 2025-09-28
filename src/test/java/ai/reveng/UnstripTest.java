@@ -58,7 +58,7 @@ public class UnstripTest extends RevEngMockableHeadedIntegrationTest{
         });
 
         addPlugin(tool, BinarySimilarityPlugin.class);
-        var builder = new ProgramBuilder("mock", ProgramBuilder._X86, this);
+        var builder = new ProgramBuilder("mock", ProgramBuilder._8051, this);
         var func = builder.createEmptyFunction(null, "0x1000", 10, Undefined.getUndefinedDataType(4));
 
         var programWithID = service.analyse(builder.getProgram(), null, TaskMonitor.DUMMY);
@@ -139,7 +139,7 @@ public class UnstripTest extends RevEngMockableHeadedIntegrationTest{
         });
 
         addPlugin(tool, BinarySimilarityPlugin.class);
-        var builder = new ProgramBuilder("mock", ProgramBuilder._X86, this);
+        var builder = new ProgramBuilder("mock", ProgramBuilder._8051, this);
         // We provide no function name, so ghidra will assign the default "FUN_1000" name
         var func = builder.createEmptyFunction(null, "0x1000", 10, Undefined.getUndefinedDataType(4));
 

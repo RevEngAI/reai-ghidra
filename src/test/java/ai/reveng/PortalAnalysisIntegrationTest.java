@@ -34,7 +34,7 @@ public class PortalAnalysisIntegrationTest extends RevEngMockableHeadedIntegrati
                 );
             }
         });
-        var builder = new ProgramBuilder("mock", ProgramBuilder._X64, this);
+        var builder = new ProgramBuilder("mock", ProgramBuilder._8051, this);
         // Add an example function
         var exampleFunc = builder.createEmptyFunction(null, "0x4000", 0x100, Undefined.getUndefinedDataType(8));
         var program = builder.getProgram();

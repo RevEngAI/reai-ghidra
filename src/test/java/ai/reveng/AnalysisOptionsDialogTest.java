@@ -55,7 +55,7 @@ public class AnalysisOptionsDialogTest extends RevEngMockableHeadedIntegrationTe
                 );
             }
         });
-        var builder = new ProgramBuilder("mock", ProgramBuilder._X64, this);
+        var builder = new ProgramBuilder("mock", ProgramBuilder._8051, this);
 
         var program = builder.getProgram();
         var dialog = RevEngAIAnalysisOptionsDialog.withModelsFromServer(program, reService);
