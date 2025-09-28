@@ -16,19 +16,18 @@
 package ai.reveng.toolkit.ghidra.plugins;
 
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.aidecompiler.AIDecompiledWindow;
-import ai.reveng.toolkit.ghidra.binarysimilarity.ui.autoanalysis.AutoAnalysisDockableDialog;
+import ai.reveng.toolkit.ghidra.binarysimilarity.ui.autoanalysis.AutoAnalysisComponentProvider;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.autounstrip.AutoUnstripDialog;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.collectiondialog.DataSetControlPanelComponent;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.functionsimilarity.FunctionSimilarityAction;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.functionsimilarity.FunctionSimilarityComponent;
-import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisStatusChangedEvent;
+import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisResultsLoaded;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
 import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoundariesService;
 import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
 import docking.action.builder.ActionBuilder;
 import ghidra.app.context.ProgramLocationActionContext;
-import ghidra.app.events.ProgramLocationPluginEvent;
 import ghidra.app.plugin.PluginCategoryNames;
 import ghidra.app.plugin.ProgramPlugin;
 import ghidra.app.services.ProgramManager;
@@ -58,11 +57,11 @@ import java.util.Arrays;
 	shortDescription = "Support for Binary Similarity Features of RevEng.AI Toolkit.",
 	description = "Enable features that support binary similarity operations, including binary upload, and auto-renaming",
 	servicesRequired = { GhidraRevengService.class, ProgramManager.class, ExportFunctionBoundariesService.class, ReaiLoggingService.class },
-	eventsConsumed = { RevEngAIAnalysisStatusChangedEvent.class, }
+	eventsConsumed = { RevEngAIAnalysisResultsLoaded.class, }
 )
 //@formatter:on
 public class BinarySimilarityPlugin extends ProgramPlugin {
-	private final AutoAnalysisDockableDialog autoAnalyse;
+	private final AutoAnalysisComponentProvider autoAnalyse;
 	private final AIDecompiledWindow decompiledWindow;
 	private final DataSetControlPanelComponent collectionsComponent;
 
@@ -92,7 +91,7 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 		super(tool);
 
         // Setup dialogs
-		autoAnalyse = new AutoAnalysisDockableDialog(tool);
+		autoAnalyse = new AutoAnalysisComponentProvider(tool);
 
 		setupActions();
 
@@ -172,7 +171,8 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 								"Analysis must have completed before running name import");
 						return;
 					}
-					tool.showComponentProvider(autoAnalyse, true);
+                    autoAnalyse.triggerActivation();
+//					tool.showComponentProvider(autoAnalyse, true);
 				})
 //				.keyBinding()autoAnalysisAction.setKeyBindingData( new KeyBindingData(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
 				.buildAndInstall(tool);
@@ -257,15 +257,9 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 
 	@Override
 	public void processEvent(PluginEvent event) {
-        if (event instanceof RevEngAIAnalysisStatusChangedEvent analysisStatusChangedEvent) {
-            if (analysisStatusChangedEvent.getStatus() == AnalysisStatus.Complete){
+        super.processEvent(event);
+        if (event instanceof RevEngAIAnalysisResultsLoaded eventLoaded) {
                 tool.getService(ReaiLoggingService.class).info("ANALYSIS COMPLETE EVENT");
-               // TODO: sync functions from portal?
             }
-        }
-
-		if (event instanceof ProgramLocationPluginEvent programLocationPluginEvent) {
-			locationChanged(programLocationPluginEvent.getLocation());
-		}
 	}
 }

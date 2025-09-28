@@ -15,6 +15,7 @@
  */
 package ai.reveng.toolkit.ghidra.plugins;
 
+import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisResultsLoaded;
 import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisStatusChangedEvent;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.about.AboutDialog;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.analysiscreation.RevEngAIAnalysisOptionsDialog;
@@ -27,6 +28,7 @@ import ai.reveng.toolkit.ghidra.core.services.api.types.*;
 import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoundariesService;
 import ai.reveng.toolkit.ghidra.core.services.function.export.ExportFunctionBoundariesServiceImpl;
 import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
+import ai.reveng.toolkit.ghidra.core.tasks.StartAnalysisTask;
 import ai.reveng.toolkit.ghidra.core.types.ProgramWithBinaryID;
 import docking.ActionContext;
 import docking.action.DockingAction;
@@ -41,6 +43,7 @@ import ghidra.framework.plugintool.util.PluginStatus;
 import ghidra.program.model.listing.Program;
 import ghidra.program.util.GhidraProgramUtilities;
 import ghidra.util.Msg;
+import ghidra.util.task.TaskBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -142,8 +145,27 @@ public class AnalysisManagementPlugin extends ProgramPlugin {
                                 "Program has not been auto-analyzed by Ghidra yet. Please run auto-analysis first.");
                         return;
                     }
-                    var analysisOptionsDialog = new RevEngAIAnalysisOptionsDialog(this, program);
-                    tool.showDialog(analysisOptionsDialog);
+                    var ghidraService = tool.getService(GhidraRevengService.class);
+                    var dialog = RevEngAIAnalysisOptionsDialog.withModelsFromServer(program, ghidraService);
+                    tool.showDialog(dialog);
+                    var analysisOptions = dialog.getOptionsFromUI();
+                    if (analysisOptions != null) {
+                        // User clicked OK
+                        // Prepare Task that starts the analysis (uploading the binary and registering the analysis)
+                        var task = new StartAnalysisTask(program, analysisOptions, revengService, analysisLogComponent, tool);
+                        // Launch in Background
+                        var builder = TaskBuilder.withTask(task);
+                        analysisLogComponent.setVisible(true);
+                        builder.launchInBackground(analysisLogComponent.getTaskMonitor());
+                        // The task will fire the RevEngAIAnalysisStatusChangedEvent event when done
+                        // which is then picked up by the AnalysisManagementPlugin and forwarded to the AnalysisLogComponent
+                        tool.getService(ReaiLoggingService.class).info("Started analysis: ");
+                    } else {
+                        // User clicked Cancel
+                        tool.getService(ReaiLoggingService.class).info("Create new analysis dialog cancelled by user");
+                    }
+
+
                 })
                 .menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Analysis", "Create new" })
                 .menuGroup(REAI_ANALYSIS_MANAGEMENT_MENU_GROUP, "100")
@@ -282,8 +304,19 @@ public class AnalysisManagementPlugin extends ProgramPlugin {
 		}
 	}
 
+    @Override
+    public void processEvent(PluginEvent event) {
+        super.processEvent(event);
+        // Forward the event to the analysis log component
+        if (event instanceof RevEngAIAnalysisStatusChangedEvent analysisEvent) {
+            analysisLogComponent.processEvent(analysisEvent);
+            if (analysisEvent.getStatus() == AnalysisStatus.Complete) {
+                // If the analysis is complete, we refresh the function signatures from the server
+                var program = analysisEvent.getProgramWithBinaryID();
+                revengService.registerFinishedAnalysisForProgram(program);
+                tool.firePluginEvent(new RevEngAIAnalysisResultsLoaded("AnalysisManagementPlugin", program));
+            }
+        }
+    }
 
-	public void setLogs(String logs) {
-		analysisLogComponent.setLogs(logs);
-	}
 }

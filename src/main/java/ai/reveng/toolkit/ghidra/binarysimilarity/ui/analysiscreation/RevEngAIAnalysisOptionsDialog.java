@@ -1,18 +1,14 @@
 package ai.reveng.toolkit.ghidra.binarysimilarity.ui.analysiscreation;
 
-import ai.reveng.toolkit.ghidra.plugins.AnalysisManagementPlugin;
-import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisStatusChangedEvent;
+import ai.reveng.toolkit.ghidra.core.Utils;
 import ai.reveng.toolkit.ghidra.core.services.api.AnalysisOptionsBuilder;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.api.ModelName;
 import ai.reveng.toolkit.ghidra.core.services.api.types.AnalysisScope;
 import docking.DialogComponentProvider;
-import ghidra.framework.plugintool.PluginTool;
 import ghidra.program.model.listing.Program;
-import ghidra.util.exception.CancelledException;
-import ghidra.util.task.Task;
-import ghidra.util.task.TaskMonitor;
 
+import javax.annotation.Nullable;
 import javax.swing.*;
 import java.awt.*;
 import java.util.List;
@@ -22,8 +18,6 @@ public class RevEngAIAnalysisOptionsDialog extends DialogComponentProvider {
     private final JCheckBox advancedAnalysisCheckBox;
     private final JCheckBox dynamicExecutionCheckBox;
     private final Program program;
-    private final PluginTool tool;
-    private final AnalysisManagementPlugin plugin;
     private final JRadioButton privateScope;
     private final JRadioButton publicScope;
     private final JTextField tagsTextBox;
@@ -32,14 +26,21 @@ public class RevEngAIAnalysisOptionsDialog extends DialogComponentProvider {
     private final JCheckBox identifyCVECheckBox;
     private final JCheckBox generateSBOMCheckBox;
     private final JComboBox<String> architectureComboBox;
+    private boolean okPressed = false;
 
-    public RevEngAIAnalysisOptionsDialog(AnalysisManagementPlugin plugin, Program program) {
+    public static RevEngAIAnalysisOptionsDialog withModelsFromServer(Program program, GhidraRevengService reService) {
+        List<ModelName> availableModels = reService.getAvailableModels();
+        var bestModel = Utils.getModelNameForProgram(program, availableModels);
+        return new RevEngAIAnalysisOptionsDialog(program, availableModels, bestModel);
+    }
+
+    public RevEngAIAnalysisOptionsDialog(Program program,
+                                         List<ModelName> availableModels,
+                                         @Nullable ModelName suggestedModel
+    ) {
         super("Configure Analysis for %s".formatted(program.getName()), true, false, true, true);
         this.program = program;
-        this.tool = plugin.getTool();
-        this.plugin = plugin;
 
-        var reService = tool.getService(GhidraRevengService.class);
 
         var workPanel = new JPanel();
         workPanel.setLayout(new BoxLayout(workPanel, BoxLayout.Y_AXIS));
@@ -107,25 +108,11 @@ public class RevEngAIAnalysisOptionsDialog extends DialogComponentProvider {
         modelLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         workPanel.add(modelLabel);
         workPanel.add(modelComboBox);
-
-        this.executeProgressTask(
-                new Task("Get Available Models", false, false, false) {
-                    @Override
-                    public void run(TaskMonitor monitor) throws CancelledException {
-                        var models = reService.getAvailableModels();
-                        // Populate the modelComboBox with the available models
-                        modelComboBox.removeAllItems();
-                        for (var model : models) {
-                            modelComboBox.addItem(model);
-                        }
-                        var bestModel = reService.getModelNameForProgram(program, models);
-                        // Select that entry
-                        if (bestModel != null) {
-                            modelComboBox.setSelectedItem(bestModel);
-                        }
-                    }
-                }, 0
-        );
+        modelComboBox.removeAllItems();
+        for (var model : availableModels) {
+            modelComboBox.addItem(model);
+        }
+        modelComboBox.setSelectedItem(suggestedModel);
 
         workPanel.add(Box.createVerticalGlue());
 
@@ -185,50 +172,37 @@ public class RevEngAIAnalysisOptionsDialog extends DialogComponentProvider {
         okButton.setText("Start Analysis");
     }
 
+    public @Nullable AnalysisOptionsBuilder getOptionsFromUI() {
+        if (!okPressed) {
+            return null;
+        }
+        var options = AnalysisOptionsBuilder.forProgram(program);
+        options.modelName((ModelName) modelComboBox.getSelectedItem());
+
+        options.skipScraping(!scrapeExternalTagsBox.isSelected());
+        options.skipCapabilities(!identifyCapabilitiesCheckBox.isSelected());
+
+        options.skipSBOM(!generateSBOMCheckBox.isSelected());
+        options.skipCVE(!identifyCVECheckBox.isSelected());
+
+        options.advancedAnalysis(advancedAnalysisCheckBox.isSelected());
+        options.dynamicExecution(dynamicExecutionCheckBox.isSelected());
+
+        if (publicScope.isEnabled()) {
+            options.scope(AnalysisScope.PUBLIC);
+        } else {
+            options.scope(AnalysisScope.PRIVATE);
+        }
+
+        options.addTags(List.of(tagsTextBox.getText().split(",")));
+        options.architecture((String) architectureComboBox.getSelectedItem());
+        return options;
+    }
+
     @Override
     protected void okCallback() {
-        var reService = tool.getService(GhidraRevengService.class);
-        // The analysis task is executed in the tool, and not the dialog
-        tool.execute(
-                new Task("Running RevEng.AI Analysis", true, false, false) {
-                    @Override
-                    public void run(TaskMonitor monitor) throws CancelledException {
-                        monitor.setMessage("Uploading Binary");
-                        reService.upload(program);
-                        monitor.setMessage("Exporting Function Boundaries");
-                        var options = AnalysisOptionsBuilder.forProgram(program);
-                        options.modelName((ModelName) modelComboBox.getSelectedItem());
-
-                        options.skipScraping(!scrapeExternalTagsBox.isSelected());
-                        options.skipCapabilities(!identifyCapabilitiesCheckBox.isSelected());
-
-                        options.skipSBOM(!generateSBOMCheckBox.isSelected());
-                        options.skipCVE(!identifyCVECheckBox.isSelected());
-
-                        options.advancedAnalysis(advancedAnalysisCheckBox.isSelected());
-                        options.dynamicExecution(dynamicExecutionCheckBox.isSelected());
-
-                        if (publicScope.isEnabled()) {
-                            options.scope(AnalysisScope.PUBLIC);
-                        } else {
-                            options.scope(AnalysisScope.PRIVATE);
-                        }
-
-                        options.addTags(List.of(tagsTextBox.getText().split(",")));
-                        options.architecture((String) architectureComboBox.getSelectedItem());
-
-                        monitor.setMessage("Sending Analysis Request");
-
-                        var programWithBinaryID = reService.startAnalysis(program, options);
-                        monitor.setMessage("Waiting for Analysis to finish");
-                        // Create a new ProgramWithBinaryID
-                        var finalAnalysisStatus = reService.waitForFinishedAnalysis(monitor, programWithBinaryID, plugin);
-                        tool.firePluginEvent(new RevEngAIAnalysisStatusChangedEvent("RevEng.AI Analysis", programWithBinaryID, finalAnalysisStatus));
-                    }
-                }, 0
-        );
-
         // Close dialog
+        okPressed = true;
         close();
     }
 

@@ -34,7 +34,7 @@ import java.util.Map;
 /**
  * Provides a GUI for selecting the similarity threshold for auto renaming of functions
  */
-public class AutoAnalysisDockableDialog extends ComponentProviderAdapter {
+public class AutoAnalysisComponentProvider extends ComponentProviderAdapter {
     private final ToggleNamedOnlyAction toggleNamedOnlyAction;
     private final ToggleFetchSignatures toggleFetchSignatures;
     private JTabbedPane tabbedPanel;
@@ -45,7 +45,7 @@ public class AutoAnalysisDockableDialog extends ComponentProviderAdapter {
     private JButton btnApplyAllFilteredResults;
     private JButton btnApplySelectedResults;
 
-    public AutoAnalysisDockableDialog(PluginTool tool) {
+    public AutoAnalysisComponentProvider(PluginTool tool) {
         super(tool, ReaiPluginPackage.WINDOW_PREFIX + "Auto Analysis", ReaiPluginPackage.NAME);
 
         setIcon(ReaiPluginPackage.REVENG_16);
