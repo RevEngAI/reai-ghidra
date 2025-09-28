@@ -2,8 +2,10 @@ package ai.reveng;
 
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.api.TypedApiInterface;
+import ai.reveng.toolkit.ghidra.plugins.LoggingPlugin;
 import ghidra.framework.plugintool.PluginTool;
 import ghidra.framework.plugintool.mgr.ServiceManager;
+import ghidra.framework.plugintool.util.PluginException;
 import ghidra.test.AbstractGhidraHeadedIntegrationTest;
 import ghidra.test.TestEnv;
 import org.junit.After;
@@ -16,12 +18,13 @@ abstract class RevEngMockableHeadedIntegrationTest extends AbstractGhidraHeadedI
     protected TestEnv env;
 
     @Before
-    public void setup() throws IOException {
+    public void setup() throws IOException, PluginException {
         // For most tests we want to fail if a user visible error would show up.
         // Ghidra already has a nifty feature for that, we just need to activate it
         setErrorGUIEnabled(false);
 
         env = new TestEnv();
+        env.addPlugin(LoggingPlugin.class);
 
     }
 
