@@ -78,6 +78,9 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 	@Override
 	protected void locationChanged(ProgramLocation loc) {
 		super.locationChanged(loc);
+        if (loc == null || loc.getProgram() == null) {
+            return;
+        }
 		functionSimilarityComponent.locationChanged(loc);
 		decompiledWindow.locationChanged(loc);
 	}
@@ -198,11 +201,9 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 						return;
 					}
 					// Spawn Task to decompile the function
-					TaskLauncher.launchNonModal("AI Decompilation", monitor -> {
-						monitor.setMessage("Decompiling function...");
-						tool.getService(ReaiLoggingService.class).info("Requested AI Decompilation for function " + func.getName());
-						var result = apiService.decompileFunctionViaAI(func, monitor, decompiledWindow);
-					});
+                    tool.getService(ReaiLoggingService.class).info("Requested AI Decompilation via Action for function " + func.getName());
+                    decompiledWindow.setVisible(true);
+                    decompiledWindow.refresh(func);
 				})
 				.popupMenuPath(new String[] { "AI Decompilation" })
 				.popupMenuIcon(ReaiPluginPackage.REVENG_16)

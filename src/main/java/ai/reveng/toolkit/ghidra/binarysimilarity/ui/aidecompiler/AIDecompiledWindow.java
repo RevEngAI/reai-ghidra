@@ -1,17 +1,24 @@
 package ai.reveng.toolkit.ghidra.binarysimilarity.ui.aidecompiler;
 
+import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
+import ai.reveng.toolkit.ghidra.core.services.api.types.FunctionID;
+import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
 import ai.reveng.toolkit.ghidra.plugins.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.core.services.api.types.AIDecompilationStatus;
 import ghidra.framework.plugintool.ComponentProviderAdapter;
 import ghidra.framework.plugintool.PluginTool;
 import ghidra.program.model.listing.Function;
 import ghidra.program.util.ProgramLocation;
+import ghidra.util.exception.CancelledException;
+import ghidra.util.task.*;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 import org.fife.ui.rtextarea.RTextScrollPane;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.Map;
+import java.util.Objects;
 
 public class AIDecompiledWindow extends ComponentProviderAdapter {
 
@@ -21,6 +28,8 @@ public class AIDecompiledWindow extends ComponentProviderAdapter {
     private JTextArea descriptionArea;
     private JComponent component;
     private Function function;
+    private TaskMonitorComponent taskMonitorComponent;
+    private final Map<Function, AIDecompilationStatus> cache = new java.util.HashMap<>();
 
     public AIDecompiledWindow(PluginTool tool, String owner) {
         super(tool, ReaiPluginPackage.WINDOW_PREFIX + "AI Decompiler", owner);
@@ -36,7 +45,8 @@ public class AIDecompiledWindow extends ComponentProviderAdapter {
 
         descriptionArea = new JTextArea(10, 60);
         descriptionArea.setLineWrap(true);
-        descriptionArea.setText("Initial text");
+        descriptionArea.setText("No function selected");
+        descriptionArea.setEditable(false);
         component.add(descriptionArea, BorderLayout.NORTH);
 
 
@@ -46,7 +56,10 @@ public class AIDecompiledWindow extends ComponentProviderAdapter {
         sp = new RTextScrollPane(textArea);
 
         component.add(sp, BorderLayout.CENTER);
-
+        taskMonitorComponent = new TaskMonitorComponent();
+        taskMonitorComponent.setVisible(false);
+        taskMonitorComponent.setIndeterminate(true);
+        component.add(taskMonitorComponent, BorderLayout.SOUTH);
         return component;
     }
 
@@ -56,7 +69,7 @@ public class AIDecompiledWindow extends ComponentProviderAdapter {
     }
 
 
-    public void setStatus(Function function, AIDecompilationStatus status) {
+    public void setDisplayedValuesBasedOnStatus(Function function, AIDecompilationStatus status) {
         setVisible(true);
         this.function = function;
         setCode("Status: " + status);
@@ -78,10 +91,119 @@ public class AIDecompiledWindow extends ComponentProviderAdapter {
         descriptionArea.setText("");
     }
 
+    public void refresh(Function function) {
+        // Check if we know this function already
+        var cachedStatus = cache.get(function);
+        if (cachedStatus != null) {
+            setDisplayedValuesBasedOnStatus(function, cachedStatus);
+        } else {
+            // TODO: Allow toggling auto decomp mode via local toggle action, for now do it always
+            if (this.isVisible()) {
+                taskMonitorComponent.setVisible(true);
+                // Start a new background task to decompile the function
+                var task = new AIDecompTask(tool, function);
+                var builder = TaskBuilder.withTask(task);
+                builder.launchInBackground(taskMonitorComponent);
+            }
+        }
+    }
+
     public void locationChanged(ProgramLocation loc) {
+        var functionMgr = loc.getProgram().getFunctionManager();
+        var newFuncLocation = functionMgr.getFunctionContaining(loc.getAddress());
+
         // If we changed to a different function, we want to clear the output of the old function
-        if (function != null && !function.getBody().contains(loc.getAddress())) {
+        if (function != null && newFuncLocation != function) {
             clear();
         }
+        function = newFuncLocation;
+        if (function != null) {
+            refresh(function);
+        }
+    }
+
+
+    void newStatusForFunction(Function function, AIDecompilationStatus status) {
+        cache.put(function, status);
+        if (function == this.function) {
+            SwingUtilities.invokeLater(() ->
+                    setDisplayedValuesBasedOnStatus(function, status)
+            );
+        }
+        if (status.status().equals("success")) {
+            var logger = tool.getService(ReaiLoggingService.class);
+            logger.info("AI Decompilation finished for function %s: %s".formatted(function.getName(), status.decompilation()));
+            if (!hasPendingDecompilations()) {
+                taskMonitorComponent.setVisible(false);
+            }
+        }
+    }
+
+    private boolean hasPendingDecompilations() {
+        return cache.values().stream().anyMatch(s -> s.status().equals("pending") || s.status().equals("running") || s.status().equals("queued"));
+    }
+    class AIDecompTask extends Task {
+
+        private final GhidraRevengService service;
+        private final Function function;
+
+        public AIDecompTask(PluginTool tool, Function function) {
+            super("AI Decomp task", true, false, false);
+            service = tool.getService(GhidraRevengService.class);
+            this.function = function;
+        }
+
+        @Override
+        public void run(TaskMonitor monitor) throws CancelledException {
+            var fID = service.getFunctionIDFor(function)
+                    .orElseThrow(() -> new RuntimeException("Function has no associated FunctionID"));
+            // Check if there is an existing process already, because the trigger API will fail with 400 if there is
+            if (service.getApi().pollAIDecompileStatus(fID).status().equals("uninitialised")) {
+                // Trigger the decompilation
+                service.getApi().triggerAIDecompilationForFunctionID(fID);
+            }
+            waitForDecomp(fID, monitor);
+            // TODO: Inform the component that something is finished
+        }
+
+
+        private void waitForDecomp(FunctionID id, TaskMonitor monitor) throws CancelledException {
+            var logger = tool.getService(ReaiLoggingService.class);
+            var api = service.getApi();
+            AIDecompilationStatus lastDecompStatus = null;
+            while (true) {
+                var newStatus = api.pollAIDecompileStatus(id);
+                if (lastDecompStatus == null || !Objects.equals(newStatus.status(), lastDecompStatus.status())) {
+                    lastDecompStatus = newStatus;
+
+                    newStatusForFunction(function, newStatus);
+                }
+                monitor.setMessage("Waiting for AI Decompilation for %s ... Current status: %s".formatted(function.getName(), lastDecompStatus.status()));
+                monitor.checkCancelled();
+                switch (newStatus.status()) {
+                    case "pending":
+                    case "uninitialised":
+                    case "queued":
+                    case "running":
+                        try {
+                            Thread.sleep(100);
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+//                    monitor.incrementProgress(100);
+                        break;
+                    case "success":
+                        monitor.setProgress(monitor.getMaximum());
+                        return;
+                    case "error":
+                        logger.error("Decompilation failed: %s".formatted(newStatus.decompilation()));
+                        return;
+                    default:
+                        throw new RuntimeException("Unknown status: %s".formatted(newStatus.status()));
+                }
+
+            }
+        }
+
     }
 }

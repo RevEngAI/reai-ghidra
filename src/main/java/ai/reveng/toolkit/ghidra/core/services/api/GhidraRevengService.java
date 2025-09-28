@@ -4,14 +4,12 @@ import ai.reveng.toolkit.ghidra.core.AnalysisLogConsumer;
 import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisStatusChangedEvent;
 import ai.reveng.toolkit.ghidra.plugins.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.aidecompiler.AIDecompiledWindow;
-import ai.reveng.toolkit.ghidra.plugins.AnalysisManagementPlugin;
 import ai.reveng.toolkit.ghidra.core.services.api.mocks.MockApi;
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
 import ai.reveng.toolkit.ghidra.core.services.api.types.Collection;
 import ai.reveng.toolkit.ghidra.core.services.api.types.LegacyCollection;
 import ai.reveng.toolkit.ghidra.core.services.api.types.binsync.*;
 import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.APIAuthenticationException;
-import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
 import ai.reveng.toolkit.ghidra.core.types.ProgramWithBinaryID;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -526,13 +524,14 @@ public class GhidraRevengService {
             api.triggerAIDecompilationForFunctionID(fID);
         }
 
+        String lastStatus;
 
         while (true) {
             if (monitor.isCancelled()) {
                 return "Decompilation cancelled";
             }
             var status = api.pollAIDecompileStatus(fID);
-            window.setStatus(function, status);
+            window.setDisplayedValuesBasedOnStatus(function, status);
 
             switch (status.status()) {
                 case "pending":
@@ -548,7 +547,7 @@ public class GhidraRevengService {
                     break;
                 case "success":
                     monitor.setProgress(monitor.getMaximum());
-                    window.setStatus(function, status);
+                    window.setDisplayedValuesBasedOnStatus(function, status);
                     return status.decompilation();
                 case "error":
                     return "Decompilation failed: %s".formatted(status.decompilation());
