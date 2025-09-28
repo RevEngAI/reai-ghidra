@@ -5,6 +5,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
 import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.InvalidAPIInfoException;
@@ -181,5 +182,10 @@ public interface TypedApiInterface {
     default AutoUnstripResponse aiUnstrip(AnalysisID analysisID) {
         throw new UnsupportedOperationException("aiUnstrip not implemented yet");
     }
+
+    default void aiDecompRating(FunctionID functionID, String rating, @Nullable String reason) {
+        throw new UnsupportedOperationException("aiDecompRating not implemented yet");
+    }
+
 }
 

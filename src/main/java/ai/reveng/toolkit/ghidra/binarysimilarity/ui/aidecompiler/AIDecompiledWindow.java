@@ -5,10 +5,16 @@ import ai.reveng.toolkit.ghidra.core.services.api.types.FunctionID;
 import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
 import ai.reveng.toolkit.ghidra.plugins.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.core.services.api.types.AIDecompilationStatus;
+import docking.ActionContext;
+import docking.action.DockingAction;
+import docking.action.ToolBarData;
+import docking.widgets.dialogs.InputDialog;
+import generic.theme.GIcon;
 import ghidra.framework.plugintool.ComponentProviderAdapter;
 import ghidra.framework.plugintool.PluginTool;
 import ghidra.program.model.listing.Function;
 import ghidra.program.util.ProgramLocation;
+import ghidra.util.Msg;
 import ghidra.util.exception.CancelledException;
 import ghidra.util.task.*;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
@@ -35,6 +41,58 @@ public class AIDecompiledWindow extends ComponentProviderAdapter {
         super(tool, ReaiPluginPackage.WINDOW_PREFIX + "AI Decompiler", owner);
         setIcon(ReaiPluginPackage.REVENG_16);
         component = buildComponent();
+        addLocalAction(new DockingAction("Positive Feedback Action", getName()) {
+            {
+                setToolBarData(new ToolBarData(new GIcon("icon.checkmark.green"), null));
+                setDescription("Send positive feedback about the decompilation to RevEng.AI");
+            }
+
+            @Override
+            public void actionPerformed(ActionContext context) {
+                var service = tool.getService(GhidraRevengService.class);
+                if (function != null) {
+                    var fID = service.getFunctionIDFor(function);
+                    fID.ifPresent(id -> service.getApi().aiDecompRating(id, "POSITIVE", null));
+                }
+            }
+
+            @Override
+            public boolean isEnabled() {
+                // TODO: Only enable it if there is a decompilation to give feedback on
+                return super.isEnabled();
+            }
+
+
+        });
+
+        addLocalAction(new DockingAction("Negative Feedback Action", getName()) {
+            {
+                setToolBarData(new ToolBarData(new GIcon("icon.error"), null));
+                setDescription("Report an issue with the decompilation to RevEng.AI");
+
+            }
+            @Override
+            public void actionPerformed(ActionContext context) {
+                // Spawn textbox to enter reason for negative feedback
+
+                var dialog = new InputDialog("Negative Feedback", "Please provide details about what was wrong with the decompilation:", "");
+                tool.showDialog(dialog);
+                if (!dialog.isCanceled()) {
+                    var service = tool.getService(GhidraRevengService.class);
+                    if (function != null) {
+                        var fID = service.getFunctionIDFor(function);
+                        fID.ifPresent(id -> service.getApi().aiDecompRating(id, "NEGATIVE", dialog.getValue()));
+                    }
+                }
+            }
+
+            @Override
+            public boolean isEnabled() {
+                // TODO: Only enable it if there is a decompilation to give feedback on
+                return super.isEnabled();
+            }
+        });
+
     }
 
 
@@ -72,7 +130,6 @@ public class AIDecompiledWindow extends ComponentProviderAdapter {
     public void setDisplayedValuesBasedOnStatus(Function function, AIDecompilationStatus status) {
         setVisible(true);
         this.function = function;
-        setCode("Status: " + status);
         if (status.status().equals("success")) {
             setCode(status.decompilation());
             descriptionArea.setText(status.getMarkedUpSummary());
