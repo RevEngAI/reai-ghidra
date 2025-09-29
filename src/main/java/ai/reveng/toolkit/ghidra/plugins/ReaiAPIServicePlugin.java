@@ -69,6 +69,7 @@ public class ReaiAPIServicePlugin extends Plugin {
         revengService = new GhidraRevengService(apiInfo);
         registerServiceProvided(GhidraRevengService.class, revengService);
 
+        setupActions();
     }
 
     /**
