@@ -1,9 +1,7 @@
 package ai.reveng.toolkit.ghidra.binarysimilarity.ui.analysiscreation;
 
-import ai.reveng.toolkit.ghidra.core.Utils;
 import ai.reveng.toolkit.ghidra.core.services.api.AnalysisOptionsBuilder;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
-import ai.reveng.toolkit.ghidra.core.services.api.ModelName;
 import ai.reveng.toolkit.ghidra.core.services.api.types.AnalysisScope;
 import docking.DialogComponentProvider;
 import ghidra.program.model.listing.Program;
@@ -14,7 +12,6 @@ import java.awt.*;
 import java.util.List;
 
 public class RevEngAIAnalysisOptionsDialog extends DialogComponentProvider {
-    private final JComboBox<ModelName> modelComboBox;
     private final JCheckBox advancedAnalysisCheckBox;
     private final JCheckBox dynamicExecutionCheckBox;
     private final Program program;
@@ -29,15 +26,10 @@ public class RevEngAIAnalysisOptionsDialog extends DialogComponentProvider {
     private boolean okPressed = false;
 
     public static RevEngAIAnalysisOptionsDialog withModelsFromServer(Program program, GhidraRevengService reService) {
-        List<ModelName> availableModels = reService.getAvailableModels();
-        var bestModel = Utils.getModelNameForProgram(program, availableModels);
-        return new RevEngAIAnalysisOptionsDialog(program, availableModels, bestModel);
+        return new RevEngAIAnalysisOptionsDialog(program);
     }
 
-    public RevEngAIAnalysisOptionsDialog(Program program,
-                                         List<ModelName> availableModels,
-                                         @Nullable ModelName suggestedModel
-    ) {
+    public RevEngAIAnalysisOptionsDialog(Program program) {
         super("Configure Analysis for %s".formatted(program.getName()), true, false, true, true);
         this.program = program;
 
@@ -89,7 +81,7 @@ public class RevEngAIAnalysisOptionsDialog extends DialogComponentProvider {
         // Add ISA Drop Down
         // Add drop Down menu for the architecture
         architectureComboBox = new JComboBox<>(new String[]{
-                "Auto", "x86", "x86_64"
+                "Auto", "x86", "x86_64", "arm",
         });
         architectureComboBox.setEditable(false);
         architectureComboBox.setMaximumSize(architectureComboBox.getPreferredSize());
@@ -97,24 +89,6 @@ public class RevEngAIAnalysisOptionsDialog extends DialogComponentProvider {
         architectureLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         workPanel.add(architectureLabel);
         workPanel.add(architectureComboBox);
-
-        workPanel.add(new JSeparator(SwingConstants.HORIZONTAL));
-
-        // Add drop Down menu for the model name
-        modelComboBox = new JComboBox<ModelName>();
-        modelComboBox.setEditable(false);
-        modelComboBox.setMaximumSize(new Dimension(200, 20));
-        var modelLabel = new JLabel("Select Model");
-        modelLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        workPanel.add(modelLabel);
-        workPanel.add(modelComboBox);
-        modelComboBox.removeAllItems();
-        for (var model : availableModels) {
-            modelComboBox.addItem(model);
-        }
-        modelComboBox.setSelectedItem(suggestedModel);
-
-        workPanel.add(Box.createVerticalGlue());
 
         workPanel.add(new JSeparator(SwingConstants.HORIZONTAL));
 
@@ -177,7 +151,6 @@ public class RevEngAIAnalysisOptionsDialog extends DialogComponentProvider {
             return null;
         }
         var options = AnalysisOptionsBuilder.forProgram(program);
-        options.modelName((ModelName) modelComboBox.getSelectedItem());
 
         options.skipScraping(!scrapeExternalTagsBox.isSelected());
         options.skipCapabilities(!identifyCapabilitiesCheckBox.isSelected());
