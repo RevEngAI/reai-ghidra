@@ -91,22 +91,6 @@ public interface TypedApiInterface {
         throw new UnsupportedOperationException("annSymbolsForBinary not implemented yet");
     }
 
-
-//    public default Object explain(String decompiledFunction){
-//        throw new UnsupportedOperationException("explain not implemented yet");
-//    };
-
-    // Health
-    default boolean healthStatus() {
-        throw new UnsupportedOperationException("healthStatus not implemented yet");
-    }
-
-    default String healthMessage() {
-        throw new UnsupportedOperationException("healthMessage not implemented yet");
-    }
-
-    List<ModelName> models();
-
     default List<Collection> searchCollections(String searchTerm,
                                                      @Nullable List<SearchFilter> filter,
                                                      int limit,

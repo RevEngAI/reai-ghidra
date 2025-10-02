@@ -44,7 +44,7 @@ public class UnimplementedAPI implements TypedApiInterface {
     }
 
     @Override
-    public void authenticate() throws InvalidAPIInfoException {
+    public void authenticate() {
 
     }
 
@@ -59,7 +59,7 @@ public class UnimplementedAPI implements TypedApiInterface {
     }
 
     @Override
-    public BinaryHash upload(Path binPath) throws FileNotFoundException {
+    public BinaryHash upload(Path binPath) {
         // Calculate the SHA256 hash of the binary at the path
         try {
             byte[] b = Files.readAllBytes(binPath);

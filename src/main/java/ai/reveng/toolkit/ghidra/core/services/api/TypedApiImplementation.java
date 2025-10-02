@@ -367,12 +367,6 @@ public class TypedApiImplementation implements TypedApiInterface {
         requestBuilder.timeout(Duration.ofSeconds(20));
         return requestBuilder;
     }
-    @Override
-    public List<ModelName> models(){
-        JSONObject jsonResponse = sendRequest(requestBuilderForEndpoint(APIVersion.V1, "models").GET().build());
-
-        return mapJSONArray(jsonResponse.getJSONArray("models"), o -> new ModelName(o.getString("model_name")));
-    }
 
     /**
      * <a href="https://api.reveng.ai/v2/docs#tag/Analysis-Management/operation/get_analysis_id_v2_analyses_lookup__binary_id__get">...</a>
