@@ -25,7 +25,6 @@ public class UnimplementedAPI implements TypedApiInterface {
             case Processing -> AnalysisStatus.Complete;
             case Complete ->  AnalysisStatus.Complete;
             case Error -> AnalysisStatus.Error;
-            case All -> throw new IllegalArgumentException("All is not a valid status for this operation");
         };
     }
 

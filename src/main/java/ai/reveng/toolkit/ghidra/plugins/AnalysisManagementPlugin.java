@@ -256,7 +256,7 @@ public class AnalysisManagementPlugin extends ProgramPlugin {
 					AnalysisStatus status = revengService.pollStatus(binID);
                     tool.getService(ReaiLoggingService.class).info("Check Status: " + status);
 					Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Check status",
-							"Status of " + binID + ": " + status);
+							"Status of analysis " + analysisID.id() + ": " + status);
 				})
 				.menuPath(new String[] { ReaiPluginPackage.MENU_GROUP_NAME, "Analysis", "Check status" })
 				.menuGroup(REAI_ANALYSIS_MANAGEMENT_MENU_GROUP, "400")

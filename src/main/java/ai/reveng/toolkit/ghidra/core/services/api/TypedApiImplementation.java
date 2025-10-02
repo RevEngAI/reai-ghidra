@@ -56,6 +56,9 @@ public class TypedApiImplementation implements TypedApiInterface {
 
     private final AnalysesCoreApi analysisCoreApi;
 
+    // Cache for binary ID to analysis ID mappings
+    private final Map<BinaryID, AnalysisID> binaryToAnalysisCache = new HashMap<>();
+
     public TypedApiImplementation(String baseUrl, String apiKey) {
         var apiClient = Configuration.getDefaultApiClient();
         apiClient.setBasePath(baseUrl);
@@ -233,12 +236,12 @@ public class TypedApiImplementation implements TypedApiInterface {
     }
 
     @Override
-    public AnalysisStatus status(BinaryID binaryID) {
+    public AnalysisStatus status(BinaryID binaryID) throws ApiException {
+        var analysisID = this.getAnalysisIDfromBinaryID(binaryID);
 
-        var request = requestBuilderForEndpoint(APIVersion.V1, "analyse/status/" + binaryID.value())
-                .GET()
-                .build();
-        return AnalysisStatus.valueOf(sendRequest(request).getString("status"));
+        var status = this.analysisCoreApi.getAnalysisStatus(analysisID.id());
+
+        return AnalysisStatus.valueOf(status.getData().getAnalysisStatus());
     }
 
     @Override
@@ -400,16 +403,30 @@ public class TypedApiImplementation implements TypedApiInterface {
     /**
      * <a href="https://api.reveng.ai/v2/docs#tag/Analysis-Management/operation/get_analysis_id_v2_analyses_lookup__binary_id__get">...</a>
      *
+     * The mapping never changes so we can cache it to avoid repeated requests.
+     *
      * @param binaryID the binary id to look up
      * @return the analysis id
      */
     @Override
     public AnalysisID getAnalysisIDfromBinaryID(BinaryID binaryID){
+        // Check cache first
+        AnalysisID cachedResult = binaryToAnalysisCache.get(binaryID);
+        if (cachedResult != null) {
+            return cachedResult;
+        }
+
+        // If not in cache, make HTTP request
         JSONObject response = sendRequest(requestBuilderForEndpoint(APIVersion.V2, "analyses/lookup/" + binaryID.value())
                 .GET()
                 .build());
 
-        return new AnalysisID(response.getInt("analysis_id"));
+        AnalysisID analysisID = new AnalysisID(response.getInt("analysis_id"));
+
+        // Cache the result
+        binaryToAnalysisCache.put(binaryID, analysisID);
+
+        return analysisID;
     }
 
     /**

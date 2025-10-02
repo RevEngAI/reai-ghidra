@@ -4,8 +4,8 @@ public enum AnalysisStatus {
     Complete("Complete"),
     Error("Error"),
     Processing("Processing"),
-    Queued("Queued"),
-    All("All");
+    Queued("Queued");
+
     private final String status;
 
     AnalysisStatus(final String status) {

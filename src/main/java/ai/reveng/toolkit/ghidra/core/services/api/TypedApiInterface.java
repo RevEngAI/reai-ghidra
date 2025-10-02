@@ -61,7 +61,7 @@ public interface TypedApiInterface {
         throw new UnsupportedOperationException("getSimilarFunctions not implemented yet");
     }
 
-    default AnalysisStatus status(BinaryID binID){
+    default AnalysisStatus status(BinaryID binID) throws ApiException {
         throw new UnsupportedOperationException("status not implemented yet");
     };
 

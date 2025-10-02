@@ -139,8 +139,12 @@ public class AnalysisOptionsBuilder {
         // Create the request with only the core required fields that we know work
         var request = new AnalysisCreateRequest()
                 .filename(options.getString("file_name"))
-                .sha256Hash(options.getString("sha_256_hash"))
-                .tags(tags);
+                .sha256Hash(options.getString("sha_256_hash"));
+
+        // Include tags if any were provided
+        if (!tags.isEmpty()) {
+            request.setTags(tags);
+        }
 
         if (options.has("binary_scope")) {
             var scope = options.getString("binary_scope");

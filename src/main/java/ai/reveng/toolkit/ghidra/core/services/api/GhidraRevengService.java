@@ -143,14 +143,13 @@ public class GhidraRevengService {
             try {
                 var status = api.status(binID);
                 statusCache.put(binID, status);
-            } catch (APIAuthenticationException e) {
+            } catch (APIAuthenticationException | ApiException e) {
                 throw new InvalidBinaryID(binID, this.apiInfo);
             }
             // Now it's certain that it is a valid binary ID
         }
+
         return Optional.of(binID);
-
-
     }
 
     public List<GhidraFunctionInfo> getFunctionInfo(Program program){
@@ -496,14 +495,12 @@ public class GhidraRevengService {
         }
     }
 
-    public AnalysisStatus pollStatus(Program program) {
-        var bid = getBinaryIDFor(program);
-        return pollStatus(bid.orElseThrow());
-    }
-
     public AnalysisStatus pollStatus(BinaryID bid) {
-        var status = api.status(bid);
-        return status;
+        try {
+            return api.status(bid);
+        } catch (ApiException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public String health(){
