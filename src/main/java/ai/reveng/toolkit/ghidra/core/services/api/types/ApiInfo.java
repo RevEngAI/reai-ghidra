@@ -21,30 +21,14 @@ public record ApiInfo(
         this(URI.create(hostURI), URI.create(portalURI), apiKey);
     }
 
-    public boolean checkServer(){
-        var api = new TypedApiImplementation(this);
-        try {
-            api.health();
-            return true;
-        } catch (Exception e) {
-            return false;
-        }
-    }
     public void checkCredentials() throws InvalidAPIInfoException {
         if (hostURI == null || apiKey == null){
             throw new InvalidAPIInfoException("hostURI and apiKey must not be null");
         }
         var api = new TypedApiImplementation(this);
 
-        // Send quick health request
-        var health = api.health();
-        if (!health.getBoolean("success")){
-            throw new InvalidAPIInfoException("Server health check failed: " + health.getString("message"));
-        }
-
         // Throws InvalidAPIInfoException if authentication fails
         api.authenticate();
-
     }
 
     public static ApiInfo fromConfig(Path configFilePath) throws FileNotFoundException {

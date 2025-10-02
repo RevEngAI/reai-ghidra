@@ -1,5 +1,6 @@
 package ai.reveng.toolkit.ghidra.core.services.api;
 
+import ai.reveng.api.AuthenticationUsersApi;
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
 import ai.reveng.toolkit.ghidra.core.services.api.types.Collection;
 import ai.reveng.toolkit.ghidra.core.services.api.types.LegacyCollection;
@@ -55,6 +56,7 @@ public class TypedApiImplementation implements TypedApiInterface {
     Map<String, String> headers;
 
     private final AnalysesCoreApi analysisCoreApi;
+    private final AuthenticationUsersApi authenticationUsersApi;
 
     // Cache for binary ID to analysis ID mappings
     private final Map<BinaryID, AnalysisID> binaryToAnalysisCache = new HashMap<>();
@@ -82,6 +84,7 @@ public class TypedApiImplementation implements TypedApiInterface {
         APIKey.setApiKey(apiKey);
 
         this.analysisCoreApi = new AnalysesCoreApi(apiClient);
+        this.authenticationUsersApi = new AuthenticationUsersApi(apiClient);
 
         this.baseUrl = baseUrl + "/";
         this.httpClient = HttpClient.newBuilder()
@@ -263,16 +266,6 @@ public class TypedApiImplementation implements TypedApiInterface {
                 FunctionInfo::fromJSONObject);
     }
 
-    @Override
-    public boolean healthStatus(){
-        return health().getBoolean("success");
-    }
-
-    @Override
-    public String healthMessage(){
-        return health().getString("message");
-    }
-
     private String queryParams(Map<String, String> params){
         return "?" + params.entrySet().stream()
                 .filter(e -> e.getValue() != null)
@@ -350,25 +343,6 @@ public class TypedApiImplementation implements TypedApiInterface {
                 .build();
         JSONObject response = sendVersion2Request(request).getJsonData();
         return response.getString("logs");
-    }
-
-
-    public JSONObject health(){
-        URI uri;
-        try {
-            uri = new URI(baseUrl + "v1");
-        } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
-        }
-        var requestBuilder = HttpRequest.newBuilder(uri);
-        headers.forEach(requestBuilder::header);
-        requestBuilder.GET();
-        try {
-            var jsonResponse = sendRequest(requestBuilder.build());
-            return jsonResponse;
-        } catch (Exception e) {
-            return new JSONObject(Map.of("success", false, "message", e.getMessage()));
-        }
     }
 
     private HttpRequest.Builder requestBuilderForEndpoint(APIVersion version, String... endpointPaths){
@@ -479,11 +453,9 @@ public class TypedApiImplementation implements TypedApiInterface {
 
     @Override
     public void authenticate() throws InvalidAPIInfoException {
-        var request = requestBuilderForEndpoint(APIVersion.V1, "authenticate")
-                .build();
         try {
-            sendRequest(request);
-        } catch (APIAuthenticationException e) {
+            this.authenticationUsersApi.getRequesterUserInfo();
+        } catch (ApiException e) {
             throw new InvalidAPIInfoException("Invalid API key", e);
         }
     }

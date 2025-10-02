@@ -503,14 +503,9 @@ public class GhidraRevengService {
         }
     }
 
-    public String health(){
-        return api.healthMessage();
-    }
-
     public List<ModelName> getAvailableModels(){
         return api.models();
     }
-
 
     public String decompileFunctionViaAI(Function function, TaskMonitor monitor, AIDecompiledWindow window) {
         monitor.setMaximum(100 * 50);
