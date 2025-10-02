@@ -1,5 +1,6 @@
 package ai.reveng.toolkit.ghidra.core.tasks;
 
+import ai.reveng.invoker.ApiException;
 import ai.reveng.toolkit.ghidra.core.AnalysisLogConsumer;
 import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisStatusChangedEvent;
 import ai.reveng.toolkit.ghidra.core.services.api.AnalysisOptionsBuilder;
@@ -54,7 +55,12 @@ public class StartAnalysisTask extends Task {
 
         monitor.setMessage("Sending Analysis Request");
 
+        try {
         programWithBinaryID = reService.startAnalysis(program, options);
+        } catch (ApiException e) {
+            monitor.setMessage("Analysis Request Failed");
+            return;
+        }
 
         tool.firePluginEvent(new RevEngAIAnalysisStatusChangedEvent(
                 "StartAnalysisTask",

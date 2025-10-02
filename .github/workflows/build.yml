@@ -27,18 +27,6 @@ jobs:
             java: "21"
           - ghidra: "11.2"
             java: "21"
-          - ghidra: "11.1.2"
-            java: "17"
-          - ghidra: "11.0.3"
-            java: "17"
-          # Require changes
-#          - ghidra: "10.4"
-#            java: "17"
-#          - ghidra: "10.3.1"
-#            java: "17"
-#          - ghidra: "10.2"
-#            java: "17"
-  # ... and so on for each specific pairing
     steps:
       - uses: actions/checkout@v4
       - name: Setup Java

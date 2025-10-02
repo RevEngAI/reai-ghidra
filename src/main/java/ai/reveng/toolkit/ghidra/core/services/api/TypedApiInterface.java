@@ -5,12 +5,13 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
 
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
 import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.InvalidAPIInfoException;
 
 import javax.annotation.Nullable;
+
+import ai.reveng.invoker.ApiException;
 
 
 /**
@@ -26,7 +27,7 @@ import javax.annotation.Nullable;
  */
 public interface TypedApiInterface {
     // Analysis
-    BinaryID analyse(AnalysisOptionsBuilder binHash);
+    BinaryID analyse(AnalysisOptionsBuilder binHash) throws ApiException;
 
 
     default Object delete(BinaryID binID) {
@@ -72,7 +73,7 @@ public interface TypedApiInterface {
     }
 
 
-    default BinaryHash upload(Path binPath) throws FileNotFoundException {
+    default BinaryHash upload(Path binPath) throws FileNotFoundException, ai.reveng.invoker.ApiException {
         throw new UnsupportedOperationException("upload not implemented yet");
     }
 

@@ -19,7 +19,7 @@ public record FunctionDetails(
     public static FunctionDetails fromJSON(JSONObject json) {
         return new FunctionDetails(
                 new FunctionID(json.getInt("function_id")),
-                json.getString("function_name"),
+                json.getString("function_name_mangled"),
                 json.getLong("function_vaddr"),
                 json.getLong("function_size"),
                 new AnalysisID(json.getInt("analysis_id")),

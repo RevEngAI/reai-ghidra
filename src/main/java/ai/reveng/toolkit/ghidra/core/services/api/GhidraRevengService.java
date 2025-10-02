@@ -1,5 +1,6 @@
 package ai.reveng.toolkit.ghidra.core.services.api;
 
+import ai.reveng.invoker.ApiException;
 import ai.reveng.toolkit.ghidra.core.AnalysisLogConsumer;
 import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisStatusChangedEvent;
 import ai.reveng.toolkit.ghidra.plugins.ReaiPluginPackage;
@@ -446,7 +447,7 @@ public class GhidraRevengService {
                 function -> {
                     var start = function.getEntryPoint();
                     var end = function.getBody().getMaxAddress();
-                    result.add(new FunctionBoundary(function.getName(), start.getOffset(), end.getOffset()));
+                    result.add(new FunctionBoundary(function.getSymbol().getName(false), start.getOffset(), end.getOffset()));
                 }
         );
         return result;
@@ -482,7 +483,7 @@ public class GhidraRevengService {
                         "Hash of uploaded file %s from path %s doesn't match the hash of the program loaded in Ghidra %s"
                                 .formatted(hash, program.getExecutablePath(), hashOfProgram(program)));
             }
-        } catch (FileNotFoundException e) {
+        } catch (FileNotFoundException | ApiException e) {
             throw new RuntimeException(e);
         }
     }
@@ -490,7 +491,7 @@ public class GhidraRevengService {
     public BinaryHash upload(Path path) {
         try {
             return api.upload(path);
-        } catch (FileNotFoundException e) {
+        } catch (FileNotFoundException | ApiException e) {
             throw new RuntimeException(e);
         }
     }
@@ -559,7 +560,7 @@ public class GhidraRevengService {
 
         }
     }
-    public ProgramWithBinaryID analyse(Program program, AnalysisOptionsBuilder analysisOptionsBuilder, TaskMonitor monitor) throws CancelledException {
+    public ProgramWithBinaryID analyse(Program program, AnalysisOptionsBuilder analysisOptionsBuilder, TaskMonitor monitor) throws CancelledException, ApiException {
         var programWithBinaryID = startAnalysis(program, analysisOptionsBuilder);
         waitForFinishedAnalysis(monitor, programWithBinaryID, null, null);
         registerFinishedAnalysisForProgram(programWithBinaryID);
@@ -903,7 +904,7 @@ public class GhidraRevengService {
         }
     }
 
-    public ProgramWithBinaryID startAnalysis(Program program, AnalysisOptionsBuilder analysisOptionsBuilder) {
+    public ProgramWithBinaryID startAnalysis(Program program, AnalysisOptionsBuilder analysisOptionsBuilder) throws ApiException {
         var binaryID = api.analyse(analysisOptionsBuilder);
         AnalysisID analysisID = api.getAnalysisIDfromBinaryID(binaryID);
         addBinaryIDtoProgramOptions(program, binaryID);

@@ -6,7 +6,6 @@ import ai.reveng.toolkit.ghidra.core.services.api.types.LegacyCollection;
 import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.APIAuthenticationException;
 import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.APIConflictException;
 import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.InvalidAPIInfoException;
-import com.google.common.primitives.Bytes;
 import ghidra.framework.Application;
 import ghidra.framework.Platform;
 import ghidra.util.Msg;
@@ -29,12 +28,20 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.*;
 
+import ai.reveng.invoker.Configuration;
+import ai.reveng.invoker.auth.ApiKeyAuth;
+import ai.reveng.invoker.ApiException;
+import ai.reveng.api.AnalysesCoreApi;
+import ai.reveng.model.AnalysisCreateRequest;
+import ai.reveng.model.Tag;
+import ai.reveng.model.UploadFileType;
+
 import static ai.reveng.toolkit.ghidra.core.services.api.Utils.mapJSONArray;
 import static java.net.http.HttpClient.Version.HTTP_1_1;
 
+
 /**
  * The main implementation of the RevEng HTTP API
- *
  * Design notes:
  * - every method should correspond to a single API endpoint
  * - every method should simply execute the request and return the response
@@ -43,21 +50,16 @@ import static java.net.http.HttpClient.Version.HTTP_1_1;
  *
  */
 public class TypedApiImplementation implements TypedApiInterface {
-
     private final HttpClient httpClient;
-    private String baseUrl;
-    private String apiKey;
+    private final String baseUrl;
     Map<String, String> headers;
 
+    private final AnalysesCoreApi analysisCoreApi;
+
     public TypedApiImplementation(String baseUrl, String apiKey) {
-        this.baseUrl = baseUrl + "/";
-        this.apiKey = apiKey;
-        this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(5))
-                .version(HTTP_1_1) // by default the client would attempt HTTP2.0 which leads to weird issues
-                .build();
-        headers = new HashMap<>();
-        headers.put("Authorization", this.apiKey);
+        var apiClient = Configuration.getDefaultApiClient();
+        apiClient.setBasePath(baseUrl);
+
         String pluginVersion = "unknown";
         try {
             // This file comes from the release.yml running in the CI
@@ -69,7 +71,24 @@ public class TypedApiImplementation implements TypedApiInterface {
         }
         // Looks like:
         // Ghidra/11.3.2-PUBLIC (LINUX(Linux) X86_64(amd64)) RevEng.AI_Plugin/v0.15
-        headers.put("User-Agent", "%s/%s-%s (%s) RevEng.AI_Plugin/%s".formatted(Application.getName(), Application.getApplicationVersion(), Platform.CURRENT_PLATFORM, Application.getApplicationReleaseName(), pluginVersion));
+        var userAgent = "%s/%s-%s (%s) RevEng.AI_Plugin/%s".formatted(Application.getName(), Application.getApplicationVersion(), Platform.CURRENT_PLATFORM, Application.getApplicationReleaseName(), pluginVersion);
+
+        apiClient.setUserAgent(userAgent);
+
+        ApiKeyAuth APIKey = (ApiKeyAuth) apiClient.getAuthentication("APIKey");
+        APIKey.setApiKey(apiKey);
+
+        this.analysisCoreApi = new AnalysesCoreApi(apiClient);
+
+        this.baseUrl = baseUrl + "/";
+        this.httpClient = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(5))
+                .version(HTTP_1_1) // by default the client would attempt HTTP2.0 which leads to weird issues
+                .build();
+        headers = new HashMap<>();
+        headers.put("Authorization", apiKey);
+        headers.put("User-Agent", userAgent);
+
         // TODO: Actually implement support for some encodings and then accept them
 //        headers.put("Accept-Encoding", "gzip, deflate, br");
     }
@@ -79,40 +98,15 @@ public class TypedApiImplementation implements TypedApiInterface {
         this(info.hostURI().toString(), info.apiKey());
     }
 
-    public BinaryHash upload(Path binPath) throws FileNotFoundException {
-
+    public BinaryHash upload(Path binPath) throws FileNotFoundException, ApiException {
         File bin = binPath.toFile();
 
         if (!bin.exists())
             throw new FileNotFoundException("Binary to upload does not exist");
 
-        String boundary = "------------------------" + UUID.randomUUID().toString();
+        var result = this.analysisCoreApi.uploadFile(UploadFileType.fromValue("BINARY"), bin, null, true);
 
-        String bodyStart = "--" + boundary + "\r\n" +
-                "Content-Disposition: form-data; name=\"file\"; filename=\"" + binPath.getFileName() + "\"\r\n" +
-                "Content-Type: application/octet-stream\r\n\r\n";
-
-        String bodyEnd = "\r\n--" + boundary + "--\r\n";
-
-        // Read file bytes
-        byte[] fileBytes = new byte[0];
-        try {
-            fileBytes = java.nio.file.Files.readAllBytes(binPath);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
-        // Combine all parts of the body
-        byte[] requestBody = Bytes.concat(bodyStart.getBytes(), fileBytes, bodyEnd.getBytes());
-
-        // Create HttpRequest
-        var request = requestBuilderForEndpoint(APIVersion.V1, "upload")
-                .POST(HttpRequest.BodyPublishers.ofByteArray(requestBody))
-                .header("Content-Type", "multipart/form-data; boundary=" + boundary)
-                .build();
-
-
-        return BinaryHash.fromJSONObject(sendRequest(request));
+        return new BinaryHash(result.getData().getSha256Hash());
     }
 
     /*
@@ -178,13 +172,11 @@ public class TypedApiImplementation implements TypedApiInterface {
     }
 
     @Override
-    public BinaryID analyse(AnalysisOptionsBuilder builder) {
-        var request = requestBuilderForEndpoint(APIVersion.V1, "analyse/")
-                .POST(HttpRequest.BodyPublishers.ofString(builder.toJSON().toString()))
-                .header("Content-Type", "application/json" )
-                .build();
-        var jsonResponse = sendRequest(request);
-        return new BinaryID(jsonResponse.getInt("binary_id"));
+    public BinaryID analyse(AnalysisOptionsBuilder builder) throws ApiException {
+        var analysisRequest = builder.toAnalysisCreateRequest();
+        var result = this.analysisCoreApi.createAnalysis(analysisRequest);
+
+        return new BinaryID(result.getData().getBinaryId());
     }
 
     @Override
@@ -508,11 +500,11 @@ public class TypedApiImplementation implements TypedApiInterface {
      *   "new_name_mapping": [
      *     {
      *       "function_id": 3624718,
-     *       "function_name": "test_batch_rename_3"
+     *       "function_name_mangled": "test_batch_rename_3"
      *     },
      *     {
      *       "function_id": 3624696,
-     *       "function_name": "test_batch_rename_4"
+     *       "function_name_mangled": "test_batch_rename_4"
      *     }
      *   ]
      * }
@@ -526,7 +518,7 @@ public class TypedApiImplementation implements TypedApiInterface {
         for (var entry : renameDict.entrySet()){
             newNames.add(new JSONObject()
                     .put("function_id", entry.getKey().value())
-                    .put("function_name", entry.getValue()));
+                    .put("function_name_mangled", entry.getValue()));
         }
         params.put("new_name_mapping", newNames);
 
@@ -586,7 +578,7 @@ public class TypedApiImplementation implements TypedApiInterface {
                     // The id of the original function that matches were searched for
                     .put("function_id", match.origin_function_id().value())
                     // The name of the nearest neighbor function for which we want the score
-                    .put("function_name", match.nearest_neighbor_function_name()));
+                    .put("function_name_mangled", match.nearest_neighbor_function_name()));
         }
         params.put("functions", functions);
 
