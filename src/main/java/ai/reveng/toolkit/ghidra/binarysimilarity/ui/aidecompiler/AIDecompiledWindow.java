@@ -10,6 +10,8 @@ import docking.action.DockingAction;
 import docking.action.ToolBarData;
 import docking.widgets.dialogs.InputDialog;
 import generic.theme.GIcon;
+import ghidra.Ghidra;
+import ghidra.app.services.ProgramManager;
 import ghidra.framework.plugintool.ComponentProviderAdapter;
 import ghidra.framework.plugintool.PluginTool;
 import ghidra.program.model.listing.Function;
@@ -39,6 +41,7 @@ public class AIDecompiledWindow extends ComponentProviderAdapter {
 
     public AIDecompiledWindow(PluginTool tool, String owner) {
         super(tool, ReaiPluginPackage.WINDOW_PREFIX + "AI Decompiler", owner);
+
         setIcon(ReaiPluginPackage.REVENG_16);
         component = buildComponent();
         addLocalAction(new DockingAction("Positive Feedback Action", getName()) {
@@ -49,8 +52,8 @@ public class AIDecompiledWindow extends ComponentProviderAdapter {
 
             @Override
             public void actionPerformed(ActionContext context) {
-                var service = tool.getService(GhidraRevengService.class);
                 if (function != null) {
+                    var service = tool.getService(GhidraRevengService.class);
                     var fID = service.getFunctionIDFor(function);
                     fID.ifPresent(id -> service.getApi().aiDecompRating(id, "POSITIVE", null));
                 }
@@ -78,8 +81,8 @@ public class AIDecompiledWindow extends ComponentProviderAdapter {
                 var dialog = new InputDialog("Negative Feedback", "Please provide details about what was wrong with the decompilation:", "");
                 tool.showDialog(dialog);
                 if (!dialog.isCanceled()) {
-                    var service = tool.getService(GhidraRevengService.class);
                     if (function != null) {
+                        var service = tool.getService(GhidraRevengService.class);
                         var fID = service.getFunctionIDFor(function);
                         fID.ifPresent(id -> service.getApi().aiDecompRating(id, "NEGATIVE", dialog.getValue()));
                     }
@@ -92,7 +95,6 @@ public class AIDecompiledWindow extends ComponentProviderAdapter {
                 return super.isEnabled();
             }
         });
-
     }
 
 
@@ -173,8 +175,9 @@ public class AIDecompiledWindow extends ComponentProviderAdapter {
         if (function != null && newFuncLocation != function) {
             clear();
         }
+
         function = newFuncLocation;
-        if (function != null) {
+        if (function != null && !function.isExternal() && !function.isThunk()) {
             refresh(function);
         }
     }
