@@ -143,14 +143,13 @@ public class GhidraRevengService {
             try {
                 var status = api.status(binID);
                 statusCache.put(binID, status);
-            } catch (APIAuthenticationException e) {
+            } catch (APIAuthenticationException | ApiException e) {
                 throw new InvalidBinaryID(binID, this.apiInfo);
             }
             // Now it's certain that it is a valid binary ID
         }
+
         return Optional.of(binID);
-
-
     }
 
     public List<GhidraFunctionInfo> getFunctionInfo(Program program){
@@ -424,22 +423,6 @@ public class GhidraRevengService {
         return getSimilarFunctions(function, 0.1, 5, false);
     }
 
-
-    private ModelName getModelNameForProgram(Program program){
-        return getModelNameForProgram(program, this.api.models());
-    }
-
-    public ModelName getModelNameForProgram(Program program, List<ModelName> models){
-        var s = models.stream().map (ModelName::modelName);
-        var format = program.getOptions("Program Information").getString("Executable Format", null);
-        if (format.equals(ElfLoader.ELF_NAME)){
-            s = s.filter(modelName -> modelName.contains("linux"));
-        } else if (format.equals(PeLoader.PE_NAME)) {
-            s = s.filter(modelName -> modelName.contains("windows"));
-        }
-        return new ModelName(s.sorted(Collections.reverseOrder()).toList().get(0));
-    }
-
     public static List<FunctionBoundary> exportFunctionBoundaries(Program program){
         List<FunctionBoundary> result = new ArrayList<>();
         Address imageBase = program.getImageBase();
@@ -496,24 +479,13 @@ public class GhidraRevengService {
         }
     }
 
-    public AnalysisStatus pollStatus(Program program) {
-        var bid = getBinaryIDFor(program);
-        return pollStatus(bid.orElseThrow());
-    }
-
     public AnalysisStatus pollStatus(BinaryID bid) {
-        var status = api.status(bid);
-        return status;
+        try {
+            return api.status(bid);
+        } catch (ApiException e) {
+            throw new RuntimeException(e);
+        }
     }
-
-    public String health(){
-        return api.healthMessage();
-    }
-
-    public List<ModelName> getAvailableModels(){
-        return api.models();
-    }
-
 
     public String decompileFunctionViaAI(Function function, TaskMonitor monitor, AIDecompiledWindow window) {
         monitor.setMaximum(100 * 50);

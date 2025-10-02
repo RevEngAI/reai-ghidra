@@ -1,5 +1,6 @@
 package ai.reveng.toolkit.ghidra.core.services.api;
 
+import ai.reveng.api.AuthenticationUsersApi;
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
 import ai.reveng.toolkit.ghidra.core.services.api.types.Collection;
 import ai.reveng.toolkit.ghidra.core.services.api.types.LegacyCollection;
@@ -55,6 +56,10 @@ public class TypedApiImplementation implements TypedApiInterface {
     Map<String, String> headers;
 
     private final AnalysesCoreApi analysisCoreApi;
+    private final AuthenticationUsersApi authenticationUsersApi;
+
+    // Cache for binary ID to analysis ID mappings
+    private final Map<BinaryID, AnalysisID> binaryToAnalysisCache = new HashMap<>();
 
     public TypedApiImplementation(String baseUrl, String apiKey) {
         var apiClient = Configuration.getDefaultApiClient();
@@ -79,6 +84,7 @@ public class TypedApiImplementation implements TypedApiInterface {
         APIKey.setApiKey(apiKey);
 
         this.analysisCoreApi = new AnalysesCoreApi(apiClient);
+        this.authenticationUsersApi = new AuthenticationUsersApi(apiClient);
 
         this.baseUrl = baseUrl + "/";
         this.httpClient = HttpClient.newBuilder()
@@ -233,12 +239,12 @@ public class TypedApiImplementation implements TypedApiInterface {
     }
 
     @Override
-    public AnalysisStatus status(BinaryID binaryID) {
+    public AnalysisStatus status(BinaryID binaryID) throws ApiException {
+        var analysisID = this.getAnalysisIDfromBinaryID(binaryID);
 
-        var request = requestBuilderForEndpoint(APIVersion.V1, "analyse/status/" + binaryID.value())
-                .GET()
-                .build();
-        return AnalysisStatus.valueOf(sendRequest(request).getString("status"));
+        var status = this.analysisCoreApi.getAnalysisStatus(analysisID.id());
+
+        return AnalysisStatus.valueOf(status.getData().getAnalysisStatus());
     }
 
     @Override
@@ -258,16 +264,6 @@ public class TypedApiImplementation implements TypedApiInterface {
         return mapJSONArray(
                 sendRequest(request).getJSONArray("functions"),
                 FunctionInfo::fromJSONObject);
-    }
-
-    @Override
-    public boolean healthStatus(){
-        return health().getBoolean("success");
-    }
-
-    @Override
-    public String healthMessage(){
-        return health().getString("message");
     }
 
     private String queryParams(Map<String, String> params){
@@ -349,25 +345,6 @@ public class TypedApiImplementation implements TypedApiInterface {
         return response.getString("logs");
     }
 
-
-    public JSONObject health(){
-        URI uri;
-        try {
-            uri = new URI(baseUrl + "v1");
-        } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
-        }
-        var requestBuilder = HttpRequest.newBuilder(uri);
-        headers.forEach(requestBuilder::header);
-        requestBuilder.GET();
-        try {
-            var jsonResponse = sendRequest(requestBuilder.build());
-            return jsonResponse;
-        } catch (Exception e) {
-            return new JSONObject(Map.of("success", false, "message", e.getMessage()));
-        }
-    }
-
     private HttpRequest.Builder requestBuilderForEndpoint(APIVersion version, String... endpointPaths){
         URI uri;
         String apiVersionPath;
@@ -390,26 +367,34 @@ public class TypedApiImplementation implements TypedApiInterface {
         requestBuilder.timeout(Duration.ofSeconds(20));
         return requestBuilder;
     }
-    @Override
-    public List<ModelName> models(){
-        JSONObject jsonResponse = sendRequest(requestBuilderForEndpoint(APIVersion.V1, "models").GET().build());
-
-        return mapJSONArray(jsonResponse.getJSONArray("models"), o -> new ModelName(o.getString("model_name")));
-    }
 
     /**
      * <a href="https://api.reveng.ai/v2/docs#tag/Analysis-Management/operation/get_analysis_id_v2_analyses_lookup__binary_id__get">...</a>
+     *
+     * The mapping never changes so we can cache it to avoid repeated requests.
      *
      * @param binaryID the binary id to look up
      * @return the analysis id
      */
     @Override
     public AnalysisID getAnalysisIDfromBinaryID(BinaryID binaryID){
+        // Check cache first
+        AnalysisID cachedResult = binaryToAnalysisCache.get(binaryID);
+        if (cachedResult != null) {
+            return cachedResult;
+        }
+
+        // If not in cache, make HTTP request
         JSONObject response = sendRequest(requestBuilderForEndpoint(APIVersion.V2, "analyses/lookup/" + binaryID.value())
                 .GET()
                 .build());
 
-        return new AnalysisID(response.getInt("analysis_id"));
+        AnalysisID analysisID = new AnalysisID(response.getInt("analysis_id"));
+
+        // Cache the result
+        binaryToAnalysisCache.put(binaryID, analysisID);
+
+        return analysisID;
     }
 
     /**
@@ -462,11 +447,9 @@ public class TypedApiImplementation implements TypedApiInterface {
 
     @Override
     public void authenticate() throws InvalidAPIInfoException {
-        var request = requestBuilderForEndpoint(APIVersion.V1, "authenticate")
-                .build();
         try {
-            sendRequest(request);
-        } catch (APIAuthenticationException e) {
+            this.authenticationUsersApi.getRequesterUserInfo();
+        } catch (ApiException e) {
             throw new InvalidAPIInfoException("Invalid API key", e);
         }
     }

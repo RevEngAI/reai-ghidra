@@ -23,14 +23,12 @@ import javax.swing.*;
 
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.analysiscreation.RevEngAIAnalysisOptionsDialog;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
-import ai.reveng.toolkit.ghidra.core.services.api.ModelName;
 import ai.reveng.toolkit.ghidra.core.services.api.mocks.MockApi;
 import docking.DockingWindowManager;
 import ghidra.framework.main.FrontEndTool;
 import org.junit.*;
 
 import ghidra.program.database.ProgramBuilder;
-import ghidra.test.AbstractGhidraHeadedIntegrationTest;
 import ghidra.test.TestEnv;
 
 public class AnalysisOptionsDialogTest extends RevEngMockableHeadedIntegrationTest {
@@ -45,16 +43,7 @@ public class AnalysisOptionsDialogTest extends RevEngMockableHeadedIntegrationTe
     @Test
     public void testWithMockModels() throws Exception {
 
-        var reService = new GhidraRevengService( new MockApi() {
-            @Override
-            public List<ModelName> models() {
-                return List.of(
-                        new ModelName("modelA"),
-                        new ModelName("modelB"),
-                        new ModelName("modelC")
-                );
-            }
-        });
+        var reService = new GhidraRevengService( new MockApi() {});
         var builder = new ProgramBuilder("mock", ProgramBuilder._8051, this);
 
         var program = builder.getProgram();

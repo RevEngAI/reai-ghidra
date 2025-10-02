@@ -69,31 +69,4 @@ public class RevEngAutoRenamePostScript extends GhidraScript {
 
 
     }
-
-
-    private void waitForAnalysis(GhidraRevengService ghidraRevengService, BinaryID binID) throws InterruptedException {
-        var analysisComplete = false;
-        while (!analysisComplete) {
-            Thread.sleep(5000);
-            switch (ghidraRevengService.pollStatus(binID)) {
-                case Complete:
-                    println("Analysis finished successfully");
-                    analysisComplete = true;
-                    break;
-                case Error:
-                    println("Analysis failed");
-                    analysisComplete = true;
-                    break;
-                case Processing:
-                    println("Analysis still running");
-                    break;
-                case Queued:
-                    println("Analysis queued");
-                    break;
-                default:
-                    println("Unknown status");
-                    break;
-            }
-        }
-    }
 }

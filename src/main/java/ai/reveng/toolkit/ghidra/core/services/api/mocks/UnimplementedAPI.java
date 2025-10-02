@@ -25,7 +25,6 @@ public class UnimplementedAPI implements TypedApiInterface {
             case Processing -> AnalysisStatus.Complete;
             case Complete ->  AnalysisStatus.Complete;
             case Error -> AnalysisStatus.Error;
-            case All -> throw new IllegalArgumentException("All is not a valid status for this operation");
         };
     }
 
@@ -35,17 +34,12 @@ public class UnimplementedAPI implements TypedApiInterface {
     }
 
     @Override
-    public List<ModelName> models() {
-        return List.of(new ModelName("mock-linux"), new ModelName("mock-linux"));
-    }
-
-    @Override
     public String getAnalysisLogs(AnalysisID analysisID) {
         return "ANALYSIS LOGS";
     }
 
     @Override
-    public void authenticate() throws InvalidAPIInfoException {
+    public void authenticate() {
 
     }
 
@@ -60,7 +54,7 @@ public class UnimplementedAPI implements TypedApiInterface {
     }
 
     @Override
-    public BinaryHash upload(Path binPath) throws FileNotFoundException {
+    public BinaryHash upload(Path binPath) {
         // Calculate the SHA256 hash of the binary at the path
         try {
             byte[] b = Files.readAllBytes(binPath);

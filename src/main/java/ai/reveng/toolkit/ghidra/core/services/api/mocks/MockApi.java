@@ -163,16 +163,6 @@ public class MockApi implements TypedApiInterface {
     }
 
     @Override
-    public boolean healthStatus() {
-        return true;
-    }
-
-    @Override
-    public String healthMessage() {
-        return "Mock Health Message";
-    }
-
-    @Override
     public String getAnalysisLogs(AnalysisID analysisID) {
         return "";
     }
@@ -190,12 +180,6 @@ public class MockApi implements TypedApiInterface {
     public void renameFunction(FunctionID id, String newName) {
         
     }
-
-    @Override
-    public List<ModelName> models() {
-        return null;
-    }
-
 
     @Override
     public List<FunctionInfo> getFunctionInfo(BinaryID binaryID) {
