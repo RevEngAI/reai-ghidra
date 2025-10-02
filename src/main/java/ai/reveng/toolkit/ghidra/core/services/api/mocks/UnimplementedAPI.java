@@ -34,11 +34,6 @@ public class UnimplementedAPI implements TypedApiInterface {
     }
 
     @Override
-    public List<ModelName> models() {
-        return List.of(new ModelName("mock-linux"), new ModelName("mock-linux"));
-    }
-
-    @Override
     public String getAnalysisLogs(AnalysisID analysisID) {
         return "ANALYSIS LOGS";
     }
