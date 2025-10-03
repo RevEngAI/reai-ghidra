@@ -309,6 +309,7 @@ public class AnalysisManagementPlugin extends ProgramPlugin {
         super.processEvent(event);
         // Forward the event to the analysis log component
         if (event instanceof RevEngAIAnalysisStatusChangedEvent analysisEvent) {
+
             analysisLogComponent.processEvent(analysisEvent);
             if (analysisEvent.getStatus() == AnalysisStatus.Complete) {
                 // If the analysis is complete, we refresh the function signatures from the server
