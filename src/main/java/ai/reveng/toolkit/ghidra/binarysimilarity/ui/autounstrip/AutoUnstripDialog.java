@@ -1,10 +1,12 @@
 package ai.reveng.toolkit.ghidra.binarysimilarity.ui.autounstrip;
 
+import ai.reveng.toolkit.ghidra.binarysimilarity.ui.dialog.RevEngDialogComponentProvider;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.api.types.AnalysisID;
 import ai.reveng.toolkit.ghidra.core.services.api.types.AutoUnstripResponse;
 import ai.reveng.toolkit.ghidra.core.types.ProgramWithBinaryID;
-import docking.DialogComponentProvider;
+import ai.reveng.toolkit.ghidra.plugins.ReaiPluginPackage;
+import docking.widgets.label.GDLabel;
 import ghidra.framework.plugintool.PluginTool;
 import ghidra.program.model.address.Address;
 import ghidra.program.model.listing.Function;
@@ -13,6 +15,7 @@ import ghidra.program.model.symbol.SourceType;
 import ghidra.util.exception.DuplicateNameException;
 import ghidra.util.exception.InvalidInputException;
 import ghidra.util.task.TaskMonitorComponent;
+import resources.ResourceManager;
 
 import javax.swing.*;
 import java.awt.*;
@@ -20,7 +23,7 @@ import java.util.Objects;
 
 import static ai.reveng.toolkit.ghidra.plugins.BinarySimilarityPlugin.REVENG_AI_NAMESPACE;
 
-public class AutoUnstripDialog extends DialogComponentProvider {
+public class AutoUnstripDialog extends RevEngDialogComponentProvider {
     private final AnalysisID analysisID;
     private final GhidraRevengService revengService;
     private final Program program;
@@ -37,7 +40,7 @@ public class AutoUnstripDialog extends DialogComponentProvider {
     private static final int POLL_INTERVAL_MS = 2000; // Poll every 2 seconds
 
     public AutoUnstripDialog(PluginTool tool, ProgramWithBinaryID analysisID) {
-        super("Auto Unstrip", true);
+        super(ReaiPluginPackage.WINDOW_PREFIX + "Auto Unstrip", true);
 
         this.analysisID = analysisID.analysisID();
         this.program = analysisID.program();
@@ -162,23 +165,16 @@ public class AutoUnstripDialog extends DialogComponentProvider {
     private JComponent buildMainPanel() {
         JPanel panel = new JPanel(new BorderLayout());
 
-        // Description at the top
-        JTextArea descriptionArea = new JTextArea(3, 60);
-        descriptionArea.setLineWrap(true);
-        descriptionArea.setWrapStyleWord(true);
-        descriptionArea.setEditable(false);
-        descriptionArea.setBackground(panel.getBackground());
-        descriptionArea.setText(
-            """
-            Automatically rename unknown functions in your analysis.
-            The names are sourced by matching functions in your analysis to functions within the RevEng.AI dataset.
-            """
-        );
-        panel.add(new JScrollPane(descriptionArea), BorderLayout.NORTH);
+        // Create title panel
+        JPanel titlePanel = createTitlePanel("Automatically rename unknown functions");
+        panel.add(titlePanel, BorderLayout.NORTH);
+
+        // Create content panel for description and progress
+        JPanel contentPanel = new JPanel(new BorderLayout());
 
         // Progress panel in the center
         JPanel progressPanel = createProgressPanel();
-        panel.add(progressPanel, BorderLayout.CENTER);
+        contentPanel.add(progressPanel, BorderLayout.CENTER);
 
         // Error area at the bottom (initially hidden)
         errorArea = new JTextArea(5, 60);
@@ -188,7 +184,9 @@ public class AutoUnstripDialog extends DialogComponentProvider {
         errorArea.setBackground(Color.PINK);
         errorArea.setBorder(BorderFactory.createTitledBorder("Error Details"));
         errorArea.setVisible(false);
-        panel.add(new JScrollPane(errorArea), BorderLayout.SOUTH);
+        contentPanel.add(new JScrollPane(errorArea), BorderLayout.SOUTH);
+
+        panel.add(contentPanel, BorderLayout.CENTER);
 
         return panel;
     }
