@@ -78,9 +78,18 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 	@Override
 	protected void locationChanged(ProgramLocation loc) {
 		super.locationChanged(loc);
-        if (loc == null || loc.getProgram() == null) {
+
+        // If no location, nothing to do
+        if (loc == null) {
             return;
         }
+
+        // If no program, or not attached to an analysis, do not trigger location change events
+        var program = loc.getProgram();
+        if (program == null || !apiService.isKnownProgram(program)) {
+            return;
+        }
+
 		functionSimilarityComponent.locationChanged(loc);
 		decompiledWindow.locationChanged(loc);
 	}
@@ -183,6 +192,9 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 		new ActionBuilder("AI Decompilation", this.getName())
 				.withContext(ProgramLocationActionContext.class)
 				.enabledWhen(context -> {
+
+                    Msg.info(this, "here");
+
 					var func = context.getProgram().getFunctionManager().getFunctionContaining(context.getAddress());
 					return func != null
                             // Exclude thunks and external functions because we do not support them in the portal

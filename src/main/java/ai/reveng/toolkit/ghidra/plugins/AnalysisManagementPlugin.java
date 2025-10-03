@@ -213,7 +213,7 @@ public class AnalysisManagementPlugin extends ProgramPlugin {
 				.onAction(context -> {
 					var program = tool.getService(ProgramManager.class).getCurrentProgram();
 					var analysisID = this.revengService.getAnalysisIDFor(program);
-					var displayText = analysisID.map(id -> "analysis " + id.id());
+					var displayText = analysisID.map(id -> "analysis " + id.id()).get();
 
 					var result = OptionDialog.showOptionDialogWithCancelAsDefaultButton(
 							tool.getToolFrame(),
