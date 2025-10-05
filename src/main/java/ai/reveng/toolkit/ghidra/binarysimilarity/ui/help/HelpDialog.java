@@ -1,5 +1,6 @@
 package ai.reveng.toolkit.ghidra.binarysimilarity.ui.help;
 
+import ai.reveng.toolkit.ghidra.binarysimilarity.ui.dialog.RevEngDialogComponentProvider;
 import ai.reveng.toolkit.ghidra.plugins.ReaiPluginPackage;
 import docking.DialogComponentProvider;
 import docking.widgets.label.GLabel;
@@ -12,12 +13,9 @@ import java.net.URI;
 /**
  * Shows a dialog with help information.
  */
-public class HelpDialog extends DialogComponentProvider {
-    private final PluginTool tool;
-
+public class HelpDialog extends RevEngDialogComponentProvider {
     public HelpDialog(PluginTool tool) {
         super(ReaiPluginPackage.WINDOW_PREFIX + "Help", true);
-        this.tool = tool;
 
         buildInterface();
         setPreferredSize(700, 600);
@@ -26,6 +24,10 @@ public class HelpDialog extends DialogComponentProvider {
     private void buildInterface() {
         JPanel mainPanel = new JPanel(new BorderLayout());
         mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        // Create title panel
+        JPanel titlePanel = createTitlePanel("Help on using the plugin");
+        mainPanel.add(titlePanel, BorderLayout.NORTH);
 
         // Create the help content
         JPanel contentPanel = createHelpContent();

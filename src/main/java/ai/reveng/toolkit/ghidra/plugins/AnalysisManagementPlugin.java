@@ -130,12 +130,12 @@ public class AnalysisManagementPlugin extends ProgramPlugin {
                 .enabledWhen(context -> {
                     var currentProgram = tool.getService(ProgramManager.class).getCurrentProgram();
                     if (currentProgram == null) {
-                        tool.getService(ReaiLoggingService.class).info("Create new action disabled: No current program");
+                        // Disable the action if no program is open
                         return false;
                     }
                     boolean isKnown = revengService.isKnownProgram(currentProgram);
                     boolean shouldEnable = !isKnown;
-                    tool.getService(ReaiLoggingService.class).info("Create new action enabled: " + shouldEnable + " (program: " + currentProgram.getName() + ", isKnown: " + isKnown + ")");
+
                     return shouldEnable;
                 })
                 .onAction(context -> {
@@ -178,13 +178,10 @@ public class AnalysisManagementPlugin extends ProgramPlugin {
 				.enabledWhen(c -> {
                     var currentProgram = tool.getService(ProgramManager.class).getCurrentProgram();
                     if (currentProgram == null) {
-                        tool.getService(ReaiLoggingService.class).info("Attach to existing action disabled: No current program");
                         return false;
                     }
                     boolean isKnown = revengService.isKnownProgram(currentProgram);
-                    boolean shouldEnable = !isKnown;
-                    tool.getService(ReaiLoggingService.class).info("Attach to existing action enabled: " + shouldEnable + " (program: " + currentProgram.getName() + ", isKnown: " + isKnown + ")");
-                    return shouldEnable;
+                    return !isKnown;
                 })
 				.onAction(context -> {
 					var currentProgram = tool.getService(ProgramManager.class).getCurrentProgram();
@@ -203,12 +200,10 @@ public class AnalysisManagementPlugin extends ProgramPlugin {
 				.enabledWhen(c -> {
                     var currentProgram = tool.getService(ProgramManager.class).getCurrentProgram();
                     if (currentProgram == null) {
-                        tool.getService(ReaiLoggingService.class).info("Detach action disabled: No current program");
+                        // Disable the action if no program is open
                         return false;
                     }
-                    boolean isKnown = revengService.isKnownProgram(currentProgram);
-                    tool.getService(ReaiLoggingService.class).info("Detach action enabled: " + isKnown + " (program: " + currentProgram.getName() + ", isKnown: " + isKnown + ")");
-                    return isKnown;
+                    return revengService.isKnownProgram(currentProgram);
                 })
 				.onAction(context -> {
 					var program = tool.getService(ProgramManager.class).getCurrentProgram();
@@ -240,12 +235,10 @@ public class AnalysisManagementPlugin extends ProgramPlugin {
 				.enabledWhen(context -> {
                     var currentProgram = tool.getService(ProgramManager.class).getCurrentProgram();
                     if (currentProgram == null) {
-                        tool.getService(ReaiLoggingService.class).info("Check status action disabled: No current program");
+                        // Disable the action if no program is open
                         return false;
                     }
-                    boolean isKnown = revengService.isKnownProgram(currentProgram);
-                    tool.getService(ReaiLoggingService.class).info("Check status action enabled: " + isKnown + " (program: " + currentProgram.getName() + ", isKnown: " + isKnown + ")");
-                    return isKnown;
+                    return revengService.isKnownProgram(currentProgram);
                 })
 				.onAction(context -> {
 					var currentProgram = tool.getService(ProgramManager.class).getCurrentProgram();
@@ -266,12 +259,10 @@ public class AnalysisManagementPlugin extends ProgramPlugin {
                 .enabledWhen(context -> {
                     var currentProgram = tool.getService(ProgramManager.class).getCurrentProgram();
                     if (currentProgram == null) {
-                        tool.getService(ReaiLoggingService.class).info("View in portal action disabled: No current program");
+                        // Disable the action if no program is open
                         return false;
                     }
-                    boolean isKnown = revengService.isKnownProgram(currentProgram);
-                    tool.getService(ReaiLoggingService.class).info("View in portal action enabled: " + isKnown + " (program: " + currentProgram.getName() + ", isKnown: " + isKnown + ")");
-                    return isKnown;
+                    return revengService.isKnownProgram(currentProgram);
                 })
                 .onAction(context -> {
                     var currentProgram = tool.getService(ProgramManager.class).getCurrentProgram();
@@ -309,6 +300,7 @@ public class AnalysisManagementPlugin extends ProgramPlugin {
         super.processEvent(event);
         // Forward the event to the analysis log component
         if (event instanceof RevEngAIAnalysisStatusChangedEvent analysisEvent) {
+
             analysisLogComponent.processEvent(analysisEvent);
             if (analysisEvent.getStatus() == AnalysisStatus.Complete) {
                 // If the analysis is complete, we refresh the function signatures from the server

@@ -64,6 +64,13 @@ public class AnalysisLogComponent extends ComponentProviderAdapter implements An
     }
 
     public void processEvent(RevEngAIAnalysisStatusChangedEvent event) {
+        // We don't need to display the log window when the user selects an existing analysis because it will be an
+        // already completed analysis.
+        var sourceName = event.getSourceName();
+        if (sourceName != null && sourceName.equals("Recent Analysis Dialog")) {
+            return;
+        }
+
         this.setVisible(true);
         switch (event.getStatus()) {
             case Complete, Error -> {}

@@ -69,7 +69,7 @@ public class UnstripTest extends RevEngMockableHeadedIntegrationTest{
         performAction(action, false);
 
         // Wait for the dialog to appear and interact with it
-        var dialog = waitForDialogComponent("Auto Unstrip");
+        var dialog = waitForDialogComponent("RevEng.AI: Auto Unstrip");
         waitForSwing();
 
         assertEquals("unstripped_function_name", func.getName());
@@ -151,7 +151,7 @@ public class UnstripTest extends RevEngMockableHeadedIntegrationTest{
         performAction(action, false);
 
         // Wait for the dialog to appear and interact with it
-        var dialog = waitForDialogComponent("Auto Unstrip");
+        var dialog = waitForDialogComponent("RevEng.AI: Auto Unstrip");
         waitForSwing();
 
         waitForCondition(() -> !responses.hasNext());

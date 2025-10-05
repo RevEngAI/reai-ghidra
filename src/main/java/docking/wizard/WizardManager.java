@@ -233,6 +233,9 @@ public class WizardManager extends ReusableDialogComponentProvider implements Wi
 
 		// Create title label without icon - icon will be handled separately
 		titleLabel = new GDLabel(INIT_TITLE);
+        // Make the title text bold
+        Font currentFont = titleLabel.getFont();
+        titleLabel.setFont(currentFont.deriveFont(Font.BOLD));
 
 		JPanel titlePanel = new JPanel(new BorderLayout());
 		titlePanel.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createEtchedBorder(),
