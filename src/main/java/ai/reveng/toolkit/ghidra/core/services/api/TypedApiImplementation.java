@@ -1,5 +1,6 @@
 package ai.reveng.toolkit.ghidra.core.services.api;
 
+import ai.reveng.api.AnalysesResultsMetadataApi;
 import ai.reveng.api.AuthenticationUsersApi;
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
 import ai.reveng.toolkit.ghidra.core.services.api.types.Collection;
@@ -57,6 +58,7 @@ public class TypedApiImplementation implements TypedApiInterface {
 
     private final AnalysesCoreApi analysisCoreApi;
     private final AuthenticationUsersApi authenticationUsersApi;
+    private final AnalysesResultsMetadataApi analysesResultsMetadataApi;
 
     // Cache for binary ID to analysis ID mappings
     private final Map<BinaryID, AnalysisID> binaryToAnalysisCache = new HashMap<>();
@@ -85,6 +87,7 @@ public class TypedApiImplementation implements TypedApiInterface {
 
         this.analysisCoreApi = new AnalysesCoreApi(apiClient);
         this.authenticationUsersApi = new AuthenticationUsersApi(apiClient);
+        this.analysesResultsMetadataApi = new AnalysesResultsMetadataApi(apiClient);
 
         this.baseUrl = baseUrl + "/";
         this.httpClient = HttpClient.newBuilder()
@@ -256,14 +259,20 @@ public class TypedApiImplementation implements TypedApiInterface {
     }
 
     @Override
-    public List<FunctionInfo> getFunctionInfo(BinaryID binaryID) {
-        var request = requestBuilderForEndpoint(APIVersion.V1, "analyse/functions/" + binaryID.value())
-                .GET()
-                .build();
+    public List<FunctionInfo> getFunctionInfo(BinaryID binaryID) throws ApiException {
+        var analysisID = this.getAnalysisIDfromBinaryID(binaryID);
 
-        return mapJSONArray(
-                sendRequest(request).getJSONArray("functions"),
-                FunctionInfo::fromJSONObject);
+        var response = this.analysesResultsMetadataApi.getFunctionsList(analysisID.id(), null, null, null);
+
+        return response.getData().getFunctions().stream().map(f -> (
+                new FunctionInfo(
+                        new FunctionID(f.getFunctionId()),
+                        f.getFunctionName(),
+                        f.getFunctionMangledName(),
+                        f.getFunctionVaddr(),
+                        f.getFunctionSize()
+                )
+        )).toList();
     }
 
     private String queryParams(Map<String, String> params){
