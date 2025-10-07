@@ -33,6 +33,8 @@ public class AutoUnstripDialog extends RevEngDialogComponentProvider {
     private JLabel statusLabel;
     private JLabel matchesLabel;
     private JTextArea errorArea;
+    private JScrollPane errorScrollPane;
+    private JPanel contentPanel;
     private Timer pollTimer;
     private TaskMonitorComponent taskMonitorComponent;
 
@@ -147,12 +149,11 @@ public class AutoUnstripDialog extends RevEngDialogComponentProvider {
         int matchCount = autoUnstripResponse.matches() != null ? autoUnstripResponse.matches().size() : 0;
         matchesLabel.setText("Matches found: " + matchCount);
 
-        // Handle error message
+        // Handle error message - dynamically add/remove error panel
         if (autoUnstripResponse.error_message() != null && !autoUnstripResponse.error_message().isEmpty()) {
-            errorArea.setText(autoUnstripResponse.error_message());
-            errorArea.setVisible(true);
+            showError(autoUnstripResponse.error_message());
         } else {
-            errorArea.setVisible(false);
+            hideError();
         }
 
         // Show applied status if matches were applied
@@ -163,9 +164,27 @@ public class AutoUnstripDialog extends RevEngDialogComponentProvider {
 
     private void handleError(String message) {
         statusLabel.setText("Error occurred");
-        errorArea.setText(message);
-        errorArea.setVisible(true);
+        showError(message);
         taskMonitorComponent.setMessage("Error");
+    }
+
+    private void showError(String message) {
+        errorArea.setText(message);
+        // Only add the error panel if it's not already added
+        if (errorScrollPane.getParent() == null) {
+            contentPanel.add(errorScrollPane, BorderLayout.SOUTH);
+            contentPanel.revalidate();
+            contentPanel.repaint();
+        }
+    }
+
+    private void hideError() {
+        // Only remove the error panel if it's currently added
+        if (errorScrollPane.getParent() != null) {
+            contentPanel.remove(errorScrollPane);
+            contentPanel.revalidate();
+            contentPanel.repaint();
+        }
     }
 
     private void stopPolling() {
@@ -183,21 +202,21 @@ public class AutoUnstripDialog extends RevEngDialogComponentProvider {
         panel.add(titlePanel, BorderLayout.NORTH);
 
         // Create content panel for description and progress
-        JPanel contentPanel = new JPanel(new BorderLayout());
+        contentPanel = new JPanel(new BorderLayout());
 
         // Progress panel in the center
         JPanel progressPanel = createProgressPanel();
         contentPanel.add(progressPanel, BorderLayout.CENTER);
 
-        // Error area at the bottom (initially hidden)
+        // Initialize error area but don't add it to the panel yet
         errorArea = new JTextArea(5, 60);
         errorArea.setLineWrap(true);
         errorArea.setWrapStyleWord(true);
         errorArea.setEditable(false);
         errorArea.setBackground(Color.PINK);
         errorArea.setBorder(BorderFactory.createTitledBorder("Error Details"));
-        errorArea.setVisible(false);
-        contentPanel.add(new JScrollPane(errorArea), BorderLayout.SOUTH);
+        errorScrollPane = new JScrollPane(errorArea);
+        // Note: Error panel is not added here - it will be added dynamically when needed
 
         panel.add(contentPanel, BorderLayout.CENTER);
 
