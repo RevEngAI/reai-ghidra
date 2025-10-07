@@ -6,7 +6,6 @@ import ai.reveng.toolkit.ghidra.core.services.api.types.AnalysisID;
 import ai.reveng.toolkit.ghidra.core.services.api.types.AutoUnstripResponse;
 import ai.reveng.toolkit.ghidra.core.types.ProgramWithBinaryID;
 import ai.reveng.toolkit.ghidra.plugins.ReaiPluginPackage;
-import docking.widgets.label.GDLabel;
 import ghidra.framework.plugintool.PluginTool;
 import ghidra.program.model.address.Address;
 import ghidra.program.model.listing.Function;
@@ -15,10 +14,12 @@ import ghidra.program.model.symbol.SourceType;
 import ghidra.util.exception.DuplicateNameException;
 import ghidra.util.exception.InvalidInputException;
 import ghidra.util.task.TaskMonitorComponent;
-import resources.ResourceManager;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 import static ai.reveng.toolkit.ghidra.plugins.BinarySimilarityPlugin.REVENG_AI_NAMESPACE;
@@ -37,9 +38,23 @@ public class AutoUnstripDialog extends RevEngDialogComponentProvider {
     private JPanel contentPanel;
     private Timer pollTimer;
     private TaskMonitorComponent taskMonitorComponent;
+    private JTable resultsTable;
+    private JScrollPane resultsScrollPane;
+    private List<RenameResult> renameResults;
 
     // Polling configuration
     private static final int POLL_INTERVAL_MS = 2000; // Poll every 2 seconds
+
+    // Inner class to hold rename results
+    private static class RenameResult {
+        final String originalName;
+        final String newName;
+
+        RenameResult(String originalName, String newName) {
+            this.originalName = originalName;
+            this.newName = newName;
+        }
+    }
 
     public AutoUnstripDialog(PluginTool tool, ProgramWithBinaryID analysisID) {
         super(ReaiPluginPackage.WINDOW_PREFIX + "Auto Unstrip", true);
@@ -48,6 +63,7 @@ public class AutoUnstripDialog extends RevEngDialogComponentProvider {
         this.program = analysisID.program();
         this.revengService = tool.getService(GhidraRevengService.class);
         this.taskMonitorComponent = new TaskMonitorComponent();
+        this.renameResults = new ArrayList<>();
         // Initialize UI
         addDismissButton();
 
@@ -116,12 +132,16 @@ public class AutoUnstripDialog extends RevEngDialogComponentProvider {
                                     !revEngDemangledName.contains(" ")
                             ) {
                                 try {
+                                    // Capture original name before renaming
+                                    String originalName = func.getName();
+
                                     func.setName(revEngDemangledName, SourceType.ANALYSIS);
                                     func.setParentNamespace(revengMatchNamespace);
 
                                     // TODO: update the mangled name map
 
-                                    // TODO: output renames to a table
+                                    // Add to rename results
+                                    renameResults.add(new RenameResult(originalName, revEngDemangledName));
 
                                 } catch (Exception e) {
                                     handleError("Failed to rename function at " + addr + ": " + e.getMessage());
@@ -133,6 +153,9 @@ public class AutoUnstripDialog extends RevEngDialogComponentProvider {
                     }
                 }
         );
+
+        // Show results table after import is complete
+        SwingUtilities.invokeLater(() -> updateResultsTable());
     }
 
     private void updateUI() {
@@ -160,6 +183,27 @@ public class AutoUnstripDialog extends RevEngDialogComponentProvider {
         if (autoUnstripResponse.applied() && matchCount > 0) {
             statusLabel.setText("Status: " + autoUnstripResponse.status() + " (Applied " + matchCount + " matches)");
         }
+
+        // Update results table
+        updateResultsTable();
+    }
+
+    private void updateResultsTable() {
+        DefaultTableModel model = new DefaultTableModel(new Object[]{"Original Name", "New Name"}, 0);
+        for (RenameResult result : renameResults) {
+            model.addRow(new Object[]{result.originalName, result.newName});
+        }
+        resultsTable.setModel(model);
+
+        // Update the dynamic title
+        int renameCount = renameResults.size();
+        String title = "Renamed " + renameCount + " functions identified by the RevEng.AI dataset";
+        resultsScrollPane.setBorder(BorderFactory.createTitledBorder(title));
+
+        // Fix table header appearance
+        resultsTable.getTableHeader().setOpaque(false);
+        resultsTable.getTableHeader().setBackground(UIManager.getColor("TableHeader.background"));
+        resultsTable.getTableHeader().setForeground(UIManager.getColor("TableHeader.foreground"));
     }
 
     private void handleError(String message) {
@@ -218,6 +262,12 @@ public class AutoUnstripDialog extends RevEngDialogComponentProvider {
         errorScrollPane = new JScrollPane(errorArea);
         // Note: Error panel is not added here - it will be added dynamically when needed
 
+        // Results table
+        resultsTable = new JTable();
+        resultsScrollPane = new JScrollPane(resultsTable);
+        resultsScrollPane.setBorder(BorderFactory.createTitledBorder("Rename Results"));
+        contentPanel.add(resultsScrollPane, BorderLayout.SOUTH);
+
         panel.add(contentPanel, BorderLayout.CENTER);
 
         return panel;
@@ -230,7 +280,8 @@ public class AutoUnstripDialog extends RevEngDialogComponentProvider {
         gbc.anchor = GridBagConstraints.WEST;
 
         // Progress bar
-        gbc.gridx = 0; gbc.gridy = 0;
+        gbc.gridx = 0;
+        gbc.gridy = 0;
         gbc.gridwidth = 2;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         panel.add(taskMonitorComponent, gbc);
