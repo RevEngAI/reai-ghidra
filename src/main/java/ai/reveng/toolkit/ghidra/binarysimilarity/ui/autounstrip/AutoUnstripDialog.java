@@ -6,7 +6,6 @@ import ai.reveng.toolkit.ghidra.core.services.api.types.AnalysisID;
 import ai.reveng.toolkit.ghidra.core.services.api.types.AutoUnstripResponse;
 import ai.reveng.toolkit.ghidra.core.types.ProgramWithBinaryID;
 import ai.reveng.toolkit.ghidra.plugins.ReaiPluginPackage;
-import docking.widgets.label.GDLabel;
 import ghidra.framework.plugintool.PluginTool;
 import ghidra.program.model.address.Address;
 import ghidra.program.model.listing.Function;
@@ -15,10 +14,12 @@ import ghidra.program.model.symbol.SourceType;
 import ghidra.util.exception.DuplicateNameException;
 import ghidra.util.exception.InvalidInputException;
 import ghidra.util.task.TaskMonitorComponent;
-import resources.ResourceManager;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 import static ai.reveng.toolkit.ghidra.plugins.BinarySimilarityPlugin.REVENG_AI_NAMESPACE;
@@ -31,13 +32,21 @@ public class AutoUnstripDialog extends RevEngDialogComponentProvider {
 
     // UI components
     private JLabel statusLabel;
-    private JLabel matchesLabel;
     private JTextArea errorArea;
+    private JScrollPane errorScrollPane;
+    private JPanel contentPanel;
     private Timer pollTimer;
-    private TaskMonitorComponent taskMonitorComponent;
+    private final TaskMonitorComponent taskMonitorComponent;
+    private JTable resultsTable;
+    private JScrollPane resultsScrollPane;
+    private final List<RenameResult> renameResults;
 
     // Polling configuration
     private static final int POLL_INTERVAL_MS = 2000; // Poll every 2 seconds
+
+    // Inner class to hold rename results
+        private record RenameResult(String virtualAddress, String originalName, String newName) {
+    }
 
     public AutoUnstripDialog(PluginTool tool, ProgramWithBinaryID analysisID) {
         super(ReaiPluginPackage.WINDOW_PREFIX + "Auto Unstrip", true);
@@ -46,10 +55,15 @@ public class AutoUnstripDialog extends RevEngDialogComponentProvider {
         this.program = analysisID.program();
         this.revengService = tool.getService(GhidraRevengService.class);
         this.taskMonitorComponent = new TaskMonitorComponent();
+        this.renameResults = new ArrayList<>();
+
         // Initialize UI
         addDismissButton();
 
         addWorkPanel(buildMainPanel());
+
+        // Set dialog size to be wider
+        setPreferredSize(800, 680);
 
         // Start the auto unstrip process
         startAutoUnstrip();
@@ -77,7 +91,6 @@ public class AutoUnstripDialog extends RevEngDialogComponentProvider {
                 // Check if we're done
                 if (autoUnstripResponse.progress() >= 100 || Objects.equals(autoUnstripResponse.status(), "COMPLETED")) {
                     stopPolling();
-//                    taskMonitorComponent.setFinished();
                     taskMonitorComponent.setVisible(false);
                     importFunctionNames(autoUnstripResponse);
                 }
@@ -89,35 +102,68 @@ public class AutoUnstripDialog extends RevEngDialogComponentProvider {
     }
 
     private void importFunctionNames(AutoUnstripResponse autoUnstripResponse) {
+        var functionMgr = program.getFunctionManager();
 
+        // Retrieve the mangled names map once outside the transaction
+        var mangledNameMapOpt = revengService.getFunctionMangledNamesMap(program);
 
-            var functionMgr = program.getFunctionManager();
-            program.withTransaction("Apply Auto-Unstrip Function Names", () -> {
-                        try {
-                            var revengMatchNamespace = program.getSymbolTable().getOrCreateNameSpace(
-                                    program.getGlobalNamespace(),
-                                    REVENG_AI_NAMESPACE,
-                                    SourceType.ANALYSIS);
+        program.withTransaction("Apply Auto-Unstrip Function Names", () -> {
+                    try {
+                        var revengMatchNamespace = program.getSymbolTable().getOrCreateNameSpace(
+                                program.getGlobalNamespace(),
+                                REVENG_AI_NAMESPACE,
+                                SourceType.ANALYSIS
+                        );
 
-                            autoUnstripResponse.matches().forEach(match -> {
-                                Address addr = program.getAddressFactory().getDefaultAddressSpace().getAddress(match.function_vaddr());
-                                Function func = functionMgr.getFunctionAt(addr);
-                                if (func == null) {
-                                    return;
-                                } else {
-                                    try {
-                                        func.setName(match.suggested_name(), SourceType.ANALYSIS);
-                                        func.setParentNamespace(revengMatchNamespace);
-                                    } catch (Exception e) {
-                                        handleError("Failed to rename function at " + addr + ": " + e.getMessage());
-                                    }
+                        autoUnstripResponse.matches().forEach(match -> {
+                            Address addr = program.getAddressFactory().getDefaultAddressSpace().getAddress(match.function_vaddr());
+                            Function func = functionMgr.getFunctionAt(addr);
+
+                            var revEngMangledName = match.suggested_name();
+                            var revEngDemangledName = match.suggested_demangled_name();
+
+                            if (
+                                    func != null &&
+                                    // Do not override user-defined function names
+                                    func.getSymbol().getSource() != SourceType.USER_DEFINED &&
+                                    // Exclude thunks and external functions
+                                    !func.isThunk() &&
+                                    !func.isExternal() &&
+                                    // Only accept valid names (no spaces)
+                                    !revEngMangledName.contains(" ") &&
+                                    !revEngDemangledName.contains(" ")
+                            ) {
+                                try {
+                                    // Capture original name before renaming
+                                    String originalName = func.getName();
+
+                                    func.setName(revEngDemangledName, SourceType.ANALYSIS);
+                                    func.setParentNamespace(revengMatchNamespace);
+
+                                    // Update the mangled name map with the RevEng.AI mangled name
+                                    mangledNameMapOpt.ifPresent(mangledNameMap -> {
+                                        try {
+                                            mangledNameMap.add(func.getEntryPoint(), revEngMangledName + "test");
+                                        } catch (Exception e) {
+                                            handleError("Failed to update mangled name map for function at " + addr + ": " + e.getMessage());
+                                        }
+                                    });
+
+                                    // Add to rename results
+                                    renameResults.add(new RenameResult(String.format("%08x", match.function_vaddr()), originalName, revEngDemangledName));
+                                } catch (Exception e) {
+                                    handleError("Failed to rename function at " + addr + ": " + e.getMessage());
                                 }
-                            });
-                        } catch (DuplicateNameException | InvalidInputException e) {
-                            throw new RuntimeException(e);
-                        }
+                            }
+                        });
+                    } catch (DuplicateNameException | InvalidInputException e) {
+                        throw new RuntimeException(e);
                     }
-                );
+                }
+        );
+
+        // Show results table after import is complete
+        SwingUtilities.invokeLater(this::updateResultsTable);
     }
 
     private void updateUI() {
@@ -130,29 +176,82 @@ public class AutoUnstripDialog extends RevEngDialogComponentProvider {
         // Update status
         statusLabel.setText("Status: " + autoUnstripResponse.status());
 
-        // Update matches count
-        int matchCount = autoUnstripResponse.matches() != null ? autoUnstripResponse.matches().size() : 0;
-        matchesLabel.setText("Matches found: " + matchCount);
-
-        // Handle error message
+        // Handle error message - dynamically add/remove error panel
         if (autoUnstripResponse.error_message() != null && !autoUnstripResponse.error_message().isEmpty()) {
-            errorArea.setText(autoUnstripResponse.error_message());
-            errorArea.setVisible(true);
+            showError(autoUnstripResponse.error_message());
         } else {
-            errorArea.setVisible(false);
+            hideError();
         }
 
-        // Show applied status if matches were applied
-        if (autoUnstripResponse.applied() && matchCount > 0) {
-            statusLabel.setText("Status: " + autoUnstripResponse.status() + " (Applied " + matchCount + " matches)");
+        // Update results table
+        updateResultsTable();
+    }
+
+    private void updateResultsTable() {
+        DefaultTableModel model = new DefaultTableModel(new Object[]{"Virtual Address", "Original Name", "New Name"}, 0);
+        for (RenameResult result : renameResults) {
+            model.addRow(new Object[]{result.virtualAddress, result.originalName, result.newName});
+        }
+        resultsTable.setModel(model);
+
+        // Update the dynamic title
+        int renameCount = renameResults.size();
+        String title = "Renamed " + renameCount + " functions identified by the RevEng.AI dataset";
+        resultsScrollPane.setBorder(BorderFactory.createTitledBorder(title));
+
+        // Fix table header appearance
+        resultsTable.getTableHeader().setOpaque(false);
+        resultsTable.getTableHeader().setBackground(UIManager.getColor("TableHeader.background"));
+        resultsTable.getTableHeader().setForeground(UIManager.getColor("TableHeader.foreground"));
+
+        // Set column widths and fonts
+        if (resultsTable.getColumnCount() > 0) {
+            // Set monospace font for Virtual Address column
+            resultsTable.getColumnModel().getColumn(0).setCellRenderer(new javax.swing.table.DefaultTableCellRenderer() {
+                @Override
+                public java.awt.Component getTableCellRendererComponent(javax.swing.JTable table, Object value,
+                                                                     boolean isSelected, boolean hasFocus, int row, int column) {
+                    java.awt.Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                    c.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+                    return c;
+                }
+            });
+
+            // Set column widths - Virtual Address smaller, others larger
+            resultsTable.getColumnModel().getColumn(0).setPreferredWidth(10);  // Virtual Address
+            resultsTable.getColumnModel().getColumn(1).setPreferredWidth(200);  // Original Name
+            resultsTable.getColumnModel().getColumn(2).setPreferredWidth(200);  // New Name
+
+            // Allow columns to be resized but set minimum widths
+            resultsTable.getColumnModel().getColumn(0).setMinWidth(10);
+            resultsTable.getColumnModel().getColumn(1).setMinWidth(150);
+            resultsTable.getColumnModel().getColumn(2).setMinWidth(150);
         }
     }
 
     private void handleError(String message) {
         statusLabel.setText("Error occurred");
-        errorArea.setText(message);
-        errorArea.setVisible(true);
+        showError(message);
         taskMonitorComponent.setMessage("Error");
+    }
+
+    private void showError(String message) {
+        errorArea.setText(message);
+        // Only add the error panel if it's not already added
+        if (errorScrollPane.getParent() == null) {
+            contentPanel.add(errorScrollPane, BorderLayout.SOUTH);
+            contentPanel.revalidate();
+            contentPanel.repaint();
+        }
+    }
+
+    private void hideError() {
+        // Only remove the error panel if it's currently added
+        if (errorScrollPane.getParent() != null) {
+            contentPanel.remove(errorScrollPane);
+            contentPanel.revalidate();
+            contentPanel.repaint();
+        }
     }
 
     private void stopPolling() {
@@ -170,21 +269,27 @@ public class AutoUnstripDialog extends RevEngDialogComponentProvider {
         panel.add(titlePanel, BorderLayout.NORTH);
 
         // Create content panel for description and progress
-        JPanel contentPanel = new JPanel(new BorderLayout());
+        contentPanel = new JPanel(new BorderLayout());
 
         // Progress panel in the center
         JPanel progressPanel = createProgressPanel();
         contentPanel.add(progressPanel, BorderLayout.CENTER);
 
-        // Error area at the bottom (initially hidden)
+        // Initialize error area but don't add it to the panel yet
         errorArea = new JTextArea(5, 60);
         errorArea.setLineWrap(true);
         errorArea.setWrapStyleWord(true);
         errorArea.setEditable(false);
         errorArea.setBackground(Color.PINK);
         errorArea.setBorder(BorderFactory.createTitledBorder("Error Details"));
-        errorArea.setVisible(false);
-        contentPanel.add(new JScrollPane(errorArea), BorderLayout.SOUTH);
+        errorScrollPane = new JScrollPane(errorArea);
+        // Note: Error panel is not added here - it will be added dynamically when needed
+
+        // Results table
+        resultsTable = new JTable();
+        resultsScrollPane = new JScrollPane(resultsTable);
+        resultsScrollPane.setBorder(BorderFactory.createTitledBorder("Rename Results"));
+        contentPanel.add(resultsScrollPane, BorderLayout.SOUTH);
 
         panel.add(contentPanel, BorderLayout.CENTER);
 
@@ -198,7 +303,8 @@ public class AutoUnstripDialog extends RevEngDialogComponentProvider {
         gbc.anchor = GridBagConstraints.WEST;
 
         // Progress bar
-        gbc.gridx = 0; gbc.gridy = 0;
+        gbc.gridx = 0;
+        gbc.gridy = 0;
         gbc.gridwidth = 2;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         panel.add(taskMonitorComponent, gbc);
@@ -210,10 +316,6 @@ public class AutoUnstripDialog extends RevEngDialogComponentProvider {
         statusLabel = new JLabel("Initializing...");
         panel.add(statusLabel, gbc);
 
-        // Matches label
-        gbc.gridx = 1;
-        matchesLabel = new JLabel("Matches found: 0");
-        panel.add(matchesLabel, gbc);
 
         return panel;
     }
