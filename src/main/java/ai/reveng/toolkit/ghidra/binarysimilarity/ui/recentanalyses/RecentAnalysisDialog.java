@@ -8,6 +8,7 @@ import ai.reveng.toolkit.ghidra.core.types.ProgramWithBinaryID;
 import docking.DialogComponentProvider;
 import ghidra.framework.plugintool.PluginTool;
 import ghidra.program.model.listing.Program;
+import ghidra.util.Msg;
 import ghidra.util.table.GhidraFilterTable;
 
 import javax.swing.*;

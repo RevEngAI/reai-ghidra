@@ -39,7 +39,7 @@ public interface TypedApiInterface {
         throw new UnsupportedOperationException("status not implemented yet");
     }
 
-    default List<FunctionInfo> getFunctionInfo(BinaryID binaryID) {
+    default List<FunctionInfo> getFunctionInfo(BinaryID binaryID) throws ApiException {
         throw new UnsupportedOperationException("getFunctionInfo not implemented yet");
     }
 

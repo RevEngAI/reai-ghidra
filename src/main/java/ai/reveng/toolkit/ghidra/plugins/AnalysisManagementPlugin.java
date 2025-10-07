@@ -303,9 +303,16 @@ public class AnalysisManagementPlugin extends ProgramPlugin {
 
             analysisLogComponent.processEvent(analysisEvent);
             if (analysisEvent.getStatus() == AnalysisStatus.Complete) {
+                Msg.info(this, "Received analysis complete event for " + analysisEvent.getProgramWithBinaryID());
+
                 // If the analysis is complete, we refresh the function signatures from the server
                 var program = analysisEvent.getProgramWithBinaryID();
-                revengService.registerFinishedAnalysisForProgram(program);
+                try {
+                    revengService.registerFinishedAnalysisForProgram(program);
+                } catch (Exception e) {
+                    Msg.error(this, "Error registering finished analysis for program " + program, e);
+                    return;
+                }
                 tool.firePluginEvent(new RevEngAIAnalysisResultsLoaded("AnalysisManagementPlugin", program));
             }
         }
