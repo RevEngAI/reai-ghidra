@@ -37,6 +37,7 @@ public class AutoAnalysisComponentTest  extends RevEngMockableHeadedIntegrationT
                         new FunctionInfo(
                                 new FunctionID(1),
                                 "default_function_info_name",
+                                "default_function_info_name_mangled",
                                 0x1000L,
                                 10)
                 );

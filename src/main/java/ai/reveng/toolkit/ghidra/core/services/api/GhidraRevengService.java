@@ -25,6 +25,7 @@ import ghidra.program.model.listing.Function;
 import ghidra.program.model.listing.Program;
 import ghidra.program.model.symbol.*;
 import ghidra.program.model.util.LongPropertyMap;
+import ghidra.program.model.util.StringPropertyMap;
 import ghidra.util.InvalidNameException;
 import ghidra.util.Msg;
 import ghidra.util.data.DataTypeParser;
@@ -63,6 +64,7 @@ import java.util.stream.Collectors;
  */
 public class GhidraRevengService {
     private static final String REAI_FUNCTION_PROP_MAP = "RevEngAI_FunctionID_Map";
+    private static final String REAI_FUNCTION_MANGLED_MAP = "RevEngAI_FunctionMangledNames_Map";
     private Map<BinaryID, AnalysisStatus> statusCache = new HashMap<>();
 
     private TypedApiInterface api;
@@ -158,7 +160,8 @@ public class GhidraRevengService {
     }
 
     /**
-     * Loads the function info into a dedicated user property map
+     * Loads the function info into a dedicated user property map.
+     * Future task: we can potentially merge the function ID map with the mangled name map and have a single map of objects.
      */
     private void loadFunctionInfo(Program program, BinaryID binID) throws ApiException {
         List<FunctionInfo> functionInfo = api.getFunctionInfo(binID);
@@ -173,7 +176,17 @@ public class GhidraRevengService {
             throw new RuntimeException("Previous function property map still exists",e);
         }
 
+        // Create the function mangled name map
+        StringPropertyMap mangledNameMap;
+        try {
+            mangledNameMap = program.getUsrPropertyManager().createStringPropertyMap(REAI_FUNCTION_MANGLED_MAP);
+        } catch (DuplicateNameException e) {
+            program.endTransaction(transactionID, false);
+            throw new RuntimeException("Previous mangled name property map still exists",e);
+        }
+
         LongPropertyMap finalFunctionIDMap = functionIDMap;
+        StringPropertyMap finalMangledNameMap = mangledNameMap;
 
         AtomicInteger ghidraRenamedFunctions = new AtomicInteger();
         functionInfo.forEach(
@@ -188,6 +201,7 @@ public class GhidraRevengService {
                     // Extract the mangled name from Ghidra
                     var ghidraMangledName = func.getSymbol().getName(false);
                     var revEngMangledName = info.functionMangledName();
+                    var revEngDemangledName = info.functionName();
 
                     // Skip external and thunk functions because we don't support them
                     if (func.isExternal() || func.isThunk()){
@@ -208,25 +222,23 @@ public class GhidraRevengService {
                     }
 
                     // Source types:
-
                     // DEFAULT: placeholder name automatically assigned by Ghidra when it doesn’t know the real name.
                     // ANALYSIS: A name/signature inferred by one of Ghidra’s analysis engines (or demangler) rather than simply “default.”
                     // IMPORTED: Information taken from an external source — symbols or signatures imported from a file or database.
                     // USER_DEFINED: A name or signature explicitly set by the analyst.
                     if (func.getSymbol().getSource() == SourceType.DEFAULT && !revEngMangledName.startsWith("FUN_") ){
-                        Msg.info(this, "Renaming function %s to %s".formatted(ghidraMangledName, revEngMangledName));
+                        Msg.info(this, "Renaming function %s to %s [%s]".formatted(ghidraMangledName, revEngMangledName, revEngDemangledName));
                         try {
-                            // Set mangled name from RevEng.AI
-                            func.getSymbol().setName(revEngMangledName, SourceType.ANALYSIS);
+                            // Set demangled name from RevEng.AI
+                            func.setName(revEngDemangledName, SourceType.ANALYSIS);
                             ghidraRenamedFunctions.getAndIncrement();
-                        } catch (DuplicateNameException | InvalidInputException e) {
-                            throw new RuntimeException(e);
                         } catch (Exception e) {
                             throw new RuntimeException(e);
                         }
 
                     }
                     finalFunctionIDMap.add(func.getEntryPoint(), info.functionID().value());
+                    finalMangledNameMap.add(func.getEntryPoint(), revEngMangledName);
                 }
         );
 
@@ -277,6 +289,10 @@ public class GhidraRevengService {
 
     private Optional<LongPropertyMap> getFunctionIDMap(ProgramWithBinaryID program){
         return Optional.ofNullable(program.program().getUsrPropertyManager().getLongPropertyMap(REAI_FUNCTION_PROP_MAP));
+    }
+
+    public Optional<StringPropertyMap> getFunctionMangledNamesMap(Program program) {
+        return Optional.ofNullable(program.getUsrPropertyManager().getStringPropertyMap(REAI_FUNCTION_MANGLED_MAP));
     }
 
     public BiMap<FunctionID, Function> getFunctionMap(Program program){

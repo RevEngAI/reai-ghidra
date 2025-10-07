@@ -1,7 +1,5 @@
 package ai.reveng;
 
-import ai.reveng.toolkit.ghidra.binarysimilarity.ui.autoanalysis.AutoAnalysisComponentProvider;
-import ai.reveng.toolkit.ghidra.binarysimilarity.ui.autoanalysis.AutoAnalysisResultsTableModel;
 import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisResultsLoaded;
 import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisStatusChangedEvent;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
@@ -9,9 +7,9 @@ import ai.reveng.toolkit.ghidra.core.services.api.mocks.UnimplementedAPI;
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
 import ai.reveng.toolkit.ghidra.core.types.ProgramWithBinaryID;
 import ai.reveng.toolkit.ghidra.plugins.AnalysisManagementPlugin;
-import ai.reveng.toolkit.ghidra.plugins.BinarySimilarityPlugin;
 import ghidra.program.database.ProgramBuilder;
 import ghidra.program.model.data.Undefined;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.List;
@@ -30,7 +28,7 @@ public class PortalAnalysisIntegrationTest extends RevEngMockableHeadedIntegrati
             @Override
             public List<FunctionInfo> getFunctionInfo(BinaryID binaryID) {
                 return List.of(
-                        new FunctionInfo(new FunctionID(1), "portal_name", 0x4000L, 0x100)
+                        new FunctionInfo(new FunctionID(1), "portal_name", "portal_name_mangled", 0x4000L, 0x100)
                 );
             }
         });
@@ -48,7 +46,7 @@ public class PortalAnalysisIntegrationTest extends RevEngMockableHeadedIntegrati
         var service = defaultTool.getService(GhidraRevengService.class);
         service.addBinaryIDtoProgramOptions(program, id.binaryID());
 
-        /// Register a listener for the results loaded event, to verify that has been fired later
+        // Register a listener for the results loaded event, to verify that has been fired later
         AtomicBoolean receivedResultsLoadedEvent = new AtomicBoolean(false);
         defaultTool.addEventListener(RevEngAIAnalysisResultsLoaded.class, e -> {
             receivedResultsLoadedEvent.set(true);
@@ -66,21 +64,26 @@ public class PortalAnalysisIntegrationTest extends RevEngMockableHeadedIntegrati
                 ), false
         );
 
-        /*
-//         Check that we got the pop-up notifying the user of the completed analysis
-        OkDialog dialog = waitForDialogComponent(OkDialog.class);
-//         Close the button by clicking OK
-        pressButtonByText(dialog, "OK");
-        */
-
         waitForSwing();
         // Check that we received the results loaded event, i.e. other plugins would have been notified
         assertTrue(receivedResultsLoadedEvent.get());
         // Check that the function names have been updated to the one returned by the portal
         assertEquals("portal_name", exampleFunc.getName());
 
+        // Check the function ID has been stored in the program options
+        var funcIDMap = service.getFunctionMap(program);
+
+        var storedFunc = funcIDMap.get(new FunctionID(1));
+
+        Assert.assertNotNull(storedFunc);
+        assertEquals("portal_name", storedFunc.getName());
+
+        // Check the function mangled name has been stored
+        var mangledNamesMap = service.getFunctionMangledNamesMap(program);
+
+        assertTrue(mangledNamesMap.isPresent());
+        assertEquals("portal_name_mangled", mangledNamesMap.get().getString(exampleFunc.getEntryPoint()));
+
         // TODO: What else should happen when the analysis is finished?
-
     }
-
 }

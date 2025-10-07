@@ -42,11 +42,13 @@ public class AIDecompilerComponentTest extends RevEngMockableHeadedIntegrationTe
                         new FunctionInfo(
                                 new FunctionID(1),
                                 "portal_func_1",
+                                "portal_func_1_mangled",
                                 0x1000L,
                                 10),
                         new FunctionInfo(
                                 new FunctionID(2),
                                 "portal_func_2",
+                                "portal_func_2_mangled",
                                 0x2000L,
                                 10)
                 );
@@ -200,11 +202,13 @@ public class AIDecompilerComponentTest extends RevEngMockableHeadedIntegrationTe
                     new FunctionInfo(
                             new FunctionID(1),
                             "portal_func_1",
+                            "portal_func_1_mangled",
                             0x1000L,
                             10),
                     new FunctionInfo(
                             new FunctionID(2),
                             "portal_func_2",
+                            "portal_func_2_mangled",
                             0x2000L,
                             10)
             );

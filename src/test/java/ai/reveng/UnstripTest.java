@@ -53,7 +53,7 @@ public class UnstripTest extends RevEngMockableHeadedIntegrationTest{
 
             @Override
             public List<FunctionInfo> getFunctionInfo(BinaryID binaryID) {
-                return List.of(new FunctionInfo(new FunctionID(1), "default_function_info_name", 0x1000L, 10));
+                return List.of(new FunctionInfo(new FunctionID(1), "default_function_info_name",  "default_function_info_name_mangled",0x1000L, 10));
             }
         });
 
@@ -134,7 +134,7 @@ public class UnstripTest extends RevEngMockableHeadedIntegrationTest{
             @Override
             public List<FunctionInfo> getFunctionInfo(BinaryID binaryID) {
                 // the function info will return a name, but it will _not_ be the unstripped name
-                return List.of(new FunctionInfo(new FunctionID(1), "default_function_info_name", 0x1000L, 10));
+                return List.of(new FunctionInfo(new FunctionID(1), "default_function_info_name", "default_function_info_name_mangled",0x1000L, 10));
             }
         });
 
