@@ -32,30 +32,20 @@ public class AutoUnstripDialog extends RevEngDialogComponentProvider {
 
     // UI components
     private JLabel statusLabel;
-    private JLabel matchesLabel;
     private JTextArea errorArea;
     private JScrollPane errorScrollPane;
     private JPanel contentPanel;
     private Timer pollTimer;
-    private TaskMonitorComponent taskMonitorComponent;
+    private final TaskMonitorComponent taskMonitorComponent;
     private JTable resultsTable;
     private JScrollPane resultsScrollPane;
-    private List<RenameResult> renameResults;
+    private final List<RenameResult> renameResults;
 
     // Polling configuration
     private static final int POLL_INTERVAL_MS = 2000; // Poll every 2 seconds
 
     // Inner class to hold rename results
-    private static class RenameResult {
-        final String virtualAddress;
-        final String originalName;
-        final String newName;
-
-        RenameResult(String virtualAddress, String originalName, String newName) {
-            this.virtualAddress = virtualAddress;
-            this.originalName = originalName;
-            this.newName = newName;
-        }
+        private record RenameResult(String virtualAddress, String originalName, String newName) {
     }
 
     public AutoUnstripDialog(PluginTool tool, ProgramWithBinaryID analysisID) {
@@ -66,13 +56,14 @@ public class AutoUnstripDialog extends RevEngDialogComponentProvider {
         this.revengService = tool.getService(GhidraRevengService.class);
         this.taskMonitorComponent = new TaskMonitorComponent();
         this.renameResults = new ArrayList<>();
+
         // Initialize UI
         addDismissButton();
 
         addWorkPanel(buildMainPanel());
 
         // Set dialog size to be wider
-        setPreferredSize(800, 650);
+        setPreferredSize(800, 680);
 
         // Start the auto unstrip process
         startAutoUnstrip();
@@ -112,6 +103,10 @@ public class AutoUnstripDialog extends RevEngDialogComponentProvider {
 
     private void importFunctionNames(AutoUnstripResponse autoUnstripResponse) {
         var functionMgr = program.getFunctionManager();
+
+        // Retrieve the mangled names map once outside the transaction
+        var mangledNameMapOpt = revengService.getFunctionMangledNamesMap(program);
+
         program.withTransaction("Apply Auto-Unstrip Function Names", () -> {
                     try {
                         var revengMatchNamespace = program.getSymbolTable().getOrCreateNameSpace(
@@ -129,6 +124,8 @@ public class AutoUnstripDialog extends RevEngDialogComponentProvider {
 
                             if (
                                     func != null &&
+                                    // Do not override user-defined function names
+                                    func.getSymbol().getSource() != SourceType.USER_DEFINED &&
                                     // Exclude thunks and external functions
                                     !func.isThunk() &&
                                     !func.isExternal() &&
@@ -143,11 +140,17 @@ public class AutoUnstripDialog extends RevEngDialogComponentProvider {
                                     func.setName(revEngDemangledName, SourceType.ANALYSIS);
                                     func.setParentNamespace(revengMatchNamespace);
 
-                                    // TODO: update the mangled name map
+                                    // Update the mangled name map with the RevEng.AI mangled name
+                                    mangledNameMapOpt.ifPresent(mangledNameMap -> {
+                                        try {
+                                            mangledNameMap.add(func.getEntryPoint(), revEngMangledName + "test");
+                                        } catch (Exception e) {
+                                            handleError("Failed to update mangled name map for function at " + addr + ": " + e.getMessage());
+                                        }
+                                    });
 
                                     // Add to rename results
                                     renameResults.add(new RenameResult(String.format("%08x", match.function_vaddr()), originalName, revEngDemangledName));
-
                                 } catch (Exception e) {
                                     handleError("Failed to rename function at " + addr + ": " + e.getMessage());
                                 }
@@ -160,7 +163,7 @@ public class AutoUnstripDialog extends RevEngDialogComponentProvider {
         );
 
         // Show results table after import is complete
-        SwingUtilities.invokeLater(() -> updateResultsTable());
+        SwingUtilities.invokeLater(this::updateResultsTable);
     }
 
     private void updateUI() {
@@ -173,20 +176,11 @@ public class AutoUnstripDialog extends RevEngDialogComponentProvider {
         // Update status
         statusLabel.setText("Status: " + autoUnstripResponse.status());
 
-        // Update matches count
-        int matchCount = autoUnstripResponse.matches() != null ? autoUnstripResponse.matches().size() : 0;
-        matchesLabel.setText("Matches found: " + matchCount);
-
         // Handle error message - dynamically add/remove error panel
         if (autoUnstripResponse.error_message() != null && !autoUnstripResponse.error_message().isEmpty()) {
             showError(autoUnstripResponse.error_message());
         } else {
             hideError();
-        }
-
-        // Show applied status if matches were applied
-        if (autoUnstripResponse.applied() && matchCount > 0) {
-            statusLabel.setText("Status: " + autoUnstripResponse.status() + " (Applied " + matchCount + " matches)");
         }
 
         // Update results table
@@ -322,10 +316,6 @@ public class AutoUnstripDialog extends RevEngDialogComponentProvider {
         statusLabel = new JLabel("Initializing...");
         panel.add(statusLabel, gbc);
 
-        // Matches label
-        gbc.gridx = 1;
-        matchesLabel = new JLabel("Matches found: 0");
-        panel.add(matchesLabel, gbc);
 
         return panel;
     }
