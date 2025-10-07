@@ -30,7 +30,7 @@ public class UnstripTest extends RevEngMockableHeadedIntegrationTest{
                         100,
                         "STATUS",
                         0,
-                        List.of(new AutoUnstripResponse.Match(new FunctionID(1), 0x1000, "unstripped_function_name") ),
+                        List.of(new AutoUnstripResponse.Match(new FunctionID(1), 0x1000, "unstripped_function_name", "unstripped_function_name_demangled" ) ),
                         false,
                         null
                 );
@@ -72,7 +72,7 @@ public class UnstripTest extends RevEngMockableHeadedIntegrationTest{
         var dialog = waitForDialogComponent("RevEng.AI: Auto Unstrip");
         waitForSwing();
 
-        assertEquals("unstripped_function_name", func.getName());
+        assertEquals("unstripped_function_name_demangled", func.getName());
         assertEquals("RevEng.AI", func.getParentNamespace().getName(true));
 
     }
@@ -102,7 +102,7 @@ public class UnstripTest extends RevEngMockableHeadedIntegrationTest{
                         100,
                         "COMPLETED",
                         0,
-                        List.of(new AutoUnstripResponse.Match(new FunctionID(1), 0x1000, "unstripped_function_name") ),
+                        List.of(new AutoUnstripResponse.Match(new FunctionID(1), 0x1000, "unstripped_function_name", "unstripped_function_name_demangled") ),
                         false,
                         null
                 )
@@ -157,7 +157,7 @@ public class UnstripTest extends RevEngMockableHeadedIntegrationTest{
         waitForCondition(() -> !responses.hasNext());
         waitForSwing();
         // Specifically test that the function has been renamed to the unstripped name
-        assertEquals("unstripped_function_name", func.getName());
+        assertEquals("unstripped_function_name_demangled", func.getName());
         // And also that it is part of the RevEng.AI namespace
         assertEquals("RevEng.AI", func.getParentNamespace().getName(true));
 
