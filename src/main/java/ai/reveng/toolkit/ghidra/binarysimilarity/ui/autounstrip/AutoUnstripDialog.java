@@ -47,10 +47,12 @@ public class AutoUnstripDialog extends RevEngDialogComponentProvider {
 
     // Inner class to hold rename results
     private static class RenameResult {
+        final String virtualAddress;
         final String originalName;
         final String newName;
 
-        RenameResult(String originalName, String newName) {
+        RenameResult(String virtualAddress, String originalName, String newName) {
+            this.virtualAddress = virtualAddress;
             this.originalName = originalName;
             this.newName = newName;
         }
@@ -68,6 +70,9 @@ public class AutoUnstripDialog extends RevEngDialogComponentProvider {
         addDismissButton();
 
         addWorkPanel(buildMainPanel());
+
+        // Set dialog size to be wider
+        setPreferredSize(800, 650);
 
         // Start the auto unstrip process
         startAutoUnstrip();
@@ -141,7 +146,7 @@ public class AutoUnstripDialog extends RevEngDialogComponentProvider {
                                     // TODO: update the mangled name map
 
                                     // Add to rename results
-                                    renameResults.add(new RenameResult(originalName, revEngDemangledName));
+                                    renameResults.add(new RenameResult(String.format("%08x", match.function_vaddr()), originalName, revEngDemangledName));
 
                                 } catch (Exception e) {
                                     handleError("Failed to rename function at " + addr + ": " + e.getMessage());
@@ -189,9 +194,9 @@ public class AutoUnstripDialog extends RevEngDialogComponentProvider {
     }
 
     private void updateResultsTable() {
-        DefaultTableModel model = new DefaultTableModel(new Object[]{"Original Name", "New Name"}, 0);
+        DefaultTableModel model = new DefaultTableModel(new Object[]{"Virtual Address", "Original Name", "New Name"}, 0);
         for (RenameResult result : renameResults) {
-            model.addRow(new Object[]{result.originalName, result.newName});
+            model.addRow(new Object[]{result.virtualAddress, result.originalName, result.newName});
         }
         resultsTable.setModel(model);
 
@@ -204,6 +209,30 @@ public class AutoUnstripDialog extends RevEngDialogComponentProvider {
         resultsTable.getTableHeader().setOpaque(false);
         resultsTable.getTableHeader().setBackground(UIManager.getColor("TableHeader.background"));
         resultsTable.getTableHeader().setForeground(UIManager.getColor("TableHeader.foreground"));
+
+        // Set column widths and fonts
+        if (resultsTable.getColumnCount() > 0) {
+            // Set monospace font for Virtual Address column
+            resultsTable.getColumnModel().getColumn(0).setCellRenderer(new javax.swing.table.DefaultTableCellRenderer() {
+                @Override
+                public java.awt.Component getTableCellRendererComponent(javax.swing.JTable table, Object value,
+                                                                     boolean isSelected, boolean hasFocus, int row, int column) {
+                    java.awt.Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                    c.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+                    return c;
+                }
+            });
+
+            // Set column widths - Virtual Address smaller, others larger
+            resultsTable.getColumnModel().getColumn(0).setPreferredWidth(10);  // Virtual Address
+            resultsTable.getColumnModel().getColumn(1).setPreferredWidth(200);  // Original Name
+            resultsTable.getColumnModel().getColumn(2).setPreferredWidth(200);  // New Name
+
+            // Allow columns to be resized but set minimum widths
+            resultsTable.getColumnModel().getColumn(0).setMinWidth(10);
+            resultsTable.getColumnModel().getColumn(1).setMinWidth(150);
+            resultsTable.getColumnModel().getColumn(2).setMinWidth(150);
+        }
     }
 
     private void handleError(String message) {
