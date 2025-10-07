@@ -613,7 +613,10 @@ public class TypedApiImplementation implements TypedApiInterface {
     @Override
     public AutoUnstripResponse autoUnstrip(AnalysisID analysisID) {
         JSONObject params = new JSONObject();
-        params.put("apply", true);
+        params.put("apply", false); // False for now while testing to make it easier to revert
+        params.put("min_similarity", 0.9);
+        params.put("confidence_threshold", 0.9);
+        params.put("min_group_size", 1);
 
         var request = requestBuilderForEndpoint(APIVersion.V2, "analyses", String.valueOf(analysisID.id()), "functions", "auto-unstrip")
                 .POST(HttpRequest.BodyPublishers.ofString(params.toString()))

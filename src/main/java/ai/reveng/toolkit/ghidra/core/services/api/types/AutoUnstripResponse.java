@@ -39,13 +39,15 @@ public record AutoUnstripResponse(
     public record Match(
             FunctionID function_id,
             long function_vaddr,
-            String suggested_name
+            String suggested_name,
+            String suggested_demangled_name
     ) {
         public static Match fromJSONObject(JSONObject json) {
             return new Match(
                     new FunctionID(json.getInt("function_id")),
                     json.getLong("function_vaddr"),
-                    json.getString("suggested_name")
+                    json.getString("suggested_name"),
+                    json.getString("suggested_demangled_name")
             );
         }
     }

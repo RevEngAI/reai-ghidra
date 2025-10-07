@@ -210,8 +210,8 @@ public class GhidraRevengService {
                     }
 
                     // Skip invalid function mangled names
-                    if (revEngMangledName.contains(" ")) {
-                        Msg.warn(this, "Skipping renaming of function %s to invalid name %s".formatted(ghidraMangledName, revEngMangledName));
+                    if (revEngMangledName.contains(" ") || revEngDemangledName.contains(" ")) {
+                        Msg.warn(this, "Skipping renaming of function %s to invalid name %s [%s]".formatted(ghidraMangledName, revEngMangledName, revEngDemangledName));
                         return;
                     }
 
@@ -351,12 +351,14 @@ public class GhidraRevengService {
         // Clear all function ID data
 
         program.getUsrPropertyManager().removePropertyMap(REAI_FUNCTION_PROP_MAP);
+        program.getUsrPropertyManager().removePropertyMap(REAI_FUNCTION_MANGLED_MAP);
         statusCache.remove(binID);
         program.getOptions(ReaiPluginPackage.REAI_OPTIONS_CATEGORY).setLong(ReaiPluginPackage.OPTION_KEY_BINID, ReaiPluginPackage.INVALID_BINARY_ID);
     }
 
     public boolean isProgramAnalysed(Program program){
-        return program.getUsrPropertyManager().getLongPropertyMap(REAI_FUNCTION_PROP_MAP) != null;
+        return program.getUsrPropertyManager().getLongPropertyMap(REAI_FUNCTION_PROP_MAP) != null &&
+                program.getUsrPropertyManager().getStringPropertyMap(REAI_FUNCTION_MANGLED_MAP) != null;
     }
 
     public boolean isKnownFunction(Function function){

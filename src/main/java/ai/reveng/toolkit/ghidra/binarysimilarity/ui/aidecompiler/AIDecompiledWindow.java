@@ -246,11 +246,11 @@ public class AIDecompiledWindow extends ComponentProviderAdapter {
                     case "queued":
                     case "running":
                         try {
-                            Thread.sleep(100);
+                            // Wait a second before polling again. We don't want to spam the API with requests too often
+                            Thread.sleep(1000);
                         } catch (InterruptedException e) {
                             throw new RuntimeException(e);
                         }
-//                    monitor.incrementProgress(100);
                         break;
                     case "success":
                         monitor.setProgress(monitor.getMaximum());

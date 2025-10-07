@@ -77,7 +77,6 @@ public class AutoUnstripDialog extends RevEngDialogComponentProvider {
                 // Check if we're done
                 if (autoUnstripResponse.progress() >= 100 || Objects.equals(autoUnstripResponse.status(), "COMPLETED")) {
                     stopPolling();
-//                    taskMonitorComponent.setFinished();
                     taskMonitorComponent.setVisible(false);
                     importFunctionNames(autoUnstripResponse);
                 }
@@ -89,35 +88,49 @@ public class AutoUnstripDialog extends RevEngDialogComponentProvider {
     }
 
     private void importFunctionNames(AutoUnstripResponse autoUnstripResponse) {
+        var functionMgr = program.getFunctionManager();
+        program.withTransaction("Apply Auto-Unstrip Function Names", () -> {
+                    try {
+                        var revengMatchNamespace = program.getSymbolTable().getOrCreateNameSpace(
+                                program.getGlobalNamespace(),
+                                REVENG_AI_NAMESPACE,
+                                SourceType.ANALYSIS
+                        );
 
+                        autoUnstripResponse.matches().forEach(match -> {
+                            Address addr = program.getAddressFactory().getDefaultAddressSpace().getAddress(match.function_vaddr());
+                            Function func = functionMgr.getFunctionAt(addr);
 
-            var functionMgr = program.getFunctionManager();
-            program.withTransaction("Apply Auto-Unstrip Function Names", () -> {
-                        try {
-                            var revengMatchNamespace = program.getSymbolTable().getOrCreateNameSpace(
-                                    program.getGlobalNamespace(),
-                                    REVENG_AI_NAMESPACE,
-                                    SourceType.ANALYSIS);
+                            var revEngMangledName = match.suggested_name();
+                            var revEngDemangledName = match.suggested_demangled_name();
 
-                            autoUnstripResponse.matches().forEach(match -> {
-                                Address addr = program.getAddressFactory().getDefaultAddressSpace().getAddress(match.function_vaddr());
-                                Function func = functionMgr.getFunctionAt(addr);
-                                if (func == null) {
-                                    return;
-                                } else {
-                                    try {
-                                        func.setName(match.suggested_name(), SourceType.ANALYSIS);
-                                        func.setParentNamespace(revengMatchNamespace);
-                                    } catch (Exception e) {
-                                        handleError("Failed to rename function at " + addr + ": " + e.getMessage());
-                                    }
+                            if (
+                                    func != null &&
+                                    // Exclude thunks and external functions
+                                    !func.isThunk() &&
+                                    !func.isExternal() &&
+                                    // Only accept valid names (no spaces)
+                                    !revEngMangledName.contains(" ") &&
+                                    !revEngDemangledName.contains(" ")
+                            ) {
+                                try {
+                                    func.setName(revEngDemangledName, SourceType.ANALYSIS);
+                                    func.setParentNamespace(revengMatchNamespace);
+
+                                    // TODO: update the mangled name map
+
+                                    // TODO: output renames to a table
+
+                                } catch (Exception e) {
+                                    handleError("Failed to rename function at " + addr + ": " + e.getMessage());
                                 }
-                            });
-                        } catch (DuplicateNameException | InvalidInputException e) {
-                            throw new RuntimeException(e);
-                        }
+                            }
+                        });
+                    } catch (DuplicateNameException | InvalidInputException e) {
+                        throw new RuntimeException(e);
                     }
-                );
+                }
+        );
     }
 
     private void updateUI() {
