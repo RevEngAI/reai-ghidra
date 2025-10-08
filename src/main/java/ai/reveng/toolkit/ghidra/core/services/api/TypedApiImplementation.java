@@ -1,8 +1,9 @@
 package ai.reveng.toolkit.ghidra.core.services.api;
 
-import ai.reveng.api.AnalysesResultsMetadataApi;
-import ai.reveng.api.AuthenticationUsersApi;
+import ai.reveng.api.*;
+import ai.reveng.model.*;
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
+import ai.reveng.toolkit.ghidra.core.services.api.types.AutoUnstripResponse;
 import ai.reveng.toolkit.ghidra.core.services.api.types.Collection;
 import ai.reveng.toolkit.ghidra.core.services.api.types.LegacyCollection;
 import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.APIAuthenticationException;
@@ -33,14 +34,10 @@ import java.util.*;
 import ai.reveng.invoker.Configuration;
 import ai.reveng.invoker.auth.ApiKeyAuth;
 import ai.reveng.invoker.ApiException;
-import ai.reveng.api.AnalysesCoreApi;
-import ai.reveng.model.AnalysisCreateRequest;
-import ai.reveng.model.Tag;
-import ai.reveng.model.UploadFileType;
 
+import static ai.reveng.toolkit.ghidra.core.services.api.LoggingInterceptor.*;
 import static ai.reveng.toolkit.ghidra.core.services.api.Utils.mapJSONArray;
 import static java.net.http.HttpClient.Version.HTTP_1_1;
-
 
 /**
  * The main implementation of the RevEng HTTP API
@@ -59,9 +56,15 @@ public class TypedApiImplementation implements TypedApiInterface {
     private final AnalysesCoreApi analysisCoreApi;
     private final AuthenticationUsersApi authenticationUsersApi;
     private final AnalysesResultsMetadataApi analysesResultsMetadataApi;
+    private final SearchApi searchApi;
+    private final FunctionsCoreApi functionsCoreApi;
+    private final FunctionsRenamingHistoryApi functionsRenamingHistoryApi;
 
     // Cache for binary ID to analysis ID mappings
     private final Map<BinaryID, AnalysisID> binaryToAnalysisCache = new HashMap<>();
+
+    // Cache for analysis basic info to avoid repeated API calls
+    private final Map<AnalysisID, ai.reveng.model.Basic> analysisBasicInfoCache = new HashMap<>();
 
     public TypedApiImplementation(String baseUrl, String apiKey) {
         var apiClient = Configuration.getDefaultApiClient();
@@ -82,12 +85,19 @@ public class TypedApiImplementation implements TypedApiInterface {
 
         apiClient.setUserAgent(userAgent);
 
+        // Use a custom HTTP client to add Ghidra specific logging
+        // Set withResponseBody to true if debugging issues with the API to see the full response body
+        apiClient.setHttpClient(apiClient.getHttpClient().newBuilder().addInterceptor(ghidraLogger(false)).build());
+
         ApiKeyAuth APIKey = (ApiKeyAuth) apiClient.getAuthentication("APIKey");
         APIKey.setApiKey(apiKey);
 
         this.analysisCoreApi = new AnalysesCoreApi(apiClient);
         this.authenticationUsersApi = new AuthenticationUsersApi(apiClient);
         this.analysesResultsMetadataApi = new AnalysesResultsMetadataApi(apiClient);
+        this.searchApi = new SearchApi(apiClient);
+        this.functionsCoreApi = new FunctionsCoreApi(apiClient);
+        this.functionsRenamingHistoryApi = new FunctionsRenamingHistoryApi(apiClient);
 
         this.baseUrl = baseUrl + "/";
         this.httpClient = HttpClient.newBuilder()
@@ -130,7 +140,7 @@ public class TypedApiImplementation implements TypedApiInterface {
         params.put("sha256_hash", hash.sha256());
 
         JSONObject json = sendRequest(
-                requestBuilderForEndpoint(APIVersion.V2, "analyses", "list",  queryParams(params))
+                requestBuilderForEndpoint("analyses", "list",  queryParams(params))
                         .GET()
                         .header("Content-Type", "application/json" )
                         .build());
@@ -189,59 +199,6 @@ public class TypedApiImplementation implements TypedApiInterface {
     }
 
     @Override
-    public List<FunctionMatch> annSymbolsForBinary(BinaryID binID,
-                                                   int resultsPerFunction,
-                                                   double distance,
-                                                   boolean debugMode,
-                                                   List<Collection> collections
-    ) {
-        var params = new JSONObject();
-        params.put("result_per_function", resultsPerFunction);
-        params.put("distance", distance);
-        params.put("debug_mode", false);
-
-        if (collections != null && !collections.isEmpty()) {
-            params.put("collection", collections.stream().map(Collection::collectionName).toList());
-        }
-
-
-        var request = requestBuilderForEndpoint(APIVersion.V1, "ann/symbol/" + binID.value())
-                .POST(HttpRequest.BodyPublishers.ofString(params.toString()))
-                .header("Content-Type", "application/json" )
-                .build();
-        JSONObject jsonObject = sendRequest(request);
-        return mapJSONArray(jsonObject.getJSONArray("function_matches"), FunctionMatch::fromJSONObject);
-    }
-
-    @Override
-    public List<FunctionMatch> annSymbolsForFunctions(List<FunctionID> fID,
-                                                      int resultsPerFunction,
-                                                      @Nullable List<CollectionID> collections,
-                                                      @Nullable List<AnalysisID> analysisIDs,
-                                                      double distance, boolean debug
-    ) {
-
-        var params = new JSONObject();
-        params.put("result_per_function", resultsPerFunction);
-        params.put("distance", distance);
-        params.put("debug_mode", debug);
-        params.put("function_id_list", fID.stream().map(FunctionID::value).toList());
-        if (collections != null && !collections.isEmpty()){
-            params.put("collection_search_list", collections.stream().map(CollectionID::id).toList());
-        }
-        if (analysisIDs != null && !analysisIDs.isEmpty()){
-            params.put("binaries_search_list", analysisIDs.stream().map(AnalysisID::id).toList());
-        }
-
-        var request = requestBuilderForEndpoint(APIVersion.V1, "ann/symbol/batch")
-                .POST(HttpRequest.BodyPublishers.ofString(params.toString()))
-                .header("Content-Type", "application/json" )
-                .build();
-        JSONObject jsonObject = sendRequest(request);
-        return mapJSONArray(jsonObject.getJSONArray("function_matches"), FunctionMatch::fromJSONObject);
-    }
-
-    @Override
     public AnalysisStatus status(BinaryID binaryID) throws ApiException {
         var analysisID = this.getAnalysisIDfromBinaryID(binaryID);
 
@@ -252,7 +209,7 @@ public class TypedApiImplementation implements TypedApiInterface {
 
     @Override
     public AnalysisStatus status(AnalysisID analysisID) {
-        var request = requestBuilderForEndpoint(APIVersion.V2, "analyses/%s/status".formatted(analysisID.id()))
+        var request = requestBuilderForEndpoint("analyses/%s/status".formatted(analysisID.id()))
                 .GET()
                 .build();
         return AnalysisStatus.valueOf(sendVersion2Request(request).getJsonData().getString("analysis_status"));
@@ -312,7 +269,7 @@ public class TypedApiImplementation implements TypedApiInterface {
         }
         params.put("limit", String.valueOf(limit));
 
-        var request = requestBuilderForEndpoint(APIVersion.V2, "collections", queryParams(params))
+        var request = requestBuilderForEndpoint("collections", queryParams(params))
                 .timeout(Duration.ofSeconds(10))
                 .method("GET", HttpRequest.BodyPublishers.ofString(params.toString()))
                 .header("Content-Type", "application/json" )
@@ -334,7 +291,7 @@ public class TypedApiImplementation implements TypedApiInterface {
         params.put("page_size", "20");
 //        params.put("page", String.valueOf(offset));
 
-        var request = requestBuilderForEndpoint(APIVersion.V2, "search", "binaries", queryParams(params))
+        var request = requestBuilderForEndpoint("search", "binaries", queryParams(params))
                 .timeout(Duration.ofSeconds(10))
                 .method("GET", HttpRequest.BodyPublishers.ofString(params.toString()))
                 .header("Content-Type", "application/json" )
@@ -348,22 +305,15 @@ public class TypedApiImplementation implements TypedApiInterface {
 
     @Override
     public String getAnalysisLogs(AnalysisID analysisID) {
-        var request = requestBuilderForEndpoint(APIVersion.V2, "analyses", String.valueOf(analysisID.id()), "logs")
+        var request = requestBuilderForEndpoint("analyses", String.valueOf(analysisID.id()), "logs")
                 .build();
         JSONObject response = sendVersion2Request(request).getJsonData();
         return response.getString("logs");
     }
 
-    private HttpRequest.Builder requestBuilderForEndpoint(APIVersion version, String... endpointPaths){
+    private HttpRequest.Builder requestBuilderForEndpoint(String... endpointPaths){
         URI uri;
-        String apiVersionPath;
-        if (version == APIVersion.V1){
-            apiVersionPath = "v1";
-        } else if (version == APIVersion.V2){
-            apiVersionPath = "v2";
-        } else {
-            throw new RuntimeException("Unknown API version");
-        }
+        String apiVersionPath = "v2";
         String endpoint = String.join("/", endpointPaths).replace("/?", "?").replace("?/", "?");
 
         try {
@@ -394,7 +344,7 @@ public class TypedApiImplementation implements TypedApiInterface {
         }
 
         // If not in cache, make HTTP request
-        JSONObject response = sendRequest(requestBuilderForEndpoint(APIVersion.V2, "analyses/lookup/" + binaryID.value())
+        JSONObject response = sendRequest(requestBuilderForEndpoint("analyses/lookup/" + binaryID.value())
                 .GET()
                 .build());
 
@@ -418,7 +368,7 @@ public class TypedApiImplementation implements TypedApiInterface {
         JSONObject params = new JSONObject();
         params.put("function_ids", functionIDS.stream().map(FunctionID::value).toList());
 
-        var request = requestBuilderForEndpoint(APIVersion.V2, "analyses/%s/info/functions/data_types".formatted(analysisID.id()))
+        var request = requestBuilderForEndpoint("analyses/%s/info/functions/data_types".formatted(analysisID.id()))
                 .POST(HttpRequest.BodyPublishers.ofString(params.toString()))
                 .header("Content-Type", "application/json" )
                 .build();
@@ -431,7 +381,7 @@ public class TypedApiImplementation implements TypedApiInterface {
     public DataTypeList getFunctionDataTypes(List<FunctionID> functionIDS) {
         String queryString = functionIDS.stream().map( f -> "function_ids=" + f.value() ).reduce((a, b) -> a + "&" + b).orElseThrow();
 
-        var request = requestBuilderForEndpoint(APIVersion.V2, "functions", "data_types?", queryString)
+        var request = requestBuilderForEndpoint("functions", "data_types?", queryString)
                 .GET()
                 .header("Content-Type", "application/json" )
                 .build();
@@ -442,7 +392,7 @@ public class TypedApiImplementation implements TypedApiInterface {
     @Override
     public Optional<FunctionDataTypeStatus> getFunctionDataTypes(AnalysisID analysisID, FunctionID functionID) {
         // https://api.reveng.ai/v2/analyses/{analysis_id}/info/functions/{function_id}/data_types
-        var request = requestBuilderForEndpoint(APIVersion.V2, "analyses/%s/info/functions/%s/data_types".formatted(analysisID.id(), functionID.value()))
+        var request = requestBuilderForEndpoint("analyses/%s/info/functions/%s/data_types".formatted(analysisID.id(), functionID.value()))
                 .GET()
                 .header("Content-Type", "application/json" )
                 .build();
@@ -466,7 +416,7 @@ public class TypedApiImplementation implements TypedApiInterface {
     @Override
     public boolean triggerAIDecompilationForFunctionID(FunctionID functionID) {
         JSONObject params = new JSONObject().put("function_id", functionID.value());
-        HttpRequest request = requestBuilderForEndpoint(APIVersion.V2, "ai-decompilation")
+        HttpRequest request = requestBuilderForEndpoint("ai-decompilation")
                 .POST(HttpRequest.BodyPublishers.ofString(params.toString()))
                 .header("Content-Type", "application/json" )
                 .build();
@@ -476,49 +426,11 @@ public class TypedApiImplementation implements TypedApiInterface {
     @Override
     public AIDecompilationStatus pollAIDecompileStatus(FunctionID functionID) {
 
-        HttpRequest request = requestBuilderForEndpoint(APIVersion.V2, "ai-decompilation/" + functionID.value(), "?summarise=true")
+        HttpRequest request = requestBuilderForEndpoint("ai-decompilation/" + functionID.value(), "?summarise=true")
                 .GET()
                 .build();
         return AIDecompilationStatus.fromJSONObject(sendVersion2Request(request).getJsonData());
 
-    }
-
-    /**
-     * https://api.reveng.ai/redoc#tag/Analysis-Info/operation/batch_rename_function_v1_functions_batch_rename_post
-     * @param renameDict
-     *
-     * ```
-     * {
-     *   "new_name_mapping": [
-     *     {
-     *       "function_id": 3624718,
-     *       "function_name_mangled": "test_batch_rename_3"
-     *     },
-     *     {
-     *       "function_id": 3624696,
-     *       "function_name_mangled": "test_batch_rename_4"
-     *     }
-     *   ]
-     * }
-     * ```
-     *
-     */
-    @Override
-    public void renameFunctions(Map<FunctionID, String> renameDict) {
-        JSONObject params = new JSONObject();
-        var newNames = new ArrayList<JSONObject>();
-        for (var entry : renameDict.entrySet()){
-            newNames.add(new JSONObject()
-                    .put("function_id", entry.getKey().value())
-                    .put("function_name_mangled", entry.getValue()));
-        }
-        params.put("new_name_mapping", newNames);
-
-        HttpRequest request = requestBuilderForEndpoint(APIVersion.V1, "functions/batch/rename")
-                .POST(HttpRequest.BodyPublishers.ofString(params.toString()))
-                .header("Content-Type", "application/json" )
-                .build();
-        sendRequest(request);
     }
 
     /**
@@ -531,7 +443,7 @@ public class TypedApiImplementation implements TypedApiInterface {
         JSONObject params = new JSONObject();
         params.put("new_name", newName);
 
-        HttpRequest request = requestBuilderForEndpoint(APIVersion.V2, "functions", "rename", String.valueOf(id.value()))
+        HttpRequest request = requestBuilderForEndpoint("functions", "rename", String.valueOf(id.value()))
                 .POST(HttpRequest.BodyPublishers.ofString(params.toString()))
                 .build();
         sendRequest(request);
@@ -550,7 +462,7 @@ public class TypedApiImplementation implements TypedApiInterface {
      */
     @Override
     public Collection getCollectionInfo(CollectionID id) {
-        var request = requestBuilderForEndpoint(APIVersion.V2, "collections", String.valueOf(id.id()))
+        var request = requestBuilderForEndpoint("collections", String.valueOf(id.id()))
                 .GET()
                 .build();
         var response = sendVersion2Request(request);
@@ -574,7 +486,7 @@ public class TypedApiImplementation implements TypedApiInterface {
         }
         params.put("functions", functions);
 
-        HttpRequest request = requestBuilderForEndpoint(APIVersion.V2, "confidence", "functions", "name_score")
+        HttpRequest request = requestBuilderForEndpoint("confidence", "functions", "name_score")
                 .POST(HttpRequest.BodyPublishers.ofString(params.toString()))
                 .header("Content-Type", "application/json" )
                 .build();
@@ -589,7 +501,7 @@ public class TypedApiImplementation implements TypedApiInterface {
      */
     @Override
     public AnalysisResult getInfoForAnalysis(AnalysisID id) {
-        var request = requestBuilderForEndpoint(APIVersion.V2, "analyses", String.valueOf(id.id()))
+        var request = requestBuilderForEndpoint("analyses", String.valueOf(id.id()))
                 .GET()
                 .build();
         var response = sendVersion2Request(request);
@@ -603,7 +515,7 @@ public class TypedApiImplementation implements TypedApiInterface {
      */
     @Override
     public FunctionDetails getFunctionDetails(FunctionID id) {
-        var request = requestBuilderForEndpoint(APIVersion.V2, "functions", String.valueOf(id.value()))
+        var request = requestBuilderForEndpoint("functions", String.valueOf(id.value()))
                 .GET()
                 .build();
         var response = sendVersion2Request(request);
@@ -618,7 +530,7 @@ public class TypedApiImplementation implements TypedApiInterface {
         params.put("confidence_threshold", 90); // 90%
         params.put("min_group_size", 1); // At least 1 function in the group
 
-        var request = requestBuilderForEndpoint(APIVersion.V2, "analyses", String.valueOf(analysisID.id()), "functions", "auto-unstrip")
+        var request = requestBuilderForEndpoint("analyses", String.valueOf(analysisID.id()), "functions", "auto-unstrip")
                 .POST(HttpRequest.BodyPublishers.ofString(params.toString()))
                 .header("Content-Type", "application/json" )
                 .build();
@@ -631,7 +543,7 @@ public class TypedApiImplementation implements TypedApiInterface {
         JSONObject params = new JSONObject();
         params.put("apply", true);
 
-        var request = requestBuilderForEndpoint(APIVersion.V2, "analyses", String.valueOf(analysisID.id()), "functions", "ai-unstrip")
+        var request = requestBuilderForEndpoint("analyses", String.valueOf(analysisID.id()), "functions", "ai-unstrip")
                 .POST(HttpRequest.BodyPublishers.ofString(params.toString()))
                 .header("Content-Type", "application/json" )
                 .build();
@@ -647,12 +559,51 @@ public class TypedApiImplementation implements TypedApiInterface {
             params.put("reason", reason);
         }
 
-        var request = requestBuilderForEndpoint(APIVersion.V2, "functions", String.valueOf(functionID.value()), "ai-decompilation",  "rating")
+        var request = requestBuilderForEndpoint("functions", String.valueOf(functionID.value()), "ai-decompilation",  "rating")
                 .POST(HttpRequest.BodyPublishers.ofString(params.toString()))
                 .header("Content-Type", "application/json" )
                 .build();
 
         sendRequest(request);
+    }
+
+    @Override
+    public List<CollectionSearchResult> searchCollections(String partialCollectionName, String modelName) throws ApiException {
+        return this.searchApi.searchCollections(1, 10, partialCollectionName, null, null, null, modelName, List.of(Filters.HIDE_EMPTY), null, null).getData().getResults();
+    }
+
+    @Override
+    public List<BinarySearchResult> searchBinaries(String partialBinaryName, String modelName) throws ApiException {
+        return this.searchApi.searchBinaries(1, 10, partialBinaryName, null, null, modelName, null).getData().getResults();
+    }
+
+    @Override
+    public ai.reveng.model.Basic getAnalysisBasicInfo(AnalysisID analysisID) throws ApiException {
+        // Check cache first
+        ai.reveng.model.Basic cachedResult = analysisBasicInfoCache.get(analysisID);
+        if (cachedResult != null) {
+            Msg.info(this, "Returning cached analysis basic info for analysis ID: " + analysisID.id());
+            return cachedResult;
+        }
+
+        // If not in cache, make API call
+        Msg.info(this, "Fetching analysis basic info from API for analysis ID: " + analysisID.id());
+        ai.reveng.model.Basic result = this.analysisCoreApi.getAnalysisBasicInfo(analysisID.id()).getData();
+
+        // Cache the result for future requests
+        analysisBasicInfoCache.put(analysisID, result);
+
+        return result;
+    }
+
+    @Override
+    public FunctionMatchingBatchResponse analysisFunctionMatching(AnalysisID analysisID, AnalysisFunctionMatchingRequest request) throws ApiException {
+        return this.functionsCoreApi.analysisFunctionMatching(analysisID.id(), request);
+    }
+
+    @Override
+    public void batchRenameFunctions(FunctionsListRename functionsList) throws ApiException {
+        this.functionsRenamingHistoryApi.batchRenameFunction(functionsList);
     }
 }
 

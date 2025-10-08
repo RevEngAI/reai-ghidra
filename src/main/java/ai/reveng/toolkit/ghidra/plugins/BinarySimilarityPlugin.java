@@ -16,11 +16,9 @@
 package ai.reveng.toolkit.ghidra.plugins;
 
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.aidecompiler.AIDecompiledWindow;
-import ai.reveng.toolkit.ghidra.binarysimilarity.ui.autoanalysis.AutoAnalysisComponentProvider;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.autounstrip.AutoUnstripDialog;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.collectiondialog.DataSetControlPanelComponent;
-import ai.reveng.toolkit.ghidra.binarysimilarity.ui.functionsimilarity.FunctionSimilarityAction;
-import ai.reveng.toolkit.ghidra.binarysimilarity.ui.functionsimilarity.FunctionSimilarityComponent;
+import ai.reveng.toolkit.ghidra.binarysimilarity.ui.functionmatching.FunctionMatchingDialog;
 import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisResultsLoaded;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
@@ -38,7 +36,6 @@ import ghidra.framework.plugintool.PluginTool;
 import ghidra.framework.plugintool.util.PluginStatus;
 import ghidra.program.util.ProgramLocation;
 import ghidra.util.Msg;
-import ghidra.util.task.TaskLauncher;
 
 import java.util.Arrays;
 
@@ -46,7 +43,7 @@ import java.util.Arrays;
  * This plugin provides features for performing binary code similarity using the
  * RevEng.AI API
  *
- * This depend on an Analysis ID being associated with a program
+ * This depends on an Analysis ID being associated with a program
  *
  */
 //@formatter:off
@@ -61,16 +58,9 @@ import java.util.Arrays;
 )
 //@formatter:on
 public class BinarySimilarityPlugin extends ProgramPlugin {
-	private final AutoAnalysisComponentProvider autoAnalyse;
 	private final AIDecompiledWindow decompiledWindow;
-	private final DataSetControlPanelComponent collectionsComponent;
 
-	public FunctionSimilarityComponent getFunctionSimilarityComponent() {
-		return functionSimilarityComponent;
-	}
-
-	protected final FunctionSimilarityComponent functionSimilarityComponent;
-	private GhidraRevengService apiService;
+    private GhidraRevengService apiService;
 
 	public final static String REVENG_AI_NAMESPACE = "RevEng.AI";
 
@@ -90,7 +80,6 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
             return;
         }
 
-		functionSimilarityComponent.locationChanged(loc);
 		decompiledWindow.locationChanged(loc);
 	}
 
@@ -102,22 +91,15 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 	public BinarySimilarityPlugin(PluginTool tool) {
 		super(tool);
 
-        // Setup dialogs
-		autoAnalyse = new AutoAnalysisComponentProvider(tool);
-
 		setupActions();
 
 		// Setup windows
-
-		decompiledWindow = new AIDecompiledWindow(tool, REVENG_AI_NAMESPACE);
+        decompiledWindow = new AIDecompiledWindow(tool, REVENG_AI_NAMESPACE);
 		decompiledWindow.addToTool();
-
-		functionSimilarityComponent = new FunctionSimilarityComponent(tool);
-		functionSimilarityComponent.addToTool();
 
 
 		// Install Collections Control Panel
-		collectionsComponent = new DataSetControlPanelComponent(tool, REVENG_AI_NAMESPACE);
+        DataSetControlPanelComponent collectionsComponent = new DataSetControlPanelComponent(tool, REVENG_AI_NAMESPACE);
 		collectionsComponent.addToTool();
 	}
 
@@ -130,8 +112,6 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
     }
 
 	private void setupActions() {
-		tool.addAction(new FunctionSimilarityAction(this));
-
         new ActionBuilder("Auto Unstrip", this.getName())
                 .menuGroup(ReaiPluginPackage.NAME)
                 .menuPath(ReaiPluginPackage.MENU_GROUP_NAME, "Auto Unstrip")
@@ -163,38 +143,76 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
                 })
                 .buildAndInstall(tool);
 
+        // Top menu function matching
+        new ActionBuilder("Function Matching", this.getName())
+                .menuGroup(ReaiPluginPackage.NAME)
+                .menuPath(ReaiPluginPackage.MENU_GROUP_NAME, "Function Matching")
+                .enabledWhen(context -> {
+                            var program = tool.getService(ProgramManager.class).getCurrentProgram();
+                            if (program != null) {
+                                return apiService.isKnownProgram(program);
+                            } else {
+                                return false;
+                            }
+                        }
+                )
+                .onAction(context -> {
+                    var program = tool.getService(ProgramManager.class).getCurrentProgram();
+                    if (!apiService.isProgramAnalysed(program)) {
+                        Msg.showError(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Function Matching",
+                                "Analysis must have completed before running function matching");
+                        return;
+                    }
+                    var knownProgram = apiService.getKnownProgram(program);
+                    if (knownProgram.isEmpty()){
+                        Msg.info(this, "Program has no saved binary ID");
+                        return;
+                    }
 
-		new ActionBuilder("Function Matching", this.getName())
-				.menuGroup(ReaiPluginPackage.NAME)
-				.menuPath(ReaiPluginPackage.MENU_GROUP_NAME, "Function Matching")
-				.enabledWhen(context -> {
-							var program = tool.getService(ProgramManager.class).getCurrentProgram();
-							if (program != null) {
-								return apiService.isKnownProgram(program);
-							} else {
-								return false;
-							}
-						}
-				)
-				.onAction(context -> {
-					var program = tool.getService(ProgramManager.class).getCurrentProgram();
-					if (!apiService.isProgramAnalysed(program)) {
-						Msg.showError(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Auto Analyse Binary Symbols",
-								"Analysis must have completed before running name import");
-						return;
-					}
-                    autoAnalyse.triggerActivation();
-//					tool.showComponentProvider(autoAnalyse, true);
-				})
-//				.keyBinding()autoAnalysisAction.setKeyBindingData( new KeyBindingData(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
-				.buildAndInstall(tool);
+                    var functionMatchingDialog = new FunctionMatchingDialog(tool, knownProgram.get(), null);
+                    tool.showDialog(functionMatchingDialog);
+                })
+                .buildAndInstall(tool);
+
+        // Popup menu function matching
+        new ActionBuilder("Match function", this.getName())
+                .withContext(ProgramLocationActionContext.class)
+                .enabledWhen(context -> {
+                    var func = context.getProgram().getFunctionManager().getFunctionContaining(context.getAddress());
+                    return func != null
+                            // Exclude thunks and external functions because we do not support them in the portal
+                            && !func.isExternal()
+                            && !func.isThunk()
+                            && apiService.isKnownProgram(context.getProgram())
+                            && apiService.isProgramAnalysed(context.getProgram());
+                })
+                .onAction(context -> {
+                    var program = tool.getService(ProgramManager.class).getCurrentProgram();
+                    if (!apiService.isProgramAnalysed(program)) {
+                        Msg.showError(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Match function",
+                                "Analysis must have completed before running function matching");
+                        return;
+                    }
+                    var knownProgram = apiService.getKnownProgram(program);
+                    if (knownProgram.isEmpty()){
+                        Msg.info(this, "Program has no saved binary ID");
+                        return;
+                    }
+
+                    var func = context.getProgram().getFunctionManager().getFunctionContaining(context.getAddress());
+
+                    var functionMatchingDialog = new FunctionMatchingDialog(tool, knownProgram.get(), func);
+                    tool.showDialog(functionMatchingDialog);
+                })
+                .popupMenuPath(new String[] { "Match function" })
+                .popupMenuIcon(ReaiPluginPackage.REVENG_16)
+                .popupMenuGroup(ReaiPluginPackage.MENU_GROUP_NAME)
+                .buildAndInstall(tool);
+
 
 		new ActionBuilder("AI Decompilation", this.getName())
 				.withContext(ProgramLocationActionContext.class)
 				.enabledWhen(context -> {
-
-                    Msg.info(this, "here");
-
 					var func = context.getProgram().getFunctionManager().getFunctionContaining(context.getAddress());
 					return func != null
                             // Exclude thunks and external functions because we do not support them in the portal
@@ -264,9 +282,6 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 		int[] collectionIDs = apiService.getActiveCollections().stream().map(Collection::collectionID).mapToInt(CollectionID::id).toArray();
 		saveState.putInts("collectionIDs", collectionIDs);
 	}
-
-
-
 
 	@Override
 	public void processEvent(PluginEvent event) {

@@ -54,7 +54,7 @@ public class AutoUnstripDialog extends RevEngDialogComponentProvider {
         this.analysisID = analysisID.analysisID();
         this.program = analysisID.program();
         this.revengService = tool.getService(GhidraRevengService.class);
-        this.taskMonitorComponent = new TaskMonitorComponent();
+        this.taskMonitorComponent = new TaskMonitorComponent(false, true);
         this.renameResults = new ArrayList<>();
 
         // Initialize UI
@@ -143,7 +143,7 @@ public class AutoUnstripDialog extends RevEngDialogComponentProvider {
                                     // Update the mangled name map with the RevEng.AI mangled name
                                     mangledNameMapOpt.ifPresent(mangledNameMap -> {
                                         try {
-                                            mangledNameMap.add(func.getEntryPoint(), revEngMangledName + "test");
+                                            mangledNameMap.add(func.getEntryPoint(), revEngMangledName);
                                         } catch (Exception e) {
                                             handleError("Failed to update mangled name map for function at " + addr + ": " + e.getMessage());
                                         }
