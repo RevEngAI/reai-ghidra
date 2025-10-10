@@ -4,8 +4,6 @@ import ai.reveng.toolkit.ghidra.core.services.api.TypedApiInterface;
 import org.json.JSONObject;
 
 /**
- * Returned by the API endpoint /v1/ann/symbol/{binary_id}
- * {@link TypedApiInterface#annSymbolsForBinary}
  * @param origin_function_id
  * @param nearest_neighbor_id
  * @param nearest_neighbor_function_name

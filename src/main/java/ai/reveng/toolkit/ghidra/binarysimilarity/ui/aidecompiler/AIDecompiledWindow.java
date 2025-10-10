@@ -116,7 +116,7 @@ public class AIDecompiledWindow extends ComponentProviderAdapter {
         sp = new RTextScrollPane(textArea);
 
         component.add(sp, BorderLayout.CENTER);
-        taskMonitorComponent = new TaskMonitorComponent();
+        taskMonitorComponent = new TaskMonitorComponent(false, true);
         taskMonitorComponent.setVisible(false);
         taskMonitorComponent.setIndeterminate(true);
         component.add(taskMonitorComponent, BorderLayout.SOUTH);

@@ -36,7 +36,7 @@ public class AnalysisLogComponent extends ComponentProviderAdapter implements An
         textArea = new JTextArea();
         textArea.setEditable(false);
 
-        taskMonitorComponent = new TaskMonitorComponent();
+        taskMonitorComponent = new TaskMonitorComponent(false, true);
         taskMonitorComponent.setIndeterminate(true);
         taskMonitorComponent.setVisible(false);
 
