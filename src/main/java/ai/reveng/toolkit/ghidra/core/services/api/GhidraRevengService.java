@@ -1,8 +1,11 @@
 package ai.reveng.toolkit.ghidra.core.services.api;
 
 import ai.reveng.invoker.ApiException;
+import ai.reveng.model.*;
+import ai.reveng.toolkit.ghidra.binarysimilarity.ui.components.SelectableItem;
 import ai.reveng.toolkit.ghidra.core.AnalysisLogConsumer;
 import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisStatusChangedEvent;
+import ai.reveng.toolkit.ghidra.core.services.api.types.FunctionBoundary;
 import ai.reveng.toolkit.ghidra.plugins.ReaiPluginPackage;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.aidecompiler.AIDecompiledWindow;
 import ai.reveng.toolkit.ghidra.core.services.api.mocks.MockApi;
@@ -15,12 +18,10 @@ import ai.reveng.toolkit.ghidra.core.types.ProgramWithBinaryID;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
-import ghidra.app.cmd.label.SetLabelPrimaryCmd;
-import ghidra.app.util.demangler.DemangledObject;
-import ghidra.app.util.demangler.DemanglerUtil;
 import ghidra.framework.plugintool.PluginTool;
 import ghidra.program.model.address.Address;
 import ghidra.program.model.data.*;
+import ghidra.program.model.data.Structure;
 import ghidra.program.model.listing.Function;
 import ghidra.program.model.listing.Program;
 import ghidra.program.model.symbol.*;
@@ -31,7 +32,6 @@ import ghidra.util.Msg;
 import ghidra.util.data.DataTypeParser;
 import ghidra.util.exception.CancelledException;
 import ghidra.util.exception.DuplicateNameException;
-import ghidra.util.exception.InvalidInputException;
 import ghidra.util.exception.NoValueException;
 import ghidra.util.task.TaskMonitor;
 
@@ -44,6 +44,7 @@ import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -325,9 +326,6 @@ public class GhidraRevengService {
     public List<LegacyAnalysisResult> searchForHash(BinaryHash hash){
         return api.search(hash);
     }
-    public List<LegacyAnalysisResult> searchForProgram(Program program) {
-        return searchForHash(hashOfProgram(program));
-    }
 
     public boolean isKnownProgram(Program program){
         var storedBinID = program.getOptions(ReaiPluginPackage.REAI_OPTIONS_CATEGORY).getLong(ReaiPluginPackage.OPTION_KEY_BINID, ReaiPluginPackage.INVALID_BINARY_ID);
@@ -363,112 +361,6 @@ public class GhidraRevengService {
 
     public boolean isKnownFunction(Function function){
         return getFunctionIDFor(function).isPresent();
-    }
-
-    public List<GhidraFunctionMatch> getSimilarFunctions(List<Function> functions, int results, double distance, boolean debugMode){
-
-        // Get the FunctionIDs for all the functions
-        List<FunctionID> functionIDs = functions.stream().map(this::getFunctionIDFor).map(Optional::orElseThrow).toList();
-        // Look up the matches via the API
-        var collections = this.getActiveCollections().stream().map(Collection::collectionID).toList();
-        List<AnalysisID> analysisIDs = this.getActiveAnalysisIDsFilter().stream().map(AnalysisResult::analysisID).toList();
-        List<FunctionMatch> matches = api.annSymbolsForFunctions(functionIDs, results, collections, analysisIDs, distance, debugMode);
-
-        // Prepare the map from FunctionID -> Ghidra Function
-        BiMap<FunctionID, Function> functionMap = getFunctionMap(functions.get(0).getProgram());
-
-        // Return the matches as GhidraFunctionMatches
-        return matches.stream().map(
-                match -> new GhidraFunctionMatch(
-                        functionMap.get(match.origin_function_id()),
-                        match
-                )
-        ).toList();
-    }
-
-    public List<GhidraFunctionMatch> getSimilarFunctions(Function function, Double distance, int results, boolean debugMode) {
-        return getSimilarFunctions(List.of(function), results, distance, debugMode);
-    }
-
-    public Map<Function, List<GhidraFunctionMatch>> getSimilarFunctions(
-            Program program,
-            int results,
-            double distance,
-            boolean debugMode,
-            List<Collection> collections
-    ){
-        BinaryID binID = getBinaryIDFor(program).orElseThrow();
-        BiMap<FunctionID, Function> functionMap = getFunctionMap(program);
-        var r = api.annSymbolsForBinary(binID, results, distance, debugMode, collections)
-                .stream()
-                .map(
-                        // Augment each match returned by the API with the associated Ghidra Function
-                        match -> new GhidraFunctionMatch( functionMap.get(match.origin_function_id()), match)
-                )
-                .filter(
-                        // Filter out matches where the function is null due to some bug
-                        ghidraFunctionMatch -> ghidraFunctionMatch.function() != null
-                ).collect(
-                        // Group the matches by the Ghidra Function, so we have the matches per local function
-                        Collectors.groupingBy(GhidraFunctionMatch::function)
-                );
-        return r;
-
-    }
-
-    public Map<Function, List<GhidraFunctionMatch>> getSimilarFunctions(Program program, int results, Double distance, Boolean debugMode) {
-        var collections = this.getActiveCollections();
-        return getSimilarFunctions(program, results, distance, debugMode, collections);
-    }
-
-    public Map<Function, GhidraFunctionMatch> getSimilarFunctions(Program program, Double distance, Boolean debugMode) {
-        var collections = this.getActiveCollections();
-        return Maps.transformValues(getSimilarFunctions(program, 1, distance, debugMode, collections), list -> list.get(0));
-    }
-
-    public java.util.Collection<GhidraFunctionMatchWithSignature> getSimilarFunctionsWithConfidenceAndTypes(
-            Program program,
-            Double distance,
-            Boolean debugMode,
-            Boolean includeSignatures,
-            TaskMonitor monitor
-    ) {
-        // First, get all the basic matches
-        java.util.Collection<GhidraFunctionMatch> basicMatches = getSimilarFunctions(program, distance, debugMode).values();
-
-        if (basicMatches.isEmpty()) {
-            // Something went wrong
-            Msg.showError(this, null, "Failed to find any matches", "Failed to find any matches");
-            return List.of();
-        }
-        // If only debug functions were searched, we can compute the confidence of the matches
-        Map<GhidraFunctionMatch, BoxPlot> confidence = debugMode ? getNameScores(basicMatches) : Map.of();
-
-        // Get all the signatures
-        Map<GhidraFunctionMatch, FunctionDataTypeMessage> signatures = includeSignatures ? this.getSignatures(basicMatches) : Map.of();
-
-        // Pack into a common object
-        return basicMatches.stream().map(
-                m -> new GhidraFunctionMatchWithSignature(
-                        m,
-                        signatures.get(m),
-                        confidence.get(m))
-        ).toList();
-    }
-
-
-
-
-    /**
-     * Gets the corresponding FunctionID inside the RevEng Service for a Ghidra Function
-     * and then queries for similar functions to this FunctionID
-     * @param function
-     * @return
-     */
-    public List<GhidraFunctionMatch> getSimilarFunctions(Function function) {
-        // TODO: This could maybe be made configureable
-        // Problem is that the API should also work without a tool, so we can't rely on the tool options being available
-        return getSimilarFunctions(function, 0.1, 5, false);
     }
 
     public static List<FunctionBoundary> exportFunctionBoundaries(Program program){
@@ -762,17 +654,6 @@ public class GhidraRevengService {
         return dataType;
     }
 
-    public Map<FunctionID, String> pushUserFunctionNamesToBackend(Program program) {
-        Map<FunctionID, String> renameDict = getFunctionMap(program).entrySet().stream()
-                .filter(entry -> entry.getValue().getSymbol().getSource() == SourceType.USER_DEFINED)
-                .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getName()));
-        if (renameDict.isEmpty()){
-            return renameDict;
-        }
-        api.renameFunctions(renameDict);
-        return renameDict;
-    }
-
     public String getAnalysisLog(AnalysisID analysisID) {
         return api.getAnalysisLogs(analysisID);
     }
@@ -796,13 +677,6 @@ public class GhidraRevengService {
         openPortal(PORTAL_FUNCTIONS, String.valueOf(functionID.value()));
     }
 
-    public void openFunctionInPortal(long functionID) {
-        openPortal(PORTAL_FUNCTIONS, String.valueOf(functionID));
-    }
-
-    public void openCollectionInPortal(LegacyCollection collection) {
-        openPortal("collections/", String.valueOf(collection.collectionID().id()));
-    }
     public void openCollectionInPortal(Collection collection) {
         openPortal("collections/", String.valueOf(collection.collectionID().id()));
     }
@@ -966,4 +840,65 @@ public class GhidraRevengService {
         ));
     }
 
+    public CompletableFuture<List<SelectableItem>> searchCollectionsWithIds(String query, String modelName) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                // Call the actual API endpoint
+                List<CollectionSearchResult> results = api.searchCollections(query, modelName);
+
+                // Convert to SelectableItem objects with both ID and name
+                List<SelectableItem> selectableItems = results.stream()
+                        .filter(result -> !result.getCollectionName().trim().isEmpty())
+                        .map(result -> new SelectableItem(
+                                result.getCollectionId(),
+                                result.getCollectionName()
+                        ))
+                        .collect(Collectors.toList());
+
+                Msg.info(this, "Found " + selectableItems.size() + " collections matching '" + query + "'");
+                return selectableItems;
+
+            } catch (Exception e) {
+                Msg.error(this, "Error searching collections: " + e.getMessage(), e);
+                return List.of();
+            }
+        });
+    }
+
+    public CompletableFuture<List<SelectableItem>> searchBinariesWithIds(String query, String modelName) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                // Call the actual API endpoint
+                List<BinarySearchResult> results = api.searchBinaries(query, modelName);
+
+                // Convert to SelectableItem objects with both ID and name
+                List<SelectableItem> selectableItems = results.stream()
+                        .filter(result -> !result.getBinaryName().trim().isEmpty())
+                        .map(result -> new SelectableItem(
+                                result.getAnalysisId(),
+                                result.getBinaryName()
+                        ))
+                        .collect(Collectors.toList());
+
+                Msg.info(this, "Found " + selectableItems.size() + " binaries matching '" + query + "'");
+                return selectableItems;
+
+            } catch (Exception e) {
+                Msg.error(this, "Error searching binaries: " + e.getMessage(), e);
+                return List.of();
+            }
+        });
+    }
+
+    public Basic getBasicDetailsForAnalysis(AnalysisID analysisID) throws ApiException {
+        return api.getAnalysisBasicInfo(analysisID);
+    }
+
+    public FunctionMatchingBatchResponse getFunctionMatchingForAnalysis(AnalysisID analysisID, AnalysisFunctionMatchingRequest request) throws ApiException {
+        return api.analysisFunctionMatching(analysisID, request);
+    }
+
+    public void batchRenameFunctions(FunctionsListRename functionsList) throws ApiException {
+        api.batchRenameFunctions(functionsList);
+    }
 }

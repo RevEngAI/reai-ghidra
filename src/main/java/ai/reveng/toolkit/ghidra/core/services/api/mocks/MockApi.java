@@ -51,66 +51,6 @@ public class MockApi implements TypedApiInterface {
     }
 
     @Override
-    public List<FunctionMatch> annSymbolsForFunctions(List<FunctionID> fID, int resultsPerFunction, @Nullable List<CollectionID> collections, @Nullable List<AnalysisID> analysisIDs, double distance, boolean debug) {
-       var r = """
-               {
-                 "success": true,
-                 "settings": {
-                   "result_per_function": 3,
-                   "debug_mode": false,
-                   "distance": 0.1
-                 },
-                 "function_matches": {
-                   "3524066": {
-                     "3524714": {
-                       "function_name_mangled": "deregister_tm_clones",
-                       "binary_name": "x86-64_mbedtls_mbedtls-3.0.0_libmbedtls.so.3.0.0_O0_b4aa90e12844e4c3d6148d3f66dcf2acc9ee8bc3badc791036a6a251b8becfa0",
-                       "binary_id": 17939,
-                       "sha_256_hash": "b4aa90e12844e4c3d6148d3f66dcf2acc9ee8bc3badc791036a6a251b8becfa0",
-                       "confidence": 1.0
-                     },
-                     "3521948": {
-                       "function_name_mangled": "deregister_tm_clones",
-                       "binary_name": "x86-64_mbedtls_mbedtls-3.0.0_libmbedtls.so.3.0.0_O0_b4aa90e12844e4c3d6148d3f66dcf2acc9ee8bc3badc791036a6a251b8becfa0",
-                       "binary_id": 17908,
-                       "sha_256_hash": "b4aa90e12844e4c3d6148d3f66dcf2acc9ee8bc3badc791036a6a251b8becfa0",
-                       "confidence": 1.0
-                     }
-                   }
-                 }
-               }
-               """;
-        var jsonObject = new JSONObject(r);
-        var result = new ArrayList<FunctionMatch>();
-        for (Map.Entry<String, Object> entry : jsonObject.getJSONObject("function_matches").toMap().entrySet()) {
-            String originFunctionIDKey = entry.getKey();
-            FunctionID originFunctionID = new FunctionID(Integer.parseInt(originFunctionIDKey));
-            Object map = entry.getValue();
-            Map<String, Object> matches = (Map<String, Object>) map;
-            for (Map.Entry<String, Object> matchEntry : matches.entrySet()) {
-                String matchedFunctionID = matchEntry.getKey();
-                Map<String, Object> matchInfo = (Map<String, Object>) matchEntry.getValue();
-
-                double similarity = ((BigDecimal) matchInfo.get("confidence")).doubleValue();
-                FunctionID neighbourFunctionID = new FunctionID(Integer.parseInt(matchedFunctionID));
-                BinaryID neighbourBinaryID = new BinaryID((int) matchInfo.get("binary_id"));
-                FunctionMatch match = new FunctionMatch(
-                        originFunctionID,
-                        neighbourFunctionID,
-                        (String) matchInfo.get("function_name_mangled"),
-                        (String) matchInfo.get("binary_name"),
-                        new BinaryHash((String) matchInfo.get("sha_256_hash")),
-                        neighbourBinaryID,
-                        false,
-                        similarity
-                        );
-                result.add(match);
-            }
-        }
-        return result;
-    }
-
-    @Override
     public AnalysisStatus status(BinaryID binID) {
         return AnalysisStatus.Complete;
     }
@@ -121,59 +61,12 @@ public class MockApi implements TypedApiInterface {
     }
 
     @Override
-    public List<FunctionMatch> annSymbolsForBinary(BinaryID binID, int resultsPerFunction, double distance, boolean debugMode, List<Collection> collections) {
-        var r = """
-                {
-                  "success": true,
-                  "settings": {
-                    "result_per_function": 5,
-                    "debug_mode": false,
-                    "distance": 0.1
-                  },
-                  "function_matches": [
-                    {
-                      "origin_function_id": 3524066,
-                      "nearest_neighbor_id": 3516862,
-                      "nearest_neighbor_function_name": "deregister_tm_clones",
-                      "nearest_neighbor_binary_name": "x86-64_libsodium_1.0.19_libsodium.so.26.1.0_O3_15786002d4e406781b138cae220192ecbd9ef6e3e9f795e3ed3b0011c087d86b",
-                      "nearest_neighbor_sha_256_hash": "15786002d4e406781b138cae220192ecbd9ef6e3e9f795e3ed3b0011c087d86b",
-                      "nearest_neighbor_binary_id": 17882,
-                      "nearest_neighbor_debug": true,
-                      "confidence": 0.9175930397537833
-                    },
-                    {
-                      "origin_function_id": 3524066,
-                      "nearest_neighbor_id": 3506882,
-                      "nearest_neighbor_function_name": "deregister_tm_clones",
-                      "nearest_neighbor_binary_name": "0001875fddded34615d69e2153f4f2216ea31c5c16c73aba05ae85bcf8256f29",
-                      "nearest_neighbor_sha_256_hash": "0001875fddded34615d69e2153f4f2216ea31c5c16c73aba05ae85bcf8256f29",
-                      "nearest_neighbor_binary_id": 17867,
-                      "nearest_neighbor_debug": true,
-                      "confidence": 0.9059488839050542
-                    }
-                  ]
-                }
-                """;
-        var jsonObject = new JSONObject(r);
-        var result = new ArrayList<FunctionMatch>();
-        jsonObject.getJSONArray("function_matches").forEach((Object o) -> {
-            result.add(FunctionMatch.fromJSONObject((JSONObject) o));
-        });
-        return result;
-    }
-
-    @Override
     public String getAnalysisLogs(AnalysisID analysisID) {
         return "";
     }
 
     @Override
     public void authenticate() throws APIAuthenticationException {
-    }
-
-    @Override
-    public void renameFunctions(Map<FunctionID, String> renameDict) {
-
     }
 
     @Override

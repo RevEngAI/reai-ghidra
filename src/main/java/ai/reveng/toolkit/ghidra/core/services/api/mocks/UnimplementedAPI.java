@@ -44,11 +44,6 @@ public class UnimplementedAPI implements TypedApiInterface {
     }
 
     @Override
-    public void renameFunctions(Map<FunctionID, String> renameDict) {
-
-    }
-
-    @Override
     public void renameFunction(FunctionID id, String newName) {
 
     }

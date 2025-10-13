@@ -6,7 +6,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import ai.reveng.model.*;
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
+import ai.reveng.toolkit.ghidra.core.services.api.types.AutoUnstripResponse;
 import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.InvalidAPIInfoException;
 
 import javax.annotation.Nullable;
@@ -47,20 +49,6 @@ public interface TypedApiInterface {
         throw new UnsupportedOperationException("recentAnalyses not implemented yet");
     }
 
-
-    default List<FunctionMatch> annSymbolsForFunctions(List<FunctionID> fID,
-                                                       int resultsPerFunction,
-                                                       @Nullable
-                                                       List<CollectionID> collections,
-                                                       @Nullable List<AnalysisID> analysisIDs,
-                                                       double distance, boolean debug) {
-        throw new UnsupportedOperationException("annSymbolsForFunctions not implemented yet");
-    }
-
-    default List<FunctionMatch> getSimilarFunctions(FunctionID fID, int resultsPerFunction, double distance, boolean debug) {
-        throw new UnsupportedOperationException("getSimilarFunctions not implemented yet");
-    }
-
     default AnalysisStatus status(BinaryID binID) throws ApiException {
         throw new UnsupportedOperationException("status not implemented yet");
     };
@@ -75,20 +63,6 @@ public interface TypedApiInterface {
 
     default BinaryHash upload(Path binPath) throws FileNotFoundException, ai.reveng.invoker.ApiException {
         throw new UnsupportedOperationException("upload not implemented yet");
-    }
-
-    default List<FunctionMatch> annSymbolsForBinary(BinaryID binID, int resultsPerFunction, double distance, boolean debugMode){
-        return this.annSymbolsForBinary(binID, resultsPerFunction, distance, debugMode, null);
-    }
-
-    default List<FunctionMatch> annSymbolsForBinary(
-            BinaryID binID,
-            int resultsPerFunction,
-            double distance,
-            boolean debugMode,
-            List<Collection> collections
-    ) {
-        throw new UnsupportedOperationException("annSymbolsForBinary not implemented yet");
     }
 
     default List<Collection> searchCollections(String searchTerm,
@@ -141,8 +115,6 @@ public interface TypedApiInterface {
         throw new UnsupportedOperationException("pollAIDecompileStatus not implemented yet");
     }
 
-    void renameFunctions(Map<FunctionID, String> renameDict);
-
     void renameFunction(FunctionID id, String newName);
 
     default FunctionNameScore getNameScore(FunctionMatch match) {
@@ -172,5 +144,24 @@ public interface TypedApiInterface {
         throw new UnsupportedOperationException("aiDecompRating not implemented yet");
     }
 
+    default List<CollectionSearchResult> searchCollections(String partialCollectionName, String modelName) throws ApiException {
+        throw new UnsupportedOperationException("searchCollections not implemented yet");
+    }
+
+    default List<BinarySearchResult> searchBinaries(String partialCollectionName, String modelName) throws ApiException {
+        throw new UnsupportedOperationException("searchBinaries not implemented yet");
+    }
+
+    default ai.reveng.model.Basic getAnalysisBasicInfo(AnalysisID analysisID) throws ApiException {
+        throw new UnsupportedOperationException("getAnalysisBasicInfo not implemented yet");
+    }
+
+    default FunctionMatchingBatchResponse analysisFunctionMatching(AnalysisID analysisID, AnalysisFunctionMatchingRequest request) throws ApiException {
+        throw new UnsupportedOperationException("analysisFunctionMatching not implemented yet");
+    }
+
+    default void batchRenameFunctions(FunctionsListRename functionsList) throws ApiException {
+        throw new UnsupportedOperationException("batchRenameFunctions not implemented yet");
+    }
 }
 
