@@ -1,6 +1,6 @@
 # RevEng.AI Ghidra Plugin
 
-[Community Forms](https://community.reveng.ai/c/integrations/ghidra/6) | [Video Overview](https://vimeo.com/879484503) 
+[Discord](https://discord.com/invite/ZwQTvzfSbA)
 
 ### AI Assisted Binary Analysis
 
@@ -9,11 +9,9 @@ Released as open source by RevEng.ai - https://reveng.ai
 <!-- TODO -->
 <!-- Released under the Apache 2.0 license (see [LICENSE](LICENSE) for more information) -->
 
-![REAIT interface](screenshots/reait-interface.png)
-
 ## Description
 
-The RevEng.AI Toolkit allows you to interact with our API from within Ghidra.
+The RevEng.AI Ghidra plugins allows you to interact with our API from within Ghidra.
 This allows you to upload your currently open binary for analysis,
 and use it for Binary Code Similarity to help you Reverse Engineer stripped binaries.
 
@@ -40,14 +38,11 @@ and use it for Binary Code Similarity to help you Reverse Engineer stripped bina
 
 ## Installation
 
-The builds for latest stable version of the RevEng.AI Toolkit for common Ghidra versions can be downloaded from the [Releases](https://github.com/revengai/reait-ghidra/releases/latest) page.
+The builds for latest stable version of the RevEng.AI Ghidra plugin for common Ghidra versions can be downloaded from the [Releases](https://github.com/revengai/reait-ghidra/releases/latest) page.
 
 ### Supported Ghidra Versions
 
-We support all versions compatible with Ghidra 11.
-
-The CI builds for all patch versions of the latest major version (11.3.X), and for the latest patch for each major (11.0.3, 11.1.2, 11.2.1).
-In practice the plugin should work.
+We support all versions compatible with Ghidra 11.2+ based on Java 21.
 
 #### Building your own Plugin (For custom Ghidra Forks and Versions)
 
@@ -55,16 +50,14 @@ If you are using a custom version of Ghidra (e.g. nightly builds), then you need
 otherwise Ghidra complains about a version mismatch when trying to install the plugin.
 You can do this via `./gradlew -PGHIDRA_INSTALL_DIR=/opt/ghidra buildExtension`, and then use the zip from the `dist/` folder.
 
-
-
 ### Loading the Plugin
 
 1. Launch Ghidra.
-2. Navigate to the Install Extensions window.
+2. Navigate to the `Install Extensions` window.
    * `File` -> `Install Extensions...`
-3. Click the green "+" icon at the top-right corner.
+3. Click the green "+" icon in the top-right corner.
 4. Select the downloaded ZIP file to load the plugin into Ghidra.
-5. Click the "OK" button to exit the Install Extensions window.
+5. Click the "OK" button to exit the `Install Extensions` window.
 6. Restart Ghidra when prompted.
 
 ### Enabling the Plugin
@@ -74,25 +67,23 @@ Once installed, you can enable the plugin via the `Configure` tool.
 1. Navigate to Ghidra's Configure tool
    - `File` -> `Configure`
 2. Click `Configure` under the `RevEng.AI` plugin group
-3. Select the checkbox next to each of the plugins you want to enable
+3. Select the checkbox next to each of the plugins except the `DevPlugin` (unless you are doing development on the plugin itself)
 
-![Plugin Config](screenshots/plugin-config.png)
-
-Each plugin is dependent on the `CorePlugin`, for instance, by enabling the `BinarySimularityPlugin` you will automatically enable the `CorePlugin`.
+![Plugins Configuration Window](screenshots/plugins-configuration-window.png)
 
 ## Usage
 
 In this section, we provide an example workflow for our plugin that uses test binaries from `src/test/resources`.
 
-Once the plugin is loaded, there will be additional controls in the toolbar under `RevEngAI Toolkit`.
+Once the plugin is loaded, there will be additional controls in the toolbar under `RevEng.AI`.
 
-### Setup
+### Configuration
 
-The first thing we need to do is configure the tool with our API key and the host to use.
+The first thing we need to do is configure the plugin with our API key and the host to use.
 
-When you load the plugin for the first time, or by selecting `RevEngAI -> Run Setup Wizard`, you will be guided through the configuration process.
+When you load the plugin for the first time, or by selecting `RevEng.AI -> Configure`, you will be guided through the configuration process.
 
-![Config Window](screenshots/config-wizard.png)
+![Config Window](screenshots/configuration-window.png)
 
 > Enter your API Key from the [RevEng.AI Portal](https://portal.reveng.ai/settings) into the API Key field
 > where they will be validated and saved for future use.
@@ -103,7 +94,7 @@ When you load the plugin for the first time, or by selecting `RevEngAI -> Run Se
 
 You are now ready to upload a binary.
 
-Import `src/test/resources/fdupes` into Ghidra and then create a new RevEng analysis, by going to `RevEngAI Toolkit -> Create New Analysis for Binary`.
+Import `src/test/resources/fdupes` into Ghidra and then create a new RevEng analysis, by going to `RevEng.AI -> Analysis -> Create New`.
 
 [//]: # (![Upload using toolbar menu]&#40;screenshots/upload-menu.png&#41;)
 
