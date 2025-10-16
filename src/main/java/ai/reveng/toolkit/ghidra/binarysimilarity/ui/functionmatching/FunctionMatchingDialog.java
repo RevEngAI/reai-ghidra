@@ -168,13 +168,24 @@ public class FunctionMatchingDialog extends RevEngDialogComponentProvider {
     private void processFunctionMatchingResults(FunctionMatchingBatchResponse response) {
         functionMatchResults.clear();
 
+        var functionMap = revengService.getFunctionMap(programWithBinaryID.program());
+
         response.getMatches().forEach(matchResult -> {
 
             // Process each matched function in this result
             matchResult.getMatchedFunctions().forEach(match -> {
+
+                // Retrieve the local function name
+                Function localFunction = functionMap.get(new FunctionID(matchResult.getFunctionId()));
+
+                if (localFunction == null) {
+                    // If we can't find the local function, skip this match
+                    return;
+                }
+
                 // Extract data from the MatchedFunction
                 String virtualAddress = String.format("%08x", match.getFunctionVaddr());
-                String functionName = match.getFunctionName();
+                String functionName = localFunction.getName();
                 String bestMatchName = match.getFunctionName();
                 String bestMatchMangledName = match.getMangledName();
                 String similarity = match.getSimilarity() != null ?
