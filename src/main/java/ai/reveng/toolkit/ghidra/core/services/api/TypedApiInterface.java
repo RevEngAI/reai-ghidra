@@ -140,7 +140,7 @@ public interface TypedApiInterface {
         throw new UnsupportedOperationException("aiUnstrip not implemented yet");
     }
 
-    default void aiDecompRating(FunctionID functionID, String rating, @Nullable String reason) {
+    default void aiDecompRating(FunctionID functionID, String rating, @Nullable String reason) throws ApiException {
         throw new UnsupportedOperationException("aiDecompRating not implemented yet");
     }
 

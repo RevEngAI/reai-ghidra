@@ -74,9 +74,9 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
             return;
         }
 
-        // If no program, or not attached to an analysis, do not trigger location change events
+        // If no program, or not attached to a complete analysis, do not trigger location change events
         var program = loc.getProgram();
-        if (program == null || !apiService.isKnownProgram(program)) {
+        if (program == null || !apiService.isKnownProgram(program) || !apiService.isProgramAnalysed(program)) {
             return;
         }
 

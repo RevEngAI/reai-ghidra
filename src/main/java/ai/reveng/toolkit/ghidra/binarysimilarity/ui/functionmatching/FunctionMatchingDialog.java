@@ -70,7 +70,7 @@ public class FunctionMatchingDialog extends RevEngDialogComponentProvider {
             String confidence,
             String matchedHash,
             String binary,
-            Integer matcherFunctionId  // This is the function that we match from no the matched function's ID!
+            Long matcherFunctionId  // This is the function that we match from no the matched function's ID!
     ) {
     }
 
@@ -183,7 +183,7 @@ public class FunctionMatchingDialog extends RevEngDialogComponentProvider {
                     String.format("%.2f%%", match.getConfidence().doubleValue()) : "N/A";
                 String matchedHash = match.getSha256Hash();
                 String binary = match.getBinaryName();
-                Integer matcherFunctionId = matchResult.getFunctionId();
+                Long matcherFunctionId = matchResult.getFunctionId();
 
                 functionMatchResults.add(new FunctionMatchResult(
                     virtualAddress,

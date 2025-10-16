@@ -92,17 +92,16 @@ When you load the plugin for the first time, or by selecting `RevEng.AI -> Confi
 
 ### Running an Analysis
 
-You are now ready to upload a binary.
+You are now ready to analyse a binary.
 
 Import `src/test/resources/fdupes` into Ghidra and then create a new RevEng analysis, by going to `RevEng.AI -> Analysis -> Create New`.
+Usually it's enough to use the default options, but you can also select specific platforms or architectures if you want to.
 
-[//]: # (![Upload using toolbar menu]&#40;screenshots/upload-menu.png&#41;)
-
-[//]: # (![Upload from popup menu]&#40;screenshots/upload-popup.png&#41;)
+![Upload Dialog](screenshots/upload-dialog.png)
 
 > We are using `fdupes` with symbols to allow the model to learn what these functions look like, and to provide meaningful labels that we can use later to rename similar binaries.
 
-You can check the status of your request by selecting `Check Analysis Status` from the same menu.
+You can check the status of your request by selecting `RevEng.AI -> Analysis -> Check status` from the same menu.
 Starting an analysis also triggers a background Ghidra thread that will periodically check the status
 and pop a notification when the analysis is complete.
 
@@ -110,7 +109,7 @@ We now have uploaded `fdupes` to our dataset, meaning we can now use it for our 
 
 Import `src/test/resourcesfdupes.stripped` using the same steps as before. Once this has been completed, you can move on to the next step.
 
-With `fdupes.stripped` open in Ghidra, select a funtion in Ghidra's listing or decompiler view, and `right-click -> Rename from Similar Functions`, or `CTRL-Shift + R`.
+With `fdupes.stripped` open in Ghidra, select a function in Ghidra's listing or decompiler view, and `right-click -> Rename from Similar Functions`, or `CTRL-Shift + R`.
 This will open the function renaming window.
 
 ![Function Rename Action](screenshots/rename-action.png)

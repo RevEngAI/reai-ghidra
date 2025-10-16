@@ -128,7 +128,6 @@ public class RevEngAIAnalysisOptionsDialog extends DialogComponentProvider {
 //        workPanel.add(checkBoxPanel);
 
         // Add custom tags field
-        workPanel.add(new JSeparator(SwingConstants.HORIZONTAL));
         tagsTextBox = new JTextField();
         tagsTextBox.setToolTipText("Custom tags for the analysis, as comma separated list");
         tagsTextBox.setColumns(20);

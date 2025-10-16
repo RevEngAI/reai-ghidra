@@ -45,6 +45,9 @@ public class AnalysisLogComponent extends ComponentProviderAdapter implements An
         mainPanel = new JPanel(new BorderLayout());
         mainPanel.add(scroll, BorderLayout.CENTER);
         mainPanel.add(taskMonitorComponent, BorderLayout.SOUTH);
+
+        // Set a default size for the dialog
+        mainPanel.setPreferredSize(new Dimension(600, 400));
     }
 
     @Override
