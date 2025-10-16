@@ -1,21 +1,21 @@
 package ai.reveng.toolkit.ghidra.binarysimilarity.ui.functionmatching;
 
 import ai.reveng.model.*;
+import ai.reveng.toolkit.ghidra.binarysimilarity.ui.components.BinarySelectionPanel;
+import ai.reveng.toolkit.ghidra.binarysimilarity.ui.components.CollectionSelectionPanel;
+import ai.reveng.toolkit.ghidra.binarysimilarity.ui.components.SelectableItem;
+import ai.reveng.toolkit.ghidra.binarysimilarity.ui.dialog.RevEngDialogComponentProvider;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.api.types.FunctionID;
 import ai.reveng.toolkit.ghidra.core.types.ProgramWithBinaryID;
-import ghidra.framework.plugintool.PluginTool;
-import ai.reveng.toolkit.ghidra.binarysimilarity.ui.dialog.RevEngDialogComponentProvider;
 import ai.reveng.toolkit.ghidra.plugins.ReaiPluginPackage;
-import ai.reveng.toolkit.ghidra.binarysimilarity.ui.components.CollectionSelectionPanel;
-import ai.reveng.toolkit.ghidra.binarysimilarity.ui.components.BinarySelectionPanel;
-import ai.reveng.toolkit.ghidra.binarysimilarity.ui.components.SelectableItem;
+import ghidra.framework.plugintool.PluginTool;
 import ghidra.program.model.listing.Function;
 import ghidra.program.model.symbol.SourceType;
+import ghidra.util.Msg;
 import ghidra.util.exception.DuplicateNameException;
 import ghidra.util.exception.InvalidInputException;
 import ghidra.util.task.TaskMonitorComponent;
-import ghidra.util.Msg;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -29,9 +29,10 @@ import java.util.stream.Collectors;
 
 import static ai.reveng.toolkit.ghidra.plugins.BinarySimilarityPlugin.REVENG_AI_NAMESPACE;
 
-public class FunctionMatchingDialog extends RevEngDialogComponentProvider {
+public class FunctionLevelFunctionMatchingDialog extends RevEngDialogComponentProvider {
     private final GhidraRevengService revengService;
     private final ProgramWithBinaryID programWithBinaryID;
+    private final Function function;
 
     // UI Components
     private JPanel contentPanel;
@@ -74,7 +75,7 @@ public class FunctionMatchingDialog extends RevEngDialogComponentProvider {
     ) {
     }
 
-    public FunctionMatchingDialog(PluginTool tool, ProgramWithBinaryID programWithBinaryID, Function function) {
+    public FunctionLevelFunctionMatchingDialog(PluginTool tool, ProgramWithBinaryID programWithBinaryID, Function function) {
         super(ReaiPluginPackage.WINDOW_PREFIX + "Function Matching", true);
 
         this.revengService = tool.getService(GhidraRevengService.class);
@@ -82,6 +83,7 @@ public class FunctionMatchingDialog extends RevEngDialogComponentProvider {
         this.functionMatchResults = new ArrayList<>();
         this.filteredFunctionMatchResults = new ArrayList<>();
         this.programWithBinaryID = programWithBinaryID;
+        this.function = function;
 
         try {
             this.analysisBasicInfo = revengService.getBasicDetailsForAnalysis(programWithBinaryID.analysisID());
@@ -97,12 +99,6 @@ public class FunctionMatchingDialog extends RevEngDialogComponentProvider {
         // Initialize UI
         addDismissButton();
         addWorkPanel(buildMainPanel());
-
-        // Prepopulate function filter with the provided function name if available
-        // This must happen after buildMainPanel() so the functionFilterField exists
-        if (function != null && functionFilterField != null) {
-            functionFilterField.setText(function.getName());
-        }
 
         // Set dialog size to be wider
         setPreferredSize(1000, 800);
@@ -131,9 +127,15 @@ public class FunctionMatchingDialog extends RevEngDialogComponentProvider {
                 var request = new AnalysisFunctionMatchingRequest();
                 request.setMinSimilarity(BigDecimal.valueOf(getThreshold()));
 
+                var functionID = revengService.getFunctionIDFor(function);
+
+                var functionIds = new ArrayList<Long>();
+                functionIds.add(functionID.get().value())
+
                 var filters = new FunctionMatchingFilters();
                 filters.setCollectionIds(collectionSelector.getSelectedCollectionIds().stream().toList());
                 filters.setBinaryIds(binarySelector.getSelectedBinaryIds().stream().toList());
+                filters.setFunctionIds(functionIds);
 
                 if (isDebugSymbolsEnabled()) {
                     var debugTypes = new ArrayList<FunctionMatchingFilters.DebugTypesEnum>();
@@ -298,9 +300,9 @@ public class FunctionMatchingDialog extends RevEngDialogComponentProvider {
             // Set monospace font for Virtual Address column
             resultsTable.getColumnModel().getColumn(0).setCellRenderer(new javax.swing.table.DefaultTableCellRenderer() {
                 @Override
-                public java.awt.Component getTableCellRendererComponent(javax.swing.JTable table, Object value,
-                                                                     boolean isSelected, boolean hasFocus, int row, int column) {
-                    java.awt.Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                public Component getTableCellRendererComponent(JTable table, Object value,
+                                                               boolean isSelected, boolean hasFocus, int row, int column) {
+                    Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
                     c.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
                     return c;
                 }
@@ -337,9 +339,9 @@ public class FunctionMatchingDialog extends RevEngDialogComponentProvider {
      */
     private static class PercentageColorCellRenderer extends javax.swing.table.DefaultTableCellRenderer {
         @Override
-        public java.awt.Component getTableCellRendererComponent(javax.swing.JTable table, Object value,
-                                                             boolean isSelected, boolean hasFocus, int row, int column) {
-            java.awt.Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+        public Component getTableCellRendererComponent(JTable table, Object value,
+                                                       boolean isSelected, boolean hasFocus, int row, int column) {
+            Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
 
             if (value instanceof String percentageStr) {
                 Color textColor = getColorForPercentage(percentageStr);
@@ -429,7 +431,7 @@ public class FunctionMatchingDialog extends RevEngDialogComponentProvider {
         JPanel panel = new JPanel(new BorderLayout());
 
         // Create title panel
-        JPanel titlePanel = createTitlePanel("Match functions in this binary against previously seen samples");
+        JPanel titlePanel = createTitlePanel("Find matching functions for this function");
         panel.add(titlePanel, BorderLayout.NORTH);
 
         // Create content panel
@@ -496,10 +498,6 @@ public class FunctionMatchingDialog extends RevEngDialogComponentProvider {
 
         // Rename buttons panel - positioned between filters and results
         renameButtonsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-
-        JButton renameAllButton = new JButton("Rename All");
-        renameAllButton.addActionListener(e -> onRenameAllButtonClicked());
-        renameButtonsPanel.add(renameAllButton);
 
         JButton renameSelectedButton = new JButton("Rename Selected");
         renameSelectedButton.addActionListener(e -> onRenameSelectedButtonClicked());
@@ -834,17 +832,6 @@ public class FunctionMatchingDialog extends RevEngDialogComponentProvider {
     private void onMatchButtonClicked() {
         // Trigger function matching based on current filter settings
         filterResults();
-    }
-
-    /**
-     * Called when the Rename All button is clicked
-     */
-    private void onRenameAllButtonClicked() {
-        // Batch rename all functions in the portal
-        batchRenameFunctions(functionMatchResults);
-
-        // Update local function names for all matches
-        importFunctionNames(functionMatchResults);
     }
 
     /**

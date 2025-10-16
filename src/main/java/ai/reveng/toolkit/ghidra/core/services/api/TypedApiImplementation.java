@@ -88,7 +88,7 @@ public class TypedApiImplementation implements TypedApiInterface {
 
         // Use a custom HTTP client to add Ghidra specific logging
         // Set withResponseBody to true if debugging issues with the API to see the full response body
-        apiClient.setHttpClient(apiClient.getHttpClient().newBuilder().addInterceptor(ghidraLogger(false)).build());
+        apiClient.setHttpClient(apiClient.getHttpClient().newBuilder().addInterceptor(ghidraLogger(true)).build());
 
         ApiKeyAuth APIKey = (ApiKeyAuth) apiClient.getAuthentication("APIKey");
         APIKey.setApiKey(apiKey);
