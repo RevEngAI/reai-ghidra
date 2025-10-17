@@ -160,6 +160,10 @@ public interface TypedApiInterface {
         throw new UnsupportedOperationException("analysisFunctionMatching not implemented yet");
     }
 
+    default FunctionMatchingBatchResponse functionFunctionMatching(FunctionMatchingRequest request) throws ApiException {
+        throw new UnsupportedOperationException("functionFunctionMatching not implemented yet");
+    }
+
     default void batchRenameFunctions(FunctionsListRename functionsList) throws ApiException {
         throw new UnsupportedOperationException("batchRenameFunctions not implemented yet");
     }

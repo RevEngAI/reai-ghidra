@@ -898,6 +898,10 @@ public class GhidraRevengService {
         return api.analysisFunctionMatching(analysisID, request);
     }
 
+    public FunctionMatchingBatchResponse getFunctionMatchingForFunction(FunctionMatchingRequest request) throws ApiException {
+        return api.functionFunctionMatching(request);
+    }
+
     public void batchRenameFunctions(FunctionsListRename functionsList) throws ApiException {
         api.batchRenameFunctions(functionsList);
     }

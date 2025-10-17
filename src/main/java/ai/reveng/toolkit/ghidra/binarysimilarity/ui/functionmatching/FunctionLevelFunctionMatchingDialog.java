@@ -63,8 +63,6 @@ public class FunctionLevelFunctionMatchingDialog extends RevEngDialogComponentPr
 
     // Inner class to hold function match results
     private record FunctionMatchResult(
-            String virtualAddress,
-            String functionName,
             String bestMatchName,
             String bestMatchMangledName,
             String similarity,
@@ -124,18 +122,21 @@ public class FunctionLevelFunctionMatchingDialog extends RevEngDialogComponentPr
     private void pollFunctionMatchingStatus() {
         SwingUtilities.invokeLater(() -> {
             try {
-                var request = new AnalysisFunctionMatchingRequest();
+                var request = new FunctionMatchingRequest();
                 request.setMinSimilarity(BigDecimal.valueOf(getThreshold()));
+                request.setResultsPerFunction(25); // TODO: Make configurable?
+                request.setModelId(analysisBasicInfo.getModelId());
 
                 var functionID = revengService.getFunctionIDFor(function);
 
                 var functionIds = new ArrayList<Long>();
-                functionIds.add(functionID.get().value())
+                functionIds.add(functionID.get().value());
+
+                request.setFunctionIds(functionIds);
 
                 var filters = new FunctionMatchingFilters();
                 filters.setCollectionIds(collectionSelector.getSelectedCollectionIds().stream().toList());
                 filters.setBinaryIds(binarySelector.getSelectedBinaryIds().stream().toList());
-                filters.setFunctionIds(functionIds);
 
                 if (isDebugSymbolsEnabled()) {
                     var debugTypes = new ArrayList<FunctionMatchingFilters.DebugTypesEnum>();
@@ -150,7 +151,7 @@ public class FunctionLevelFunctionMatchingDialog extends RevEngDialogComponentPr
 
                 request.setFilters(filters);
 
-                functionMatchingResponse = revengService.getFunctionMatchingForAnalysis(programWithBinaryID.analysisID(), request);
+                functionMatchingResponse = revengService.getFunctionMatchingForFunction(request);
                 updateUI();
 
                 // Check if we're done
@@ -186,8 +187,6 @@ public class FunctionLevelFunctionMatchingDialog extends RevEngDialogComponentPr
                 }
 
                 // Extract data from the MatchedFunction
-                String virtualAddress = String.format("%08x", match.getFunctionVaddr());
-                String functionName = localFunction.getName();
                 String bestMatchName = match.getFunctionName();
                 String bestMatchMangledName = match.getMangledName();
                 String similarity = match.getSimilarity() != null ?
@@ -199,8 +198,6 @@ public class FunctionLevelFunctionMatchingDialog extends RevEngDialogComponentPr
                 Long matcherFunctionId = matchResult.getFunctionId();
 
                 functionMatchResults.add(new FunctionMatchResult(
-                    virtualAddress,
-                    functionName,
                     bestMatchName,
                     bestMatchMangledName,
                     similarity,
@@ -258,12 +255,12 @@ public class FunctionLevelFunctionMatchingDialog extends RevEngDialogComponentPr
         }
 
         DefaultTableModel model = new DefaultTableModel(
-            new Object[]{"Virtual Address", "Function Name", "Matched Function", "Similarity", "Confidence", "Matched Hash", "Matched Binary"},
+            new Object[]{"Matched Function", "Similarity", "Confidence", "Matched Hash", "Matched Binary"},
             0
         );
         for (FunctionMatchResult result : resultsToShow) {
             model.addRow(new Object[]{
-                result.virtualAddress, result.functionName, result.bestMatchName,
+                result.bestMatchName,
                 result.similarity, result.confidence, result.matchedHash, result.binary
             });
         }
@@ -297,40 +294,25 @@ public class FunctionLevelFunctionMatchingDialog extends RevEngDialogComponentPr
 
         // Set column widths and fonts
         if (resultsTable.getColumnCount() > 0) {
-            // Set monospace font for Virtual Address column
-            resultsTable.getColumnModel().getColumn(0).setCellRenderer(new javax.swing.table.DefaultTableCellRenderer() {
-                @Override
-                public Component getTableCellRendererComponent(JTable table, Object value,
-                                                               boolean isSelected, boolean hasFocus, int row, int column) {
-                    Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                    c.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
-                    return c;
-                }
-            });
+            // Set color-coded renderer for Similarity column (index 1)
+            resultsTable.getColumnModel().getColumn(1).setCellRenderer(new PercentageColorCellRenderer());
 
-            // Set color-coded renderer for Similarity column (index 3)
-            resultsTable.getColumnModel().getColumn(3).setCellRenderer(new PercentageColorCellRenderer());
-
-            // Set color-coded renderer for Confidence column (index 4)
-            resultsTable.getColumnModel().getColumn(4).setCellRenderer(new PercentageColorCellRenderer());
+            // Set color-coded renderer for Confidence column (index 2)
+            resultsTable.getColumnModel().getColumn(2).setCellRenderer(new PercentageColorCellRenderer());
 
             // Set column widths
-            resultsTable.getColumnModel().getColumn(0).setPreferredWidth(100);  // Virtual Address
-            resultsTable.getColumnModel().getColumn(1).setPreferredWidth(150);  // Function Name
-            resultsTable.getColumnModel().getColumn(2).setPreferredWidth(150);  // Best Match
-            resultsTable.getColumnModel().getColumn(3).setPreferredWidth(80);   // Similarity
-            resultsTable.getColumnModel().getColumn(4).setPreferredWidth(80);   // Confidence
-            resultsTable.getColumnModel().getColumn(5).setPreferredWidth(100);  // Matched Hash
-            resultsTable.getColumnModel().getColumn(6).setPreferredWidth(120);  // Binary
+            resultsTable.getColumnModel().getColumn(0).setPreferredWidth(150);  // Best Match
+            resultsTable.getColumnModel().getColumn(1).setPreferredWidth(80);   // Similarity
+            resultsTable.getColumnModel().getColumn(2).setPreferredWidth(80);   // Confidence
+            resultsTable.getColumnModel().getColumn(3).setPreferredWidth(100);  // Matched Hash
+            resultsTable.getColumnModel().getColumn(4).setPreferredWidth(120);  // Binary
 
             // Set minimum widths
-            resultsTable.getColumnModel().getColumn(0).setMinWidth(80);
-            resultsTable.getColumnModel().getColumn(1).setMinWidth(100);
-            resultsTable.getColumnModel().getColumn(2).setMinWidth(100);
-            resultsTable.getColumnModel().getColumn(3).setMinWidth(60);
-            resultsTable.getColumnModel().getColumn(4).setMinWidth(60);
-            resultsTable.getColumnModel().getColumn(5).setMinWidth(80);
-            resultsTable.getColumnModel().getColumn(6).setMinWidth(80);
+            resultsTable.getColumnModel().getColumn(0).setMinWidth(100);
+            resultsTable.getColumnModel().getColumn(1).setMinWidth(60);
+            resultsTable.getColumnModel().getColumn(2).setMinWidth(60);
+            resultsTable.getColumnModel().getColumn(3).setMinWidth(80);
+            resultsTable.getColumnModel().getColumn(4).setMinWidth(80);
         }
     }
 
@@ -444,45 +426,37 @@ public class FunctionLevelFunctionMatchingDialog extends RevEngDialogComponentPr
         JPanel progressPanel = createProgressPanel();
         topPanel.add(progressPanel, BorderLayout.NORTH);
 
-        // Create filter panel with 3-row, 2-column layout
+        // Create filter panel with 2-row, 2-column layout (removed function filter from here)
         JPanel filterPanel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weighty = 0;
 
-        // Row 0: Function filter text field (100% width, spans both columns)
+        // Row 0, Col 0: Collection selector (50% width)
         gbc.gridx = 0;
         gbc.gridy = 0;
-        gbc.gridwidth = 2;
-        gbc.weightx = 1.0;
-        gbc.insets = new Insets(10, 0, 10, 0);
-        filterPanel.add(createFunctionFilterPanel(), gbc);
-
-        // Row 1, Col 0: Collection selector (50% width)
-        gbc.gridx = 0;
-        gbc.gridy = 1;
         gbc.gridwidth = 1;
         gbc.weightx = 0.5;
-        gbc.insets = new Insets(0, 0, 10, 10); // padding between components
+        gbc.insets = new Insets(10, 0, 10, 10); // padding between components
         filterPanel.add(createCollectionSelectorPanel(), gbc);
 
-        // Row 1, Col 1: Binary selector (50% width) - no right padding
+        // Row 0, Col 1: Binary selector (50% width) - no right padding
         gbc.gridx = 1;
-        gbc.gridy = 1;
+        gbc.gridy = 0;
         gbc.weightx = 0.5;
-        gbc.insets = new Insets(0, 0, 10, 0); // no right padding for last column
+        gbc.insets = new Insets(10, 0, 10, 0); // no right padding for last column
         filterPanel.add(createBinarySelectorPanel(), gbc);
 
-        // Row 2, Col 0: Threshold panel (50% width)
+        // Row 1, Col 0: Threshold panel (50% width)
         gbc.gridx = 0;
-        gbc.gridy = 2;
+        gbc.gridy = 1;
         gbc.weightx = 0.5;
         gbc.insets = new Insets(0, 0, 0, 10); // padding between components
         filterPanel.add(createThresholdPanel(), gbc);
 
-        // Row 2, Col 1: Debug symbols toggle (50% width) - no right padding
+        // Row 1, Col 1: Debug symbols toggle (50% width) - no right padding
         gbc.gridx = 1;
-        gbc.gridy = 2;
+        gbc.gridy = 1;
         gbc.weightx = 0.5;
         gbc.insets = new Insets(0, 0, 0, 0); // no right padding for last column
         filterPanel.add(createDebugSymbolsPanel(), gbc);
@@ -496,16 +470,24 @@ public class FunctionLevelFunctionMatchingDialog extends RevEngDialogComponentPr
         matchButton.addActionListener(e -> onMatchButtonClicked());
         buttonPanel.add(matchButton);
 
+        // Function filter panel - positioned below Match Functions button
+        JPanel functionFilterPanel = createFunctionFilterPanel();
+
+        // Create a combined panel for button and function filter
+        JPanel buttonAndFilterPanel = new JPanel(new BorderLayout());
+        buttonAndFilterPanel.add(buttonPanel, BorderLayout.NORTH);
+        buttonAndFilterPanel.add(functionFilterPanel, BorderLayout.CENTER);
+
         // Rename buttons panel - positioned between filters and results
         renameButtonsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
 
-        JButton renameSelectedButton = new JButton("Rename Selected");
+        JButton renameSelectedButton = new JButton("Rename " + function.getName() +" to the selected function");
         renameSelectedButton.addActionListener(e -> onRenameSelectedButtonClicked());
         renameButtonsPanel.add(renameSelectedButton);
 
         // Create a center panel to hold the button and results
         JPanel centerPanel = new JPanel(new BorderLayout());
-        centerPanel.add(buttonPanel, BorderLayout.NORTH);
+        centerPanel.add(buttonAndFilterPanel, BorderLayout.NORTH);
 
         // Initialize error area but don't add it to the panel yet
         errorArea = new JTextArea(5, 60);
@@ -672,7 +654,7 @@ public class FunctionLevelFunctionMatchingDialog extends RevEngDialogComponentPr
      */
     private JPanel createFunctionFilterPanel() {
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(BorderFactory.createTitledBorder("Function filter"));
+        panel.setBorder(BorderFactory.createTitledBorder("Filter matches by function name, hash or binary"));
 
         // Create text field for function name filtering
         functionFilterField = new JTextField();
@@ -758,10 +740,14 @@ public class FunctionLevelFunctionMatchingDialog extends RevEngDialogComponentPr
         // Apply local filtering to the function match results
         filteredFunctionMatchResults.clear();
         if (!filterText.isEmpty()) {
-            // Filter results based on function name containing the filter text
+            // Filter results based on function field containing the filter text
             filteredFunctionMatchResults.addAll(
                 functionMatchResults.stream()
-                    .filter(result -> result.functionName.toLowerCase().contains(filterText))
+                    .filter(result ->
+                        result.bestMatchName.toLowerCase().contains(filterText) ||
+                        result.matchedHash.toLowerCase().contains(filterText) ||
+                        result.binary.toLowerCase().contains(filterText)
+                    )
                     .toList()
             );
         }

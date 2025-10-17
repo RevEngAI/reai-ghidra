@@ -599,6 +599,11 @@ public class TypedApiImplementation implements TypedApiInterface {
     }
 
     @Override
+    public FunctionMatchingBatchResponse functionFunctionMatching(FunctionMatchingRequest request) throws ApiException {
+        return this.functionsCoreApi.batchFunctionMatching(request);
+    }
+
+    @Override
     public void batchRenameFunctions(FunctionsListRename functionsList) throws ApiException {
         this.functionsRenamingHistoryApi.batchRenameFunction(functionsList);
     }

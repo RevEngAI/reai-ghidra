@@ -266,9 +266,9 @@ public class BinaryLevelFunctionMatchingDialog extends RevEngDialogComponentProv
         int displayedMatchCount = resultsToShow.size();
         String title;
         if (filterText.isEmpty()) {
-            title = "Function Matching Results (" + totalMatchCount + " matches found)";
+            title = "Function matching results (" + totalMatchCount + " matches found)";
         } else {
-            title = "Function Matching Results (" + displayedMatchCount + " of " + totalMatchCount + " matches shown)";
+            title = "Function matching results (" + displayedMatchCount + " of " + totalMatchCount + " matches shown)";
         }
         resultsScrollPane.setBorder(BorderFactory.createTitledBorder(title));
 
@@ -436,45 +436,37 @@ public class BinaryLevelFunctionMatchingDialog extends RevEngDialogComponentProv
         JPanel progressPanel = createProgressPanel();
         topPanel.add(progressPanel, BorderLayout.NORTH);
 
-        // Create filter panel with 3-row, 2-column layout
+        // Create filter panel with 2-row, 2-column layout (removed function filter from here)
         JPanel filterPanel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weighty = 0;
 
-        // Row 0: Function filter text field (100% width, spans both columns)
+        // Row 0, Col 0: Collection selector (50% width)
         gbc.gridx = 0;
         gbc.gridy = 0;
-        gbc.gridwidth = 2;
-        gbc.weightx = 1.0;
-        gbc.insets = new Insets(10, 0, 10, 0);
-        filterPanel.add(createFunctionFilterPanel(), gbc);
-
-        // Row 1, Col 0: Collection selector (50% width)
-        gbc.gridx = 0;
-        gbc.gridy = 1;
         gbc.gridwidth = 1;
         gbc.weightx = 0.5;
-        gbc.insets = new Insets(0, 0, 10, 10); // padding between components
+        gbc.insets = new Insets(10, 0, 10, 10); // padding between components
         filterPanel.add(createCollectionSelectorPanel(), gbc);
 
-        // Row 1, Col 1: Binary selector (50% width) - no right padding
+        // Row 0, Col 1: Binary selector (50% width) - no right padding
         gbc.gridx = 1;
-        gbc.gridy = 1;
+        gbc.gridy = 0;
         gbc.weightx = 0.5;
-        gbc.insets = new Insets(0, 0, 10, 0); // no right padding for last column
+        gbc.insets = new Insets(10, 0, 10, 0); // no right padding for last column
         filterPanel.add(createBinarySelectorPanel(), gbc);
 
-        // Row 2, Col 0: Threshold panel (50% width)
+        // Row 1, Col 0: Threshold panel (50% width)
         gbc.gridx = 0;
-        gbc.gridy = 2;
+        gbc.gridy = 1;
         gbc.weightx = 0.5;
         gbc.insets = new Insets(0, 0, 0, 10); // padding between components
         filterPanel.add(createThresholdPanel(), gbc);
 
-        // Row 2, Col 1: Debug symbols toggle (50% width) - no right padding
+        // Row 1, Col 1: Debug symbols toggle (50% width) - no right padding
         gbc.gridx = 1;
-        gbc.gridy = 2;
+        gbc.gridy = 1;
         gbc.weightx = 0.5;
         gbc.insets = new Insets(0, 0, 0, 0); // no right padding for last column
         filterPanel.add(createDebugSymbolsPanel(), gbc);
@@ -487,6 +479,14 @@ public class BinaryLevelFunctionMatchingDialog extends RevEngDialogComponentProv
         JButton matchButton = new JButton("Match Functions");
         matchButton.addActionListener(e -> onMatchButtonClicked());
         buttonPanel.add(matchButton);
+
+        // Function filter panel - positioned below Match Functions button
+        JPanel functionFilterPanel = createFunctionFilterPanel();
+
+        // Create a combined panel for button and function filter
+        JPanel buttonAndFilterPanel = new JPanel(new BorderLayout());
+        buttonAndFilterPanel.add(buttonPanel, BorderLayout.NORTH);
+        buttonAndFilterPanel.add(functionFilterPanel, BorderLayout.CENTER);
 
         // Rename buttons panel - positioned between filters and results
         renameButtonsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
@@ -501,7 +501,7 @@ public class BinaryLevelFunctionMatchingDialog extends RevEngDialogComponentProv
 
         // Create a center panel to hold the button and results
         JPanel centerPanel = new JPanel(new BorderLayout());
-        centerPanel.add(buttonPanel, BorderLayout.NORTH);
+        centerPanel.add(buttonAndFilterPanel, BorderLayout.NORTH);
 
         // Initialize error area but don't add it to the panel yet
         errorArea = new JTextArea(5, 60);
@@ -668,7 +668,7 @@ public class BinaryLevelFunctionMatchingDialog extends RevEngDialogComponentProv
      */
     private JPanel createFunctionFilterPanel() {
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(BorderFactory.createTitledBorder("Function filter"));
+        panel.setBorder(BorderFactory.createTitledBorder("Filter matches by function virtual address, name, hash or binary"));
 
         // Create text field for function name filtering
         functionFilterField = new JTextField();
@@ -754,10 +754,16 @@ public class BinaryLevelFunctionMatchingDialog extends RevEngDialogComponentProv
         // Apply local filtering to the function match results
         filteredFunctionMatchResults.clear();
         if (!filterText.isEmpty()) {
-            // Filter results based on function name containing the filter text
+            // Filter results based on matched function name containing the filter text
             filteredFunctionMatchResults.addAll(
                 functionMatchResults.stream()
-                    .filter(result -> result.functionName.toLowerCase().contains(filterText))
+                    .filter(result ->
+                        result.virtualAddress.toLowerCase().contains(filterText) ||
+                        result.functionName.toLowerCase().contains(filterText) ||
+                        result.bestMatchName.toLowerCase().contains(filterText) ||
+                        result.matchedHash.toLowerCase().contains(filterText) ||
+                        result.binary.toLowerCase().contains(filterText)
+                    )
                     .toList()
             );
         }
