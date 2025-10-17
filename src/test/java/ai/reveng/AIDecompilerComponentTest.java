@@ -1,6 +1,6 @@
 package ai.reveng;
 
-import ai.reveng.toolkit.ghidra.binarysimilarity.ui.aidecompiler.AIDecompiledWindow;
+import ai.reveng.toolkit.ghidra.binarysimilarity.ui.aidecompiler.AIDecompilationdWindow;
 import ai.reveng.toolkit.ghidra.core.services.api.mocks.UnimplementedAPI;
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
 import ai.reveng.toolkit.ghidra.plugins.BinarySimilarityPlugin;
@@ -14,7 +14,6 @@ import ghidra.util.task.TaskMonitor;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.junit.Test;
 
-import javax.swing.*;
 import java.util.List;
 import java.util.Map;
 
@@ -102,7 +101,7 @@ public class AIDecompilerComponentTest extends RevEngMockableHeadedIntegrationTe
         env.showTool(programWithID.program());
 
         // get AIDecompiledWindow, and some internal fields for testing
-        var aiDecompComponent = getComponentProvider(AIDecompiledWindow.class);
+        var aiDecompComponent = getComponentProvider(AIDecompilationdWindow.class);
         Map<Function, AIDecompilationStatus> aiDecompCache = (Map<Function, AIDecompilationStatus>) getInstanceField("cache", aiDecompComponent);
         RSyntaxTextArea textArea = (RSyntaxTextArea) getInstanceField("textArea", aiDecompComponent);
 
@@ -161,7 +160,7 @@ public class AIDecompilerComponentTest extends RevEngMockableHeadedIntegrationTe
         waitForSwing();
 
         // get AIDecompiledWindow, and some internal fields for testing
-        var aiDecompComponent = getComponentProvider(AIDecompiledWindow.class);
+        var aiDecompComponent = getComponentProvider(AIDecompilationdWindow.class);
         // Get the reason field
 
         aiDecompComponent.setVisible(true);

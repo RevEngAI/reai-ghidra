@@ -15,7 +15,7 @@
  */
 package ai.reveng.toolkit.ghidra.plugins;
 
-import ai.reveng.toolkit.ghidra.binarysimilarity.ui.aidecompiler.AIDecompiledWindow;
+import ai.reveng.toolkit.ghidra.binarysimilarity.ui.aidecompiler.AIDecompilationdWindow;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.autounstrip.AutoUnstripDialog;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.collectiondialog.DataSetControlPanelComponent;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.functionmatching.BinaryLevelFunctionMatchingDialog;
@@ -59,7 +59,7 @@ import java.util.Arrays;
 )
 //@formatter:on
 public class BinarySimilarityPlugin extends ProgramPlugin {
-	private final AIDecompiledWindow decompiledWindow;
+	private final AIDecompilationdWindow decompiledWindow;
 
     private GhidraRevengService apiService;
 
@@ -95,7 +95,7 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 		setupActions();
 
 		// Setup windows
-        decompiledWindow = new AIDecompiledWindow(tool, REVENG_AI_NAMESPACE);
+        decompiledWindow = new AIDecompilationdWindow(tool, REVENG_AI_NAMESPACE);
 		decompiledWindow.addToTool();
 
 

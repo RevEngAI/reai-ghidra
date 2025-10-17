@@ -11,8 +11,6 @@ import docking.action.DockingAction;
 import docking.action.ToolBarData;
 import docking.widgets.dialogs.InputDialog;
 import generic.theme.GIcon;
-import ghidra.Ghidra;
-import ghidra.app.services.ProgramManager;
 import ghidra.framework.plugintool.ComponentProviderAdapter;
 import ghidra.framework.plugintool.PluginTool;
 import ghidra.program.model.listing.Function;
@@ -29,7 +27,7 @@ import java.awt.*;
 import java.util.Map;
 import java.util.Objects;
 
-public class AIDecompiledWindow extends ComponentProviderAdapter {
+public class AIDecompilationdWindow extends ComponentProviderAdapter {
 
 
     private RSyntaxTextArea textArea;
@@ -40,8 +38,8 @@ public class AIDecompiledWindow extends ComponentProviderAdapter {
     private TaskMonitorComponent taskMonitorComponent;
     private final Map<Function, AIDecompilationStatus> cache = new java.util.HashMap<>();
 
-    public AIDecompiledWindow(PluginTool tool, String owner) {
-        super(tool, ReaiPluginPackage.WINDOW_PREFIX + "AI Decompiler", owner);
+    public AIDecompilationdWindow(PluginTool tool, String owner) {
+        super(tool, ReaiPluginPackage.WINDOW_PREFIX + "AI Decompilation", owner);
 
         setIcon(ReaiPluginPackage.REVENG_16);
         component = buildComponent();
@@ -150,6 +148,9 @@ public class AIDecompiledWindow extends ComponentProviderAdapter {
         if (status.status().equals("success")) {
             setCode(status.decompilation());
             descriptionArea.setText(status.getMarkedUpSummary());
+        } else if (status.status().equals("error")) {
+            setCode("");
+            descriptionArea.setText("Decompilation failed");
         }
     }
 
@@ -210,6 +211,10 @@ public class AIDecompiledWindow extends ComponentProviderAdapter {
         if (status.status().equals("success")) {
             var logger = tool.getService(ReaiLoggingService.class);
             logger.info("AI Decompilation finished for function %s: %s".formatted(function.getName(), status.decompilation()));
+            if (!hasPendingDecompilations()) {
+                taskMonitorComponent.setVisible(false);
+            }
+        } else if (status.status().equals("error")) {
             if (!hasPendingDecompilations()) {
                 taskMonitorComponent.setVisible(false);
             }
