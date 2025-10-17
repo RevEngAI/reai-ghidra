@@ -59,6 +59,7 @@ public class TypedApiImplementation implements TypedApiInterface {
     private final SearchApi searchApi;
     private final FunctionsCoreApi functionsCoreApi;
     private final FunctionsRenamingHistoryApi functionsRenamingHistoryApi;
+    private final FunctionsAiDecompilationApi functionsAiDecompilationApi;
 
     // Cache for binary ID to analysis ID mappings
     private final Map<BinaryID, AnalysisID> binaryToAnalysisCache = new HashMap<>();
@@ -98,6 +99,7 @@ public class TypedApiImplementation implements TypedApiInterface {
         this.searchApi = new SearchApi(apiClient);
         this.functionsCoreApi = new FunctionsCoreApi(apiClient);
         this.functionsRenamingHistoryApi = new FunctionsRenamingHistoryApi(apiClient);
+        this.functionsAiDecompilationApi = new FunctionsAiDecompilationApi(apiClient);
 
         this.baseUrl = baseUrl + "/";
         this.httpClient = HttpClient.newBuilder()
@@ -552,19 +554,14 @@ public class TypedApiImplementation implements TypedApiInterface {
     }
 
     @Override
-    public void aiDecompRating(FunctionID functionID, String rating, @Nullable String reason) {
-        JSONObject params = new JSONObject();
-        params.put("rating", rating);
-        if (reason != null){
-            params.put("reason", reason);
+    public void aiDecompRating(FunctionID functionID, String rating, @Nullable String reason) throws ApiException {
+        var request = new UpsertAiDecomplationRatingRequest();
+        request.setRating(AiDecompilationRating.fromValue(rating));
+        if (reason != null) {
+            request.setReason(reason);
         }
 
-        var request = requestBuilderForEndpoint("functions", String.valueOf(functionID.value()), "ai-decompilation",  "rating")
-                .POST(HttpRequest.BodyPublishers.ofString(params.toString()))
-                .header("Content-Type", "application/json" )
-                .build();
-
-        sendRequest(request);
+        functionsAiDecompilationApi.upsertAiDecompilationRating(functionID.value(), request);
     }
 
     @Override
@@ -599,6 +596,11 @@ public class TypedApiImplementation implements TypedApiInterface {
     @Override
     public FunctionMatchingBatchResponse analysisFunctionMatching(AnalysisID analysisID, AnalysisFunctionMatchingRequest request) throws ApiException {
         return this.functionsCoreApi.analysisFunctionMatching(analysisID.id(), request);
+    }
+
+    @Override
+    public FunctionMatchingBatchResponse functionFunctionMatching(FunctionMatchingRequest request) throws ApiException {
+        return this.functionsCoreApi.batchFunctionMatching(request);
     }
 
     @Override

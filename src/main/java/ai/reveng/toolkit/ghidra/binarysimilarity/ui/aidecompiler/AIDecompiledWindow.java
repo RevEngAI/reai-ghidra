@@ -1,5 +1,6 @@
 package ai.reveng.toolkit.ghidra.binarysimilarity.ui.aidecompiler;
 
+import ai.reveng.invoker.ApiException;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.api.types.FunctionID;
 import ai.reveng.toolkit.ghidra.core.services.logging.ReaiLoggingService;
@@ -55,7 +56,14 @@ public class AIDecompiledWindow extends ComponentProviderAdapter {
                 if (function != null) {
                     var service = tool.getService(GhidraRevengService.class);
                     var fID = service.getFunctionIDFor(function);
-                    fID.ifPresent(id -> service.getApi().aiDecompRating(id, "POSITIVE", null));
+                    fID.ifPresent(id -> {
+                        try {
+                            service.getApi().aiDecompRating(id, "POSITIVE", "");
+                        } catch (ApiException e) {
+                            // Fail silently because this is not a critical feature
+                            Msg.error(this, "Failed to send positive feedback for function %s: %s".formatted(function.getName(), e.getMessage()));
+                        }
+                    });
                 }
             }
 
@@ -84,7 +92,14 @@ public class AIDecompiledWindow extends ComponentProviderAdapter {
                     if (function != null) {
                         var service = tool.getService(GhidraRevengService.class);
                         var fID = service.getFunctionIDFor(function);
-                        fID.ifPresent(id -> service.getApi().aiDecompRating(id, "NEGATIVE", dialog.getValue()));
+                        fID.ifPresent(id -> {
+                            try {
+                                service.getApi().aiDecompRating(id, "NEGATIVE", dialog.getValue());
+                            } catch (ApiException e) {
+                                // Fail silently because this is not a critical feature
+                                Msg.error(this, "Failed to send negative feedback for function %s: %s".formatted(function.getName(), e.getMessage()));
+                            }
+                        });
                     }
                 }
             }
@@ -105,7 +120,7 @@ public class AIDecompiledWindow extends ComponentProviderAdapter {
 
         descriptionArea = new JTextArea(10, 60);
         descriptionArea.setLineWrap(true);
-        descriptionArea.setText("No function selected");
+        descriptionArea.setText("No function selected or binary not analysed yet with RevEng.AI");
         descriptionArea.setEditable(false);
         component.add(descriptionArea, BorderLayout.NORTH);
 
@@ -157,6 +172,8 @@ public class AIDecompiledWindow extends ComponentProviderAdapter {
             setDisplayedValuesBasedOnStatus(function, cachedStatus);
         } else {
             // TODO: Allow toggling auto decomp mode via local toggle action, for now do it always
+
+            // Only start decompilation if the window is visible and the status of the analysis is complete.
             if (this.isVisible()) {
                 taskMonitorComponent.setVisible(true);
                 // Start a new background task to decompile the function

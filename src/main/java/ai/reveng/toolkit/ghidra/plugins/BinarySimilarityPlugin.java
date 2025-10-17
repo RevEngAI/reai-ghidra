@@ -18,7 +18,8 @@ package ai.reveng.toolkit.ghidra.plugins;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.aidecompiler.AIDecompiledWindow;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.autounstrip.AutoUnstripDialog;
 import ai.reveng.toolkit.ghidra.binarysimilarity.ui.collectiondialog.DataSetControlPanelComponent;
-import ai.reveng.toolkit.ghidra.binarysimilarity.ui.functionmatching.FunctionMatchingDialog;
+import ai.reveng.toolkit.ghidra.binarysimilarity.ui.functionmatching.BinaryLevelFunctionMatchingDialog;
+import ai.reveng.toolkit.ghidra.binarysimilarity.ui.functionmatching.FunctionLevelFunctionMatchingDialog;
 import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisResultsLoaded;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
@@ -74,9 +75,9 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
             return;
         }
 
-        // If no program, or not attached to an analysis, do not trigger location change events
+        // If no program, or not attached to a complete analysis, do not trigger location change events
         var program = loc.getProgram();
-        if (program == null || !apiService.isKnownProgram(program)) {
+        if (program == null || !apiService.isKnownProgram(program) || !apiService.isProgramAnalysed(program)) {
             return;
         }
 
@@ -169,7 +170,7 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
                         return;
                     }
 
-                    var functionMatchingDialog = new FunctionMatchingDialog(tool, knownProgram.get(), null);
+                    var functionMatchingDialog = new BinaryLevelFunctionMatchingDialog(tool, knownProgram.get());
                     tool.showDialog(functionMatchingDialog);
                 })
                 .buildAndInstall(tool);
@@ -201,7 +202,7 @@ public class BinarySimilarityPlugin extends ProgramPlugin {
 
                     var func = context.getProgram().getFunctionManager().getFunctionContaining(context.getAddress());
 
-                    var functionMatchingDialog = new FunctionMatchingDialog(tool, knownProgram.get(), func);
+                    var functionMatchingDialog = new FunctionLevelFunctionMatchingDialog(tool, knownProgram.get(), func);
                     tool.showDialog(functionMatchingDialog);
                 })
                 .popupMenuPath(new String[] { "Match function" })
