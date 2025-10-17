@@ -283,7 +283,7 @@ public class FunctionLevelFunctionMatchingDialog extends RevEngDialogComponentPr
 
         // Enable table selection model for rename operations
         if (hasResults) {
-            resultsTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+            resultsTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
             resultsTable.setRowSelectionAllowed(true);
         }
 
@@ -849,6 +849,9 @@ public class FunctionLevelFunctionMatchingDialog extends RevEngDialogComponentPr
 
         // Update local function names for selected matches
         importFunctionNames(selectedMatches);
+
+        // Close the dialog after renaming
+        close();
     }
 
     private void batchRenameFunctions(List<FunctionMatchResult> functionMatches) {
