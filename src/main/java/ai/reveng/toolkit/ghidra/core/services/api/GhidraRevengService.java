@@ -7,17 +7,15 @@ import ai.reveng.toolkit.ghidra.core.AnalysisLogConsumer;
 import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisStatusChangedEvent;
 import ai.reveng.toolkit.ghidra.core.services.api.types.FunctionBoundary;
 import ai.reveng.toolkit.ghidra.plugins.ReaiPluginPackage;
-import ai.reveng.toolkit.ghidra.binarysimilarity.ui.aidecompiler.AIDecompiledWindow;
+import ai.reveng.toolkit.ghidra.binarysimilarity.ui.aidecompiler.AIDecompilationdWindow;
 import ai.reveng.toolkit.ghidra.core.services.api.mocks.MockApi;
 import ai.reveng.toolkit.ghidra.core.services.api.types.*;
 import ai.reveng.toolkit.ghidra.core.services.api.types.Collection;
-import ai.reveng.toolkit.ghidra.core.services.api.types.LegacyCollection;
 import ai.reveng.toolkit.ghidra.core.services.api.types.binsync.*;
 import ai.reveng.toolkit.ghidra.core.services.api.types.exceptions.APIAuthenticationException;
 import ai.reveng.toolkit.ghidra.core.types.ProgramWithBinaryID;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import com.google.common.collect.Maps;
 import ghidra.framework.plugintool.PluginTool;
 import ghidra.program.model.address.Address;
 import ghidra.program.model.data.*;
@@ -427,7 +425,7 @@ public class GhidraRevengService {
         }
     }
 
-    public String decompileFunctionViaAI(Function function, TaskMonitor monitor, AIDecompiledWindow window) {
+    public String decompileFunctionViaAI(Function function, TaskMonitor monitor, AIDecompilationdWindow window) {
         monitor.setMaximum(100 * 50);
         var fID = getFunctionIDFor(function)
                 .orElseThrow(() -> new RuntimeException("Function has no associated FunctionID"));

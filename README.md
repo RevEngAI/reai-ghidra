@@ -15,22 +15,26 @@ The RevEng.AI Ghidra plugins allows you to interact with our API from within Ghi
 This allows you to upload your currently open binary for analysis,
 and use it for Binary Code Similarity to help you Reverse Engineer stripped binaries.
 
-## Table of Contents
+## Table of contents
 
 - [Key Features](#key-features)
 - [Installation](#installation)
   - [Loading the Plugin](#loading-the-plugin)
   - [Enabling the Plugin](#enabling-the-plugin)
 - [Usage](#usage)
-   - [Auto Analysis](#auto-analysis)
-   - [Function Explaination](#function-explaination)
+  - [Configuration](#configuration)
+  - [Analysis](#analysis)
+  - [Auto Unstrip](#auto-unstrip)
+  - [Function Matching](#function-matching)
+    - [Individual function matching and renaming](#individual-function-matching-and-renaming)
+    - [Batch function matching and renaming](#batch-function-matching-and-renaming)
+  - [AI Decompilation](#ai-decompilation)
 - [Contributing](#contributing)
   - [Building from Source](#building-from-source)
   - [Reporting Bugs](#reporting-bugs)
     - [Known Issues](#known-issues)
-- [Credits](#credits)
 
-## Key Features
+## Key features
 
 * Upload the current binary for analysis
 * Automatically rename all functions above a confidence threshold
@@ -38,19 +42,19 @@ and use it for Binary Code Similarity to help you Reverse Engineer stripped bina
 
 ## Installation
 
-The builds for latest stable version of the RevEng.AI Ghidra plugin for common Ghidra versions can be downloaded from the [Releases](https://github.com/revengai/reait-ghidra/releases/latest) page.
+The builds for latest stable version of the RevEng.AI Ghidra plugin for common Ghidra versions can be downloaded from the [Releases](https://github.com/revengai/reai-ghidra/releases/latest) page.
 
-### Supported Ghidra Versions
+### Supported Ghidra versions
 
 We support all versions compatible with Ghidra 11.2+ based on Java 21.
 
-#### Building your own Plugin (For custom Ghidra Forks and Versions)
+#### Building your own plugin (for custom Ghidra forks and versions)
 
 If you are using a custom version of Ghidra (e.g. nightly builds), then you need to build your own version of the plugin against it,
 otherwise Ghidra complains about a version mismatch when trying to install the plugin.
 You can do this via `./gradlew -PGHIDRA_INSTALL_DIR=/opt/ghidra buildExtension`, and then use the zip from the `dist/` folder.
 
-### Loading the Plugin
+### Loading the plugin
 
 1. Launch Ghidra.
 2. Navigate to the `Install Extensions` window.
@@ -60,7 +64,7 @@ You can do this via `./gradlew -PGHIDRA_INSTALL_DIR=/opt/ghidra buildExtension`,
 5. Click the "OK" button to exit the `Install Extensions` window.
 6. Restart Ghidra when prompted.
 
-### Enabling the Plugin
+### Enabling the plugin
 
 Once installed, you can enable the plugin via the `Configure` tool.
 
@@ -75,7 +79,7 @@ Once installed, you can enable the plugin via the `Configure` tool.
 
 In this section, we provide an example workflow for our plugin that uses test binaries from `src/test/resources`.
 
-Once the plugin is loaded, there will be additional controls in the toolbar under `RevEng.AI`.
+Once the plugin is loaded, there will be additional menu entries in the toolbar under `RevEng.AI`.
 
 ### Configuration
 
@@ -89,8 +93,7 @@ When you load the plugin for the first time, or by selecting `RevEng.AI -> Confi
 > where they will be validated and saved for future use.
 
 
-
-### Running an Analysis
+### Analysis
 
 You are now ready to analyse a binary.
 
@@ -105,71 +108,65 @@ You can check the status of your request by selecting `RevEng.AI -> Analysis -> 
 Starting an analysis also triggers a background Ghidra thread that will periodically check the status
 and pop a notification when the analysis is complete.
 
-We now have uploaded `fdupes` to our dataset, meaning we can now use it for our binary similarity tasks. Let's see how this works on a stripped version of fdupes.
+### Auto Unstrip
+
+The `Auto Unstrip` tool allows you to automatically recover function names based on our debug symbol database. It is 
+an automated process that will recover all function names from the currently attached binary.
+
+You can access it by selecting `RevEng.AI -> Auto Unstrip` from the menu.
+
+### Function Matching
+
+The function matching tool allows you to rename functions in a binary based on similarity to functions in our database.
+It is a manual process that can be done on a per-function basis, or in batch mode for the entire binary. It allows you 
+to have more control over which functions are renamed, and when as well as the ability to review the suggested names before
+applying them.
+
+#### Individual function matching and renaming
+
+We now have uploaded `fdupes` to our dataset, meaning we can now use it for our binary similarity tasks. Let's see how this works on a stripped version of `fdupes`.
 
 Import `src/test/resourcesfdupes.stripped` using the same steps as before. Once this has been completed, you can move on to the next step.
 
-With `fdupes.stripped` open in Ghidra, select a function in Ghidra's listing or decompiler view, and `right-click -> Rename from Similar Functions`, or `CTRL-Shift + R`.
-This will open the function renaming window.
+With `fdupes.stripped` open in Ghidra, select a function in Ghidra's listing or decompiler view, and `Right-Click -> Match function`.
+This will open the function matching and renaming window.      
 
-![Function Rename Action](screenshots/rename-action.png)
-![Function Renaming Window](screenshots/rename-gui.png)
+![Function Matching Action](screenshots/function-matching-action.png)
+![Function Matching Window](screenshots/function-matching-window-2.png)
 
-The list of functions is returned and displayed inside this panel for you.
+Adjust the filters as necessary and when ready click `Match Functions`. This will return up to 10 functions that match
+the selected function. You can then decide to rename the function to one of the suggested names by clicking `Rename Selected`.
 
-You can then click `Refresh` to update the returned functions based on updated parameters.
+You can always update the filters and click `Match Functions` again to update the returned functions based on updated filters.
 
-### Auto Analysis
+#### Batch function matching and renaming
 
-You can also batch analyse the binary to rename functions using the `Auto Analyse` tool.
+You can also batch analyse the binary to rename functions using the `Function Matching` tool. You can access it by 
+selecting `RevEng.AI -> Function Matching` from the menu.
 
-[//]: # (![Auto Analyse Tool]&#40;screenshots/auto-analysis-gui.png&#41;)
+![Binary Function Matching Window](screenshots/binary-function-matching-window.png)
 
-[//]: # (This tool pull the list of collections you have access to on your account, and allows you to specify which collections you want to be included in your auto analysis by clicking on the checkbox. Selecting no collections will enable all the available collections in your search.)
+Similar to the individual function matching window, you can adjust the filters as necessary.
+When ready, click `Match Functions` to start the matching process. Once you get the results back you can either
+rename all the functions or select specific functions to rename.
 
-Move the slider to determine the confidence level you want to use for batch renaming. Any function returned that is higher than this value will automatically be renamed in the listing view. Clicking the `start` button will kick off the analysis, which you can track in the blue progress bar
+### AI Decompilation
 
-[//]: # (![Auto Analysis Progress]&#40;screenshots/auto-analysis-gui-run.png&#41;)
+The `AI Decompilation` tool allows you to get AI generated decompilation of selected functions. You can access it by
+right-clicking on a function in Ghidra's listing or decompiler view and selecting `AI Decompilation`.
 
-Use `Fetch Similar Functions` to load matches from the API above the confidence threshold.
+The window will show you the AI generated decompilation of the selected function as well as a
+natural language explanation of what the function does.
 
-![Auto Analysis before loading matches](screenshots/empty_aa_dialog.png)
+The window can be pinned and will update as you select different functions in Ghidra.
 
-Once the results are retrieved, you can look at them more closely.
-Each match is represented by a row in the table, and comes with various associated information
-in each column. Not all of them are shown by default,
-you can configure the displayed columns via the `Add/Remove Columns` entry in the context menu of a column.
-
-You can now simply accept all displayed results via the `Apply Filtered Results` button,
-or you can investigate them more closely yourself.
-
-Ghidra comes with a powerful table including filtering and we integrate with this feature.
-Double-clicking a table entry will open the corresponding function in the listing view.
-
-You can search by strings in all matches,
-or you can access the advanced filter options via the `Create Column Filter` button:
-
-![Filter Options](screenshots/filter_options_button.png)
-
-[//]: # (![Auto Analyse Result]&#40;screenshots/auto-analysis-results.png&#41;)
-
-Here you can now set up more complex filters,
-e.g. if you only want to apply matches that satisfy certain criteria.
-
-![Complex Filter Example](screenshots/complex_filter.png)
-
-After you apply the filter, the `Apply Filtered Results` button will only apply the matches that satisfy the filter.
-
-![Complex Filter Result](screenshots/complex_filter_result.png)
-
-Alternatively, you can select individual entries via `Ctrl+Click` and `Shift+Click` and apply only those via the
-`Apply Selected Results` button.
+![AI Decompilation Window](screenshots/ai-decompilation.png)
 
 ## Contributing
 
 We welcome pull requests from the community.
 
-The plugin is still undergoing active development currently, and we are looking for feedback on how to improve the plugin.
+The plugin is still undergoing active development currently, and we are looking for feedback on how to improve it.
 
 
 ### Code Overview
@@ -180,20 +177,20 @@ The **CorePlugin** provides services that are shared across all parts of the too
 
 You should therefore group related features into a Feature Plugin, and then acquire services from the CorePlugin as required. This gives users the flexiblity to enable / disable features based on their use-case and/or preferences.
 
-### Building
+### Building from source
 
-Gradle can be used to build REAIT from its source code.
+Gradle can be used to build the plugin from its source code.
 
 #### No Eclipse
 
-1. Clone the REAIT for Ghidra GitHub repository.
+1. Clone the GitHub repository.
    ```
-   git clone https://github.com/RevEngAI/reait-ghidra.git
+   git clone https://github.com/RevEngAI/reai-ghidra.git
    ```
 
 2. Enter the repository and build with gradle.
    ```
-   cd reait-ghidra
+   cd reai-ghidra
    gradle -PGHIDRA_INSTALL_DIR=<ghidra_install_dir>
    ```
    * Replace `<ghidra_install_dir>` with the path to your local Ghidra installation path.
@@ -213,12 +210,10 @@ Developing in Eclipse is the prefered method, but it does require some setup on 
 
 ### Reporting Bugs
 
-If you've found a bug in reait-ghidra, please open an issue via [GitHub](https://github.com/RevEngAi/reait-ghidra/issues/new/choose), or create a post on our [Community Forms](https://community.reveng.ai/c/integrations/ghidra/6).
+If you've found a bug in the plugin, please open an issue via [GitHub](https://github.com/RevEngAi/reai-ghidra/issues/new/choose), or create a post on our [Discord](https://discord.com/invite/ZwQTvzfSbA).
 
 #### Known Issues
 
 _Plugin configuration is not appearing after installation:_
 
 Check that the downloaded folder is called `reai-ghidra` and not `reai-ghidra-2` due to multiple downloads of the same folder.
-
-## Credits
