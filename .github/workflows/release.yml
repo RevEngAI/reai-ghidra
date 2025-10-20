@@ -15,8 +15,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - ghidra: "11.4.2"
+            java: "21"
           - ghidra: "11.4.1"
-          - java: "21"
+            java: "21"
           - ghidra: "11.4"
             java: "21"
           - ghidra: "11.3.2"
@@ -29,10 +31,6 @@ jobs:
             java: "21"
           - ghidra: "11.2"
             java: "21"
-          - ghidra: "11.1.2"
-            java: "17"
-          - ghidra: "11.0.3"
-            java: "17"
 
     steps:
       - uses: actions/checkout@v4
