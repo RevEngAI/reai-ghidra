@@ -14,6 +14,7 @@ import ghidra.util.exception.DuplicateNameException;
 import ghidra.util.exception.InvalidInputException;
 import ghidra.util.task.TaskMonitorComponent;
 import ghidra.util.Msg;
+import resources.ResourceManager;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -468,6 +469,15 @@ public abstract class AbstractFunctionMatchingDialog extends RevEngDialogCompone
         // Match button panel
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         JButton matchButton = new JButton("Match Functions");
+
+        // Add magnifying glass icon to the button
+        try {
+            Icon icon = ResourceManager.loadImage("images/magnifier.png");
+            matchButton.setIcon(icon);
+        } catch (Exception e) {
+            // If icon loading fails, button will just show text without icon
+        }
+
         matchButton.addActionListener(e -> onMatchButtonClicked());
         buttonPanel.add(matchButton);
 
