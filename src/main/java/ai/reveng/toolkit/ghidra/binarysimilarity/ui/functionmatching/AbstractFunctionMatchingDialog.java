@@ -327,7 +327,7 @@ public abstract class AbstractFunctionMatchingDialog extends RevEngDialogCompone
     }
 
     protected void handleError(String message) {
-        statusLabel.setText("Error occurred");
+        statusLabel.setText("An error occurred, press 'Match Functions' again to retry");
         showError(message);
         taskMonitorComponent.setMessage("Error");
     }
@@ -452,6 +452,7 @@ public abstract class AbstractFunctionMatchingDialog extends RevEngDialogCompone
         JButton matchButton = new JButton("Match Functions");
         matchButton.addActionListener(e -> onMatchButtonClicked());
         buttonPanel.add(matchButton);
+
 
         // Function filter panel
         JPanel functionFilterPanel = createFunctionFilterPanel();
@@ -726,6 +727,7 @@ public abstract class AbstractFunctionMatchingDialog extends RevEngDialogCompone
     protected void onMatchButtonClicked() {
         filterResults();
     }
+
 
     protected void onRenameAllButtonClicked() {
         batchRenameFunctions(functionMatchResults);

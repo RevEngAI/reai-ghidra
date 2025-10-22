@@ -63,6 +63,17 @@ public class FunctionLevelFunctionMatchingDialog extends AbstractFunctionMatchin
                 functionMatchingResponse = revengService.getFunctionMatchingForFunction(request);
                 updateUI();
 
+                // Check if we hit an error status
+                if (Objects.equals(functionMatchingResponse.getStatus(), "ERROR")) {
+                    stopPolling();
+                    taskMonitorComponent.setVisible(false);
+                    String errorMsg = functionMatchingResponse.getErrorMessage() != null && !functionMatchingResponse.getErrorMessage().isEmpty()
+                        ? functionMatchingResponse.getErrorMessage()
+                        : "Function matching returned an error status";
+                    handleError(errorMsg);
+                    return;
+                }
+
                 // Check if we're done
                 if (functionMatchingResponse.getProgress() != null &&
                     (functionMatchingResponse.getProgress() >= 100 || Objects.equals(functionMatchingResponse.getStatus(), "COMPLETED"))) {
