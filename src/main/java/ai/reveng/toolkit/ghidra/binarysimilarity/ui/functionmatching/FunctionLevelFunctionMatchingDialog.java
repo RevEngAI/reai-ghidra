@@ -134,6 +134,9 @@ public class FunctionLevelFunctionMatchingDialog extends AbstractFunctionMatchin
             // Set color-coded renderer for Confidence column (index 2)
             resultsTable.getColumnModel().getColumn(2).setCellRenderer(new PercentageColorCellRenderer());
 
+            // Configure sorting for percentage columns
+            configurePercentageColumnSorting(1, 2);
+
             // Set column widths
             resultsTable.getColumnModel().getColumn(0).setPreferredWidth(150);  // Best Match
             resultsTable.getColumnModel().getColumn(1).setPreferredWidth(80);   // Similarity
