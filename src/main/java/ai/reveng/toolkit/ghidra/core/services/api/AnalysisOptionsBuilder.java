@@ -16,7 +16,8 @@ import java.util.List;
 public class AnalysisOptionsBuilder {
     private JSONObject options;
 
-    private AnalysisOptionsBuilder() {
+    // Package-private constructor for testing
+    AnalysisOptionsBuilder() {
         options = new JSONObject();
         options.put("size_in_bytes", 0);
         options.put("tags", new JSONArray());
@@ -131,19 +132,24 @@ public class AnalysisOptionsBuilder {
      * @return AnalysisCreateRequest object populated with the current options
      */
     public AnalysisCreateRequest toAnalysisCreateRequest() {
-        // Convert string tags to Tag objects
-        List<Tag> tags = getTags().stream()
-                .map(tagString -> new Tag().name(tagString))
-                .toList();
-
         // Create the request with only the core required fields that we know work
         var request = new AnalysisCreateRequest()
                 .filename(options.getString("file_name"))
                 .sha256Hash(options.getString("sha_256_hash"));
 
         // Include tags if any were provided
-        if (!tags.isEmpty()) {
-            request.setTags(tags);
+        List<String> tagStrings = getTags();
+        if (!tagStrings.isEmpty()) {
+            // Convert string tags to Tag objects, filtering out any empty/null strings
+            List<Tag> tags = tagStrings.stream()
+                    .filter(tagString -> tagString != null && !tagString.trim().isEmpty())
+                    .map(tagString -> new Tag().name(tagString))
+                    .toList();
+
+            // Only set tags if we have valid ones after filtering
+            if (!tags.isEmpty()) {
+                request.setTags(tags);
+            }
         }
 
         if (options.has("binary_scope")) {
