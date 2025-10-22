@@ -135,6 +135,9 @@ public class BinaryLevelFunctionMatchingDialog extends AbstractFunctionMatchingD
             // Set color-coded renderer for Confidence column (index 4)
             resultsTable.getColumnModel().getColumn(4).setCellRenderer(new PercentageColorCellRenderer());
 
+            // Configure sorting for percentage columns
+            configurePercentageColumnSorting(3, 4);
+
             // Set column widths
             resultsTable.getColumnModel().getColumn(0).setPreferredWidth(100);  // Virtual Address
             resultsTable.getColumnModel().getColumn(1).setPreferredWidth(150);  // Function Name
@@ -154,6 +157,7 @@ public class BinaryLevelFunctionMatchingDialog extends AbstractFunctionMatchingD
             resultsTable.getColumnModel().getColumn(6).setMinWidth(80);
         }
     }
+
 
     @Override
     protected String getDialogDescription() {
