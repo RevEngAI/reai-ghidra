@@ -164,7 +164,7 @@ public abstract class AbstractFunctionMatchingDialog extends RevEngDialogCompone
 
         // Update status
         if (functionMatchingResponse.getStatus() != null) {
-            statusLabel.setText("Status: " + functionMatchingResponse.getStatus());
+            statusLabel.setText("Status: " + getFriendlyStatusMessage(functionMatchingResponse.getStatus()));
         }
 
         // Handle error message - dynamically add/remove error panel
@@ -324,6 +324,24 @@ public abstract class AbstractFunctionMatchingDialog extends RevEngDialogCompone
             sorter.setComparator(similarityColumnIndex, percentageComparator);
             sorter.setComparator(confidenceColumnIndex, percentageComparator);
         }
+    }
+
+    /**
+     * Convert API status values to user-friendly messages
+     */
+    protected String getFriendlyStatusMessage(String apiStatus) {
+        if (apiStatus == null) {
+            return "Unknown";
+        }
+
+        return switch (apiStatus) {
+            case "STARTED" -> "started function matching...";
+            case "IN_PROGRESS" -> "running function matching...";
+            case "COMPLETED" -> "completed function matching";
+            case "ERROR", "NOT_FOUND" -> "function matching failed";
+            case "CANCELLED" -> "function matching was cancelled";
+            default -> apiStatus; // Fallback to original if unknown
+        };
     }
 
     protected void handleError(String message) {

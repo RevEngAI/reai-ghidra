@@ -174,7 +174,7 @@ public class AutoUnstripDialog extends RevEngDialogComponentProvider {
         taskMonitorComponent.setMessage(autoUnstripResponse.progress() + "%");
 
         // Update status
-        statusLabel.setText("Status: " + autoUnstripResponse.status());
+        statusLabel.setText("Status: " + getFriendlyStatusMessage(autoUnstripResponse.status()));
 
         // Handle error message - dynamically add/remove error panel
         if (autoUnstripResponse.error_message() != null && !autoUnstripResponse.error_message().isEmpty()) {
@@ -185,6 +185,24 @@ public class AutoUnstripDialog extends RevEngDialogComponentProvider {
 
         // Update results table
         updateResultsTable();
+    }
+
+    /**
+     * Convert API status values to user-friendly messages
+     */
+    private String getFriendlyStatusMessage(String apiStatus) {
+        if (apiStatus == null) {
+            return "Unknown";
+        }
+
+        return switch (apiStatus) {
+            case "STARTED" -> "started auto unstrip...";
+            case "IN_PROGRESS" -> "running auto unstrip...";
+            case "COMPLETED" -> "completed auto unstrip";
+            case "ERROR", "NOT_FOUND" -> "auto unstrip failed";
+            case "CANCELLED" -> "auto unstrip was cancelled";
+            default -> apiStatus; // Fallback to original if unknown
+        };
     }
 
     private void updateResultsTable() {
