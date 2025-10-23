@@ -14,6 +14,7 @@ import ghidra.util.exception.DuplicateNameException;
 import ghidra.util.exception.InvalidInputException;
 import ghidra.util.task.TaskMonitorComponent;
 import ghidra.util.Msg;
+import resources.ResourceManager;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -164,7 +165,7 @@ public abstract class AbstractFunctionMatchingDialog extends RevEngDialogCompone
 
         // Update status
         if (functionMatchingResponse.getStatus() != null) {
-            statusLabel.setText("Status: " + functionMatchingResponse.getStatus());
+            statusLabel.setText("Status: " + getFriendlyStatusMessage(functionMatchingResponse.getStatus()));
         }
 
         // Handle error message - dynamically add/remove error panel
@@ -326,8 +327,26 @@ public abstract class AbstractFunctionMatchingDialog extends RevEngDialogCompone
         }
     }
 
+    /**
+     * Convert API status values to user-friendly messages
+     */
+    protected String getFriendlyStatusMessage(String apiStatus) {
+        if (apiStatus == null) {
+            return "Unknown";
+        }
+
+        return switch (apiStatus) {
+            case "STARTED" -> "started function matching...";
+            case "IN_PROGRESS" -> "running function matching...";
+            case "COMPLETED" -> "completed function matching";
+            case "ERROR", "NOT_FOUND" -> "function matching failed";
+            case "CANCELLED" -> "function matching was cancelled";
+            default -> apiStatus; // Fallback to original if unknown
+        };
+    }
+
     protected void handleError(String message) {
-        statusLabel.setText("Error occurred");
+        statusLabel.setText("An error occurred, press 'Match Functions' again to retry");
         showError(message);
         taskMonitorComponent.setMessage("Error");
     }
@@ -450,8 +469,18 @@ public abstract class AbstractFunctionMatchingDialog extends RevEngDialogCompone
         // Match button panel
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         JButton matchButton = new JButton("Match Functions");
+
+        // Add magnifying glass icon to the button
+        try {
+            Icon icon = ResourceManager.loadImage("images/magnifier.png");
+            matchButton.setIcon(icon);
+        } catch (Exception e) {
+            // If icon loading fails, button will just show text without icon
+        }
+
         matchButton.addActionListener(e -> onMatchButtonClicked());
         buttonPanel.add(matchButton);
+
 
         // Function filter panel
         JPanel functionFilterPanel = createFunctionFilterPanel();
@@ -726,6 +755,7 @@ public abstract class AbstractFunctionMatchingDialog extends RevEngDialogCompone
     protected void onMatchButtonClicked() {
         filterResults();
     }
+
 
     protected void onRenameAllButtonClicked() {
         batchRenameFunctions(functionMatchResults);
