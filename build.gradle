@@ -84,6 +84,16 @@ test {
 // Ex: buildExtension.exclude '.idea/**'
 
 
+tasks.register('updateReadmeScreenshots', Copy) {
+    def ghidraDebugDir = ghidraInstallDir + "/Ghidra/Framework/Generic/bin/debug/"
+    from(ghidraDebugDir) {
+        include '**/*.png', '**/*.jpg', '**/*.jpeg', '**/*.gif', '**/*.bmp'
+    }
+    into "screenshots/"
+}
+updateReadmeScreenshots.mustRunAfter test
+
+
 sourceSets {
 	main {
 		java {
