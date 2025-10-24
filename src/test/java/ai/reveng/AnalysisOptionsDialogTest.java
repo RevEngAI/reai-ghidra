@@ -57,6 +57,7 @@ public class AnalysisOptionsDialogTest extends RevEngMockableHeadedIntegrationTe
             okButton.doClick();
         });
         var options = dialog.getOptionsFromUI();
+        capture(dialog.getComponent(), "upload-dialog");
         assertNotNull(options);
     }
 }
