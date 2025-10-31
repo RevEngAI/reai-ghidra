@@ -100,7 +100,7 @@ You are now ready to analyse a binary.
 Import `src/test/resources/fdupes` into Ghidra and then create a new RevEng analysis, by going to `RevEng.AI -> Analysis -> Create New`.
 Usually it's enough to use the default options, but you can also select specific platforms or architectures if you want to.
 
-![Upload Dialog](screenshots/upload-dialog.png)
+![Upload Dialog](screenshots/upload-dialog-v2.png)
 
 > We are using `fdupes` with symbols to allow the model to learn what these functions look like, and to provide meaningful labels that we can use later to rename similar binaries.
 
