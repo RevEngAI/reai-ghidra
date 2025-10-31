@@ -1,9 +1,10 @@
 package ai.reveng.toolkit.ghidra.binarysimilarity.ui.analysiscreation;
 
+import ai.reveng.toolkit.ghidra.binarysimilarity.ui.dialog.RevEngDialogComponentProvider;
 import ai.reveng.toolkit.ghidra.core.services.api.AnalysisOptionsBuilder;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.api.types.AnalysisScope;
-import docking.DialogComponentProvider;
+import ai.reveng.toolkit.ghidra.plugins.ReaiPluginPackage;
 import ghidra.program.model.listing.Program;
 
 import javax.annotation.Nullable;
@@ -11,18 +12,18 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.List;
 
-public class RevEngAIAnalysisOptionsDialog extends DialogComponentProvider {
-    private final JCheckBox advancedAnalysisCheckBox;
-    private final JCheckBox dynamicExecutionCheckBox;
+public class RevEngAIAnalysisOptionsDialog extends RevEngDialogComponentProvider {
+    private JCheckBox advancedAnalysisCheckBox;
+    private JCheckBox dynamicExecutionCheckBox;
     private final Program program;
-    private final JRadioButton privateScope;
-    private final JRadioButton publicScope;
-    private final JTextField tagsTextBox;
-    private final JCheckBox scrapeExternalTagsBox;
-    private final JCheckBox identifyCapabilitiesCheckBox;
-    private final JCheckBox identifyCVECheckBox;
-    private final JCheckBox generateSBOMCheckBox;
-    private final JComboBox<String> architectureComboBox;
+    private JRadioButton privateScope;
+    private JRadioButton publicScope;
+    private JTextField tagsTextBox;
+    private JCheckBox scrapeExternalTagsBox;
+    private JCheckBox identifyCapabilitiesCheckBox;
+    private JCheckBox identifyCVECheckBox;
+    private JCheckBox generateSBOMCheckBox;
+    private JComboBox<String> architectureComboBox;
     private boolean okPressed = false;
 
     public static RevEngAIAnalysisOptionsDialog withModelsFromServer(Program program, GhidraRevengService reService) {
@@ -30,19 +31,26 @@ public class RevEngAIAnalysisOptionsDialog extends DialogComponentProvider {
     }
 
     public RevEngAIAnalysisOptionsDialog(Program program) {
-        super("Configure Analysis for %s".formatted(program.getName()), true, false, true, true);
+        super(ReaiPluginPackage.WINDOW_PREFIX + "Configure Analysis for %s".formatted(program.getName()), true);
         this.program = program;
 
+        buildInterface();
+        setPreferredSize(320, 380);
+    }
 
+    private void buildInterface() {
         var workPanel = new JPanel();
         workPanel.setLayout(new BoxLayout(workPanel, BoxLayout.Y_AXIS));
+
         addWorkPanel(workPanel);
 
+        // Create title panel
+        JPanel titlePanel = createTitlePanel("Create new analysis for this binary");
+        workPanel.add(titlePanel, BorderLayout.NORTH);
 
         // Add Platform Drop Down
         var platformComboBox = new JComboBox<>(new String[]{
                 "Auto", "windows", "linux",
-//                "macos", "android"
         });
         platformComboBox.setEditable(false);
         // Center the text
@@ -52,8 +60,6 @@ public class RevEngAIAnalysisOptionsDialog extends DialogComponentProvider {
         platformLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         workPanel.add(platformLabel);
         workPanel.add(platformComboBox);
-
-
 
         // Add Drop down for AnalysisScope
         // Currently just public and private, but in the future this will include teams
@@ -94,7 +100,6 @@ public class RevEngAIAnalysisOptionsDialog extends DialogComponentProvider {
 
         // Add Two Check boxes for Dynamic Execution and Advanced Analysis next to each other (horizantally)
         var checkBoxPanel = new JPanel();
-//        checkBoxPanel.setLayout(new BoxLayout(checkBoxPanel, BoxLayout.X_AXIS));
         checkBoxPanel.setLayout(new GridLayout(0, 2));
         dynamicExecutionCheckBox = new JCheckBox("Dynamic Execution");
         dynamicExecutionCheckBox.setToolTipText("Include Dynamic Execution inside a Sandbox Environment with the Analysis");

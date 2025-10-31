@@ -1,17 +1,18 @@
 package ai.reveng.toolkit.ghidra.binarysimilarity.ui.recentanalyses;
 
+import ai.reveng.toolkit.ghidra.binarysimilarity.ui.dialog.RevEngDialogComponentProvider;
 import ai.reveng.toolkit.ghidra.core.RevEngAIAnalysisStatusChangedEvent;
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.api.types.LegacyAnalysisResult;
 import ai.reveng.toolkit.ghidra.core.services.api.types.BinaryHash;
 import ai.reveng.toolkit.ghidra.core.types.ProgramWithBinaryID;
-import docking.DialogComponentProvider;
+import ai.reveng.toolkit.ghidra.plugins.ReaiPluginPackage;
 import ghidra.framework.plugintool.PluginTool;
 import ghidra.program.model.listing.Program;
-import ghidra.util.Msg;
 import ghidra.util.table.GhidraFilterTable;
 
 import javax.swing.*;
+import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.Comparator;
@@ -21,7 +22,7 @@ import java.util.Comparator;
  * Shows a dialog with a table of {@link LegacyAnalysisResult} for a given {@link BinaryHash},
  * and fires an event when the user picks an analysis
  */
-public class RecentAnalysisDialog extends DialogComponentProvider {
+public class RecentAnalysisDialog extends RevEngDialogComponentProvider {
     private final RecentAnalysesTableModel recentAnalysesTableModel;
     private final GhidraFilterTable<LegacyAnalysisResult> recentAnalysesTable;
     private final PluginTool tool;
@@ -29,14 +30,27 @@ public class RecentAnalysisDialog extends DialogComponentProvider {
     private final GhidraRevengService ghidraRevengService;
 
     public RecentAnalysisDialog(PluginTool tool, Program program) {
-        super("Recent Analyses", true);
+        super(ReaiPluginPackage.WINDOW_PREFIX + "Recent Analyses", true);
         this.tool = tool;
         this.program = program;
         this.ghidraRevengService = tool.getService(GhidraRevengService.class);
+
         var hash = new BinaryHash(program.getExecutableSHA256());
         recentAnalysesTableModel = new RecentAnalysesTableModel(tool, hash, this.program.getImageBase());
         recentAnalysesTable = new GhidraFilterTable<>(recentAnalysesTableModel);
 
+        buildInterface();
+        setPreferredSize(600, 400);
+    }
+
+    private void buildInterface() {
+        JPanel mainPanel = new JPanel(new BorderLayout());
+
+        // Create title panel
+        JPanel titlePanel = createTitlePanel("Find existing analyses for this binary");
+        mainPanel.add(titlePanel, BorderLayout.NORTH);
+
+        // Create the table content
         // Add mouse listener to handle clicks on the Analysis ID column
         recentAnalysesTable.getTable().addMouseListener(new MouseAdapter() {
             @Override
@@ -58,6 +72,7 @@ public class RecentAnalysisDialog extends DialogComponentProvider {
                 }
             }
         });
+        mainPanel.add(recentAnalysesTable, BorderLayout.CENTER);
 
         JButton pickMostRecentButton = new JButton("Pick most recent");
         pickMostRecentButton.setName("Pick most recent");
@@ -77,8 +92,7 @@ public class RecentAnalysisDialog extends DialogComponentProvider {
         });
         addButton(pickSelectedButton);
 
-        rootPanel.add(recentAnalysesTable);
-
+        addWorkPanel(mainPanel);
     }
 
     private void pickAnalysis(LegacyAnalysisResult result) {

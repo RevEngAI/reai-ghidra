@@ -15,6 +15,8 @@ import java.awt.BorderLayout;
 import java.awt.GridBagLayout;
 import java.awt.GridBagConstraints;
 import java.awt.Insets;
+import java.awt.Desktop;
+import java.net.URI;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
@@ -109,14 +111,49 @@ public class UserCredentialsPanel extends AbstractMageJPanel<SetupWizardStateKey
 		tfPortalHostname.setText("https://portal.reveng.ai");
 		userDetailsPanel.add(tfPortalHostname, gbc);
 
-		// Validate button row
+		// Retrieve API Key link row (above validate button)
 		gbc.gridx = 0;
 		gbc.gridy = 3;
 		gbc.gridwidth = 2;
 		gbc.fill = GridBagConstraints.NONE;
 		gbc.weightx = 0.0;
 		gbc.anchor = GridBagConstraints.CENTER;
-		gbc.insets = new Insets(15, 5, 5, 5);
+		gbc.insets = new Insets(10, 5, 5, 5);
+		JLabel retrieveApiKeyLink = new JLabel("<html><a href=''>Retrieve API Key</a></html>");
+		retrieveApiKeyLink.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+		retrieveApiKeyLink.addMouseListener(new java.awt.event.MouseAdapter() {
+			@Override
+			public void mouseClicked(java.awt.event.MouseEvent e) {
+				try {
+					String portalHostname = tfPortalHostname.getText().trim();
+					if (portalHostname.isEmpty()) {
+						portalHostname = "https://portal.reveng.ai";
+					}
+					// Remove trailing slash if present
+					if (portalHostname.endsWith("/")) {
+						portalHostname = portalHostname.substring(0, portalHostname.length() - 1);
+					}
+					String settingsUrl = portalHostname + "/settings";
+					if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+						Desktop.getDesktop().browse(new URI(settingsUrl));
+					}
+				} catch (Exception ex) {
+					if (loggingService != null) {
+						loggingService.error("Failed to open API key link: " + ex.getMessage());
+					}
+				}
+			}
+		});
+		userDetailsPanel.add(retrieveApiKeyLink, gbc);
+
+		// Validate button row
+		gbc.gridx = 0;
+		gbc.gridy = 4;
+		gbc.gridwidth = 2;
+		gbc.fill = GridBagConstraints.NONE;
+		gbc.weightx = 0.0;
+		gbc.anchor = GridBagConstraints.CENTER;
+		gbc.insets = new Insets(5, 5, 0, 5);
 		JButton runTestsButton = new JButton("Validate Credentials");
 		runTestsButton.addActionListener(e -> {
 			var apiInfo = new ApiInfo(tfApiHostname.getText(), tfPortalHostname.getText(), tfApiKey.getText());
@@ -156,17 +193,14 @@ public class UserCredentialsPanel extends AbstractMageJPanel<SetupWizardStateKey
 		Boolean existingValidationState = (Boolean) state.get(SetupWizardStateKey.CREDENTIALS_VALIDATED);
 
 		if (existingApiKey != null && !existingApiKey.isEmpty()) {
-            loggingService.info("Pre-filling API key from existing state");
 			tfApiKey.setText(existingApiKey);
 		}
 
 		if (existingHostname != null && !existingHostname.isEmpty()) {
-            loggingService.info("Pre-filling API hostname from existing state");
 			tfApiHostname.setText(existingHostname);
 		}
 
 		if (existingPortalHostname != null && !existingPortalHostname.isEmpty()) {
-            loggingService.info("Pre-filling Portal hostname from existing state");
 			tfPortalHostname.setText(existingPortalHostname);
 		}
 
@@ -175,7 +209,6 @@ public class UserCredentialsPanel extends AbstractMageJPanel<SetupWizardStateKey
 		    existingApiKey != null && !existingApiKey.isEmpty() &&
 		    existingHostname != null && !existingHostname.isEmpty()) {
 			credentialsValidated = true;
-			loggingService.info("Restored credentials validation state from previous session");
 			notifyListenersOfValidityChanged();
 		}
 	}
@@ -198,10 +231,6 @@ public class UserCredentialsPanel extends AbstractMageJPanel<SetupWizardStateKey
 		state.put(SetupWizardStateKey.HOSTNAME, tfApiHostname.getText());
 		state.put(SetupWizardStateKey.PORTAL_HOSTNAME, tfPortalHostname.getText());
 		state.put(SetupWizardStateKey.CREDENTIALS_VALIDATED, credentialsValidated);
-
-        if (loggingService != null) {
-            loggingService.info("Saved form data and validation state to state");
-        }
 	}
 
 	@Override
