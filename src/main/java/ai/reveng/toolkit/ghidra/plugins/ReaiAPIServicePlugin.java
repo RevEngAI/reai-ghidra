@@ -82,7 +82,6 @@ public class ReaiAPIServicePlugin extends Plugin {
             return Optional.of(ApiInfo.fromConfig());
         } catch (FileNotFoundException e) {
             loggingService.error(e.getMessage());
-            Msg.showError(this, null, "Load Config", "Unable to find RevEng config file");
             return Optional.empty();
         } catch (JSONException e) {
             loggingService.error(e.getMessage());
