@@ -188,6 +188,7 @@ public class GhidraRevengService {
         StringPropertyMap finalMangledNameMap = mangledNameMap;
 
         AtomicInteger ghidraRenamedFunctions = new AtomicInteger();
+        AtomicInteger ghidraBoundariesMatchedFunction = new AtomicInteger();
         functionInfo.forEach(
                 info -> {
                     var oFunc = getFunctionFor(info, program);
@@ -215,9 +216,11 @@ public class GhidraRevengService {
                     }
 
                     var funcSize = func.getBody().getNumAddresses();
+
                     // For unclear reasons the func size is off by one
                     if (funcSize - 1 != info.functionSize() && funcSize != info.functionSize()){
                         Msg.warn(this, "Function size mismatch for function %s: %d vs %d".formatted(ghidraMangledName, funcSize, info.functionSize()));
+                        return;
                     }
 
                     // Source types:
@@ -238,6 +241,8 @@ public class GhidraRevengService {
                     }
                     finalFunctionIDMap.add(func.getEntryPoint(), info.functionID().value());
                     finalMangledNameMap.add(func.getEntryPoint(), revEngMangledName);
+
+                    ghidraBoundariesMatchedFunction.getAndIncrement();
                 }
         );
 
@@ -256,14 +261,14 @@ public class GhidraRevengService {
         program.endTransaction(transactionID, true);
 
         // Print summary
-        Msg.debug(
-    this,
-            "Loaded %d functions from RevEng.AI, renamed %d, Ghidra has %d functions".formatted(
+        Msg.showInfo(this, null, ReaiPluginPackage.WINDOW_PREFIX + "Function loading summary",
+            ("Found %d functions from RevEng.AI. Renamed %d. Your local Ghidra instance has %d/%d matching function " +
+                "boundaries. For better results, please start a new analysis from this plugin.").formatted(
                 functionInfo.size(),
                 ghidraRenamedFunctions.get(),
+                ghidraBoundariesMatchedFunction.get(),
                 ghidraFunctionCount.get()
-            )
-        );
+        ));
     }
 
     /**

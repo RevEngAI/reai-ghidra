@@ -48,16 +48,6 @@ public class RecentAnalysesTableModel extends ThreadedTableModelStub<LegacyAnaly
                         return;
                     }
 
-                    // Filter out analyses where the function boundaries hash does not match our program
-                    var functionBoundariesHash = functionBoundariesService.getFunctionBoundariesHash();
-                    if (!result.function_boundaries_hash().equals(functionBoundariesHash)) {
-                        loggingService.info(
-                            "[RevEng] Skipping analysis for " + result.binary_id() + " as function boundaries hash does" +
-                            " not match. Expected " + functionBoundariesHash + " but got " +
-                            result.function_boundaries_hash());
-                        return;
-                    }
-
                     accumulator.add(result);
                 }
         );

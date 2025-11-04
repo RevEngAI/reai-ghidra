@@ -135,7 +135,7 @@ public abstract class AbstractFunctionMatchingDialog extends RevEngDialogCompone
                 Function localFunction = functionMap.get(new FunctionID(matchResult.getFunctionId()));
 
                 if (localFunction == null) {
-                    // If we can't find the local function, skip this match
+                    // If we can't find the local function, skip this match (boundaries do not match the remote ones)
                     return;
                 }
 
