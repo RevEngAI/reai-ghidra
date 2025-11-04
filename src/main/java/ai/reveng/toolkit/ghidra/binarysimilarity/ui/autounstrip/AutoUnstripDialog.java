@@ -4,6 +4,7 @@ import ai.reveng.toolkit.ghidra.binarysimilarity.ui.dialog.RevEngDialogComponent
 import ai.reveng.toolkit.ghidra.core.services.api.GhidraRevengService;
 import ai.reveng.toolkit.ghidra.core.services.api.types.AnalysisID;
 import ai.reveng.toolkit.ghidra.core.services.api.types.AutoUnstripResponse;
+import ai.reveng.toolkit.ghidra.core.services.api.types.FunctionID;
 import ai.reveng.toolkit.ghidra.core.types.ProgramWithBinaryID;
 import ai.reveng.toolkit.ghidra.plugins.ReaiPluginPackage;
 import ghidra.framework.plugintool.PluginTool;
@@ -107,6 +108,9 @@ public class AutoUnstripDialog extends RevEngDialogComponentProvider {
         // Retrieve the mangled names map once outside the transaction
         var mangledNameMapOpt = revengService.getFunctionMangledNamesMap(program);
 
+        // Retrieve the function ID map once outside the transaction
+        var functionMap = revengService.getFunctionMap(program);
+
         program.withTransaction("Apply Auto-Unstrip Function Names", () -> {
                     try {
                         var revengMatchNamespace = program.getSymbolTable().getOrCreateNameSpace(
@@ -121,6 +125,7 @@ public class AutoUnstripDialog extends RevEngDialogComponentProvider {
 
                             var revEngMangledName = match.suggested_name();
                             var revEngDemangledName = match.suggested_demangled_name();
+                            var functionID = functionMap.get(new FunctionID(match.function_id().value()));
 
                             if (
                                     func != null &&
@@ -132,6 +137,8 @@ public class AutoUnstripDialog extends RevEngDialogComponentProvider {
                                     // Only accept valid names (no spaces)
                                     !revEngMangledName.contains(" ") &&
                                     !revEngDemangledName.contains(" ")
+                                    // Only rename if the function ID is known (boundaries matched)
+                                    && functionID != null
                             ) {
                                 try {
                                     // Capture original name before renaming
