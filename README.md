@@ -6,9 +6,6 @@
 
 Released as open source by RevEng.ai - https://reveng.ai
 
-<!-- TODO -->
-<!-- Released under the Apache 2.0 license (see [LICENSE](LICENSE) for more information) -->
-
 ## Description
 
 The RevEng.AI Ghidra plugins allows you to interact with our API from within Ghidra.
