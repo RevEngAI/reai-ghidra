@@ -42,7 +42,7 @@ and use it for Binary Code Similarity to help you Reverse Engineer stripped bina
 
 ## Installation
 
-The builds for latest stable version of the RevEng.AI Ghidra plugin for common Ghidra versions can be downloaded from the [Releases](https://github.com/revengai/reai-ghidra/releases/latest) page.
+The builds for latest stable version of the RevEng.AI Ghidra plugin for common Ghidra versions can be downloaded from the [Releases](https://github.com/revengai/plygin-ghidra/releases/latest) page.
 
 ### Supported Ghidra versions
 
@@ -185,12 +185,12 @@ Gradle can be used to build the plugin from its source code.
 
 1. Clone the GitHub repository.
    ```
-   git clone https://github.com/RevEngAI/reai-ghidra.git
+   git clone https://github.com/RevEngAI/plugin-ghidra.git
    ```
 
 2. Enter the repository and build with gradle.
    ```
-   cd reai-ghidra
+   cd plugin-ghidra
    gradle -PGHIDRA_INSTALL_DIR=<ghidra_install_dir>
    ```
    * Replace `<ghidra_install_dir>` with the path to your local Ghidra installation path.
@@ -210,10 +210,10 @@ Developing in Eclipse is the prefered method, but it does require some setup on 
 
 ### Reporting Bugs
 
-If you've found a bug in the plugin, please open an issue via [GitHub](https://github.com/RevEngAi/reai-ghidra/issues/new/choose), or create a post on our [Discord](https://discord.com/invite/ZwQTvzfSbA).
+If you've found a bug in the plugin, please open an issue via [GitHub](https://github.com/RevEngAi/plugin-ghidra/issues/new/choose), or create a post on our [Discord](https://discord.com/invite/ZwQTvzfSbA).
 
 #### Known Issues
 
 _Plugin configuration is not appearing after installation:_
 
-Check that the downloaded folder is called `reai-ghidra` and not `reai-ghidra-2` due to multiple downloads of the same folder.
+Check that the downloaded folder is called `plugin-ghidra` and not `plugin-ghidra-2` due to multiple downloads of the same folder.

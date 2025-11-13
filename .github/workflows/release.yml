@@ -54,28 +54,9 @@ jobs:
         run: ./gradlew buildExtension
 
       - name: Rename ZIP for upload
-        run: mv dist/*_${{matrix.ghidra}}_*.zip dist/ghidra_${{matrix.ghidra}}_reai-ghidra.zip
-
-#      - name: Check for Existing Asset
-#        id: check_asset
-#        run: |
-#          asset_name=ghidra_${{matrix.ghidra}}_${{matrix.name}}.zip
-#          asset_id=$(curl -s "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ github.event.release.tag_name }}" |
-#                     jq -r ".assets[] | select(.name == \"$asset_name\") | .id")
-#          echo "Existing Asset ID: $asset_id"
-#          echo "::set-output name=asset_id::$asset_id"
-#        continue-on-error: true
-#
-#      - name: Delete Existing Asset
-#        if: steps.check_asset.outputs.asset_id != ''
-#        run: |
-#          asset_id=${{ steps.check_asset.outputs.asset_id }}
-#          echo "Deleting Asset ID: $asset_id"
-#          curl -X DELETE \
-#            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-#            "https://api.github.com/repos/${{ github.repository }}/releases/assets/$asset_id"
+        run: mv dist/*_${{matrix.ghidra}}_*.zip dist/ghidra_${{matrix.ghidra}}_plugin-ghidra.zip
 
       - name: Upload release ZIP
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
-        run: gh release upload ${{github.event.release.tag_name}} dist/ghidra_${{matrix.ghidra}}_reai-ghidra.zip
+        run: gh release upload ${{github.event.release.tag_name}} dist/ghidra_${{matrix.ghidra}}_plugin-ghidra.zip
