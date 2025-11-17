@@ -161,7 +161,7 @@ public class AnalysisOptionsBuilder {
             JSONObject symbols = options.getJSONObject("symbols");
 
             var symbolsModel = new ai.reveng.model.Symbols()
-                    .baseAddress(symbols.getLong("base_addr"));
+                    .baseAddress(symbols.getBigInteger("base_addr"));
 
             List<ai.reveng.model.FunctionBoundary> boundaries = new ArrayList<>();
 
